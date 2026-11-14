@@ -1,19 +1,41 @@
 {
   "name": "avatar-builder",
-  "private": true,
-  "version": "0.0.0",
+  "private": false,
+  "version": "0.1.0",
+  "description": "A tiny, drop-in React avatar builder. Pick a look, get the config and a ready-to-use SVG.",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paul-elite/avatar-builder.git"
+  },
+  "keywords": ["avatar", "react", "svg", "component", "builder", "profile"],
+  "sideEffects": ["*.css"],
+  "main": "./dist-lib/avatar-builder.cjs",
+  "module": "./dist-lib/avatar-builder.js",
+  "exports": {
+    ".": {
+      "import": "./dist-lib/avatar-builder.js",
+      "require": "./dist-lib/avatar-builder.cjs"
+    },
+    "./styles.css": "./src/lib/styles.css"
+  },
+  "files": ["dist-lib", "src/lib"],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "build:lib": "vite build --config vite.lib.config.js",
+    "preview": "vite preview",
+    "prepare": "vite build --config vite.lib.config.js"
   },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "vite": "^5.4.11"
   }
 }

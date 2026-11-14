@@ -1,0 +1,73 @@
+/* avatar-builder — component styles. All classes are ab- prefixed so they
+   won't collide with a host app. Import once: import 'avatar-builder/styles.css' */
+
+.ab-root {
+  --ab-fg: #1a1a1a;
+  --ab-muted: #6b6b6b;
+  --ab-line: #e4e4e4;
+  --ab-accent: #1a1a1a;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ab-fg);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 420px;
+}
+
+.ab-root *, .ab-root *::before, .ab-root *::after { box-sizing: border-box; }
+
+.ab-stage { display: flex; justify-content: center; }
+
+.ab-avatar {
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.ab-controls { display: flex; flex-direction: column; gap: 18px; }
+
+.ab-row { display: flex; flex-direction: column; gap: 8px; }
+
+.ab-label { font-size: 13px; color: var(--ab-muted); }
+
+.ab-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.ab-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.ab-swatch.on { border-color: var(--ab-accent); }
+
+.ab-chip {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--ab-line);
+  background: #fff;
+  color: var(--ab-fg);
+  cursor: pointer;
+  text-transform: capitalize;
+}
+.ab-chip.on { background: var(--ab-accent); color: #fff; border-color: var(--ab-accent); }
+
+.ab-actions { display: flex; gap: 10px; }
+
+.ab-btn {
+  flex: 1;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--ab-accent);
+  background: var(--ab-accent);
+  color: #fff;
+  cursor: pointer;
+}
+.ab-btn.ab-ghost { background: #fff; color: var(--ab-fg); border-color: var(--ab-line); }
