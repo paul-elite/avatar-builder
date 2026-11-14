@@ -1,18 +1,21 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AVATAR_OPTIONS, defaultAvatar, innerSvg, avatarToSvg } from './avatar.js';
+import { downloadSvg, downloadPng } from './export.js';
 
 /* =========================================================================
    <AvatarBuilder /> — a drop-in React component with a centered layout:
-   a large preview up top, a category switcher, one centered row of options
-   at a time (live preview tiles for shapes, swatches for colors), and
-   centered actions.
+   a large preview up top (with a floating randomize button), a category
+   switcher, one centered row of options at a time (live preview tiles for
+   shapes, swatches for colors), a bottom-sheet custom color picker, and
+   export (SVG / PNG) + reset actions.
 
    Props:
      value?        controlled config (omit for uncontrolled)
      defaultValue? initial config when uncontrolled
      onChange?     (config, { svg }) => void   — fires on every edit
      size?         preview size in px (default 200)
-     showActions?  show Randomize / Reset (default true)
+     exportSize?   exported PNG/SVG size in px (default 512)
+     showActions?  show randomize / export / reset (default true)
      className?    extra class on the root
 
    Import the stylesheet once in your app: import 'avatar-builder/styles.css'
@@ -32,12 +35,15 @@ export default function AvatarBuilder({
   defaultValue,
   onChange,
   size = 200,
+  exportSize = 512,
   showActions = true,
   className = '',
 }) {
   const isControlled = value != null;
   const [internal, setInternal] = useState(() => ({ ...defaultAvatar, ...defaultValue }));
   const [active, setActive] = useState(CATS[0].key);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [hexDraft, setHexDraft] = useState('');
   const config = { ...defaultAvatar, ...(isControlled ? value : internal) };
 
   const commit = useCallback((next) => {
@@ -55,6 +61,28 @@ export default function AvatarBuilder({
   };
 
   const cat = CATS.find((c) => c.key === active) || CATS[0];
+
+  // Close the sheet on Escape.
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setSheetOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sheetOpen]);
+
+  const openSheet = () => {
+    setHexDraft((config[cat.key] || '').replace('#', ''));
+    setSheetOpen(true);
+  };
+  const onHex = (raw) => {
+    const clean = raw.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+    setHexDraft(clean);
+    if (clean.length === 6) setKey(cat.key, '#' + clean);
+  };
+  const onColorInput = (hex) => {
+    setHexDraft(hex.replace('#', ''));
+    setKey(cat.key, hex);
+  };
 
   return (
     <div className={('ab-root ' + className).trim()}>
@@ -131,11 +159,66 @@ export default function AvatarBuilder({
             </button>
           );
         })}
+        {cat.type === 'color' && (
+          <button type="button" className="ab-swatch ab-custom" aria-label="Custom color" onClick={openSheet}>
+            <span className="ab-plus" aria-hidden="true">+</span>
+          </button>
+        )}
       </div>
 
       {showActions && (
-        <div className="ab-actions">
-          <button type="button" className="ab-btn ab-ghost" onClick={() => commit({ ...defaultAvatar })}>Reset</button>
+        <div className="ab-footer">
+          <div className="ab-actions">
+            <button type="button" className="ab-btn" onClick={() => downloadPng(config, { size: exportSize })}>Download PNG</button>
+            <button type="button" className="ab-btn ab-ghost" onClick={() => downloadSvg(config, { size: exportSize })}>SVG</button>
+          </div>
+          <button type="button" className="ab-reset" onClick={() => commit({ ...defaultAvatar })}>Reset</button>
+        </div>
+      )}
+
+      {sheetOpen && (
+        <div className="ab-sheet-root" role="dialog" aria-modal="true" aria-label={'Edit ' + cat.label.toLowerCase()}>
+          <div className="ab-sheet-backdrop" onClick={() => setSheetOpen(false)} />
+          <div className="ab-sheet">
+            <div className="ab-sheet-grip" aria-hidden="true" />
+            <div className="ab-sheet-head">
+              <span className="ab-sheet-title">Edit {cat.label.toLowerCase()}</span>
+              <button type="button" className="ab-sheet-close" onClick={() => setSheetOpen(false)} aria-label="Close">×</button>
+            </div>
+            <div className="ab-sheet-pick">
+              <input
+                type="color"
+                className="ab-color"
+                value={config[cat.key]}
+                onChange={(e) => onColorInput(e.target.value)}
+                aria-label="Pick a color"
+              />
+              <div className="ab-hex">
+                <span>#</span>
+                <input
+                  type="text"
+                  value={hexDraft}
+                  onChange={(e) => onHex(e.target.value)}
+                  spellCheck={false}
+                  maxLength={6}
+                  aria-label="Hex color"
+                />
+              </div>
+            </div>
+            <div className="ab-sheet-swatches">
+              {AVATAR_OPTIONS[cat.key].map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  className={'ab-swatch' + (opt === config[cat.key] ? ' on' : '')}
+                  style={{ background: opt }}
+                  aria-label={opt}
+                  onClick={() => { setHexDraft(opt.replace('#', '')); setKey(cat.key, opt); }}
+                />
+              ))}
+            </div>
+            <button type="button" className="ab-btn ab-sheet-done" onClick={() => setSheetOpen(false)}>Done</button>
+          </div>
         </div>
       )}
     </div>

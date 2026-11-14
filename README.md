@@ -46,8 +46,9 @@ import { avatarToDataUri } from 'avatar-builder';
 | `value`       | `AvatarConfig`                       | —       | Controlled config. Omit for uncontrolled.     |
 | `defaultValue`| `AvatarConfig`                       | —       | Initial config when uncontrolled.             |
 | `onChange`    | `(config, { svg }) => void`          | —       | Fires on every edit.                          |
-| `size`        | `number`                             | `220`   | Preview size in px.                           |
-| `showActions` | `boolean`                            | `true`  | Show Randomize / Reset buttons.               |
+| `size`        | `number`                             | `200`   | Preview size in px.                           |
+| `exportSize`  | `number`                             | `512`   | Exported PNG/SVG size in px.                   |
+| `showActions` | `boolean`                            | `true`  | Show randomize / export / reset actions.      |
 | `className`   | `string`                             | `''`    | Extra class on the root element.              |
 
 ## Headless helpers
@@ -56,10 +57,16 @@ import { avatarToDataUri } from 'avatar-builder';
 import {
   avatarToSvg,      // (config, { size }) => string  — full <svg> document
   avatarToDataUri,  // (config, { size }) => string  — base64 data: URI
+  downloadSvg,      // (config, { size, filename }) — download as .svg
+  downloadPng,      // (config, { size, filename }) => Promise — download as .png
   defaultAvatar,    // the default config
   AVATAR_OPTIONS,   // { bg, skin, hairColor, hair, eyes, mouth } option lists
 } from 'avatar-builder';
 ```
+
+The built-in builder already shows **Download PNG / SVG** buttons and a
+**custom-color picker** (a bottom sheet with a hex input) on each color
+category — use `showActions={false}` to hide the action bar and wire your own.
 
 ## Config shape
 

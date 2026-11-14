@@ -12,3 +12,4 @@ export {
   EYES,
   MOUTH,
 } from './avatar.js';
+export { downloadSvg, downloadPng } from './export.js';

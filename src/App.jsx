@@ -39,10 +39,12 @@ function Profile() {
     />
   );
 }`}</pre>
-        <p className="demo-note">Render a saved avatar anywhere, no UI needed:</p>
-        <pre>{`import { avatarToDataUri } from 'avatar-builder';
+        <p className="demo-note">Render a saved avatar anywhere, or export it yourself:</p>
+        <pre>{`import { avatarToDataUri, downloadSvg, downloadPng } from 'avatar-builder';
 
-<img src={avatarToDataUri(config)} width={48} height={48} alt="" />`}</pre>
+<img src={avatarToDataUri(config)} width={48} height={48} alt="" />
+
+downloadPng(config, { size: 512 });   // or downloadSvg(config)`}</pre>
       </section>
     </main>
   );
