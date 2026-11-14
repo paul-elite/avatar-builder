@@ -5,8 +5,8 @@
    ========================================================================= */
 
 export const SKIN = ['#f2d6c2', '#e8b98f', '#c88a5e', '#8d5524', '#5a3620'];
-export const HAIR_COLOR = ['#2b2b2b', '#6b4226', '#b5651d', '#d9a441', '#9b9b9b', '#c0392b'];
-export const BG = ['#e3f0ff', '#ffe8ec', '#eafbe7', '#fff4d6', '#f0e9ff', '#f3f3f3'];
+export const HAIR_COLOR = ['#2b2b2b', '#5a3620', '#6b4226', '#b5651d', '#d9a441', '#9ca3af', '#f472b6', '#8d78f5', '#60a5fa', '#c0392b'];
+export const BG = ['#eef3ff', '#ffe9ef', '#eafff0', '#fff5da', '#f1eaff', '#ffeede', '#f3f3f3', '#0a0a0a'];
 export const HAIR = ['none', 'short', 'bun', 'long'];
 export const EYES = ['dots', 'happy', 'glasses'];
 export const MOUTH = ['smile', 'neutral', 'open'];
