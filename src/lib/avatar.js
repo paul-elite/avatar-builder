@@ -111,6 +111,35 @@ export function innerSvg(config, { id = 'ab' + (++uid) } = {}) {
   return s;
 }
 
+/* ---- One item on its own, for option tiles ----------------------------
+   A tile shows the item (or its variation), not the avatar wearing it. Each
+   crop is centered on where that item sits in the shared space. */
+export const ITEM_VIEWS = {
+  cap: '33 -27 144 144',
+  glasses: '35 20 140 140',
+  eyes: '63 49 84 84',
+  brows: '62 25 84 84',
+  nose: '87 95 32 32',
+  mouth: '83 112 44 44',
+  tears: '57 75 100 100',
+  shadow: '-6 -10 189 189',
+};
+
+export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
+  const c = { ...defaultAvatar, ...config };
+  switch (part) {
+    case 'cap': return c.cap ? P.cap(c, tint(c.cap)) : '';
+    case 'glasses': return c.glasses ? P.glasses(c) : '';
+    case 'eyes': return (P.eyes[c.eyes] || P.eyes.open)(c);
+    case 'brows': return (P.brows[c.brows] || P.brows.none)(c);
+    case 'nose': return (P.nose[c.nose] || P.nose.none)(c);
+    case 'mouth': return (P.mouth[c.mouth] || P.mouth.none)(c);
+    case 'tears': return c.tears ? P.tears(c, id) : '';
+    case 'shadow': return (c.shadow ? P.shadow() : '') + `<path d="${P.headPath}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>`;
+    default: return '';
+  }
+}
+
 /* The head silhouette in a color, for skin swatches. */
 export function headSwatchSvg(color) {
   // Light fills get a hairline edge so they still read on the white toolbar

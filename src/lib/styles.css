@@ -149,6 +149,13 @@
 .ab-tile:active { transform: scale(0.96); }
 .ab-tile.on,
 .ab-tile.on:hover { background: var(--ab-tile-on); }
+/* Items (cap, glasses, eyes…) are mostly black: on a dark tile they'd vanish,
+   so a selected item gets a light tile with a dark ring instead */
+.ab-tile.on[data-kind="item"],
+.ab-tile.on[data-kind="item"]:hover {
+  background: var(--ab-field);
+  box-shadow: inset 0 0 0 1.5px var(--ab-tile-on);
+}
 .ab-tile svg { display: block; pointer-events: none; }
 
 /* A background color, as a rounded chip (with the avatar on it in level 1) */

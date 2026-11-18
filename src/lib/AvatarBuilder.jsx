@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { GROUPS, PARTS, VIEWS, defaultAvatar, innerSvg, headSwatchSvg, avatarToSvg, randomAvatar } from './avatar.js';
+import { GROUPS, PARTS, VIEWS, ITEM_VIEWS, defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg, randomAvatar } from './avatar.js';
 import { downloadPng } from './export.js';
 
 /* =========================================================================
@@ -56,9 +56,36 @@ function Mini({ config, view }) {
   );
 }
 
-// Face-part tiles show the bare face, so the part reads at 40px
 const BARE = { cap: null, glasses: null, shadow: false };
-const bare = (part, c) => (['cap', 'glasses', 'bg', 'shadow'].includes(part) ? c : { ...c, ...BARE });
+
+/* An item on its own (the cap, the glasses, the mouth…) for its tiles.
+   An empty item ("none") shows a small slashed circle. */
+function Item({ part, config }) {
+  const inner = itemSvg(part, config);
+  if (!inner) {
+    return (
+      <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
+        <circle cx="20" cy="20" r="9" fill="none" stroke="#c9c9c6" strokeWidth="1.5" />
+        <path d="M13.6 26.4 26.4 13.6" stroke="#c9c9c6" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return <svg viewBox={ITEM_VIEWS[part]} width="40" height="40" aria-hidden="true" dangerouslySetInnerHTML={{ __html: inner }} />;
+}
+
+/* A plain color swatch (background, blush) */
+function Swatch({ color }) {
+  if (!color) return <Item part="none" config={{}} />;
+  return <span className="ab-chip" style={{ background: color }} />;
+}
+
+/* What a part's tile shows, given the look it would have */
+function PartFace({ part, config }) {
+  if (part === 'skin') return <svg viewBox={VIEWS.face} width="40" height="40" aria-hidden="true" dangerouslySetInnerHTML={{ __html: headSwatchSvg(config.skin) }} />;
+  if (part === 'bg') return <Swatch color={config.bg} />;
+  if (part === 'blush') return <Swatch color={config.blush} />;
+  return <Item part={part} config={config} />;
+}
 
 function optionLabel(part, opt) {
   if (opt === null) return 'None';
@@ -148,40 +175,30 @@ export default function AvatarBuilder({
           <span className="ab-chip" style={{ background: config.bg }}>
             <Mini config={config} view="full" />
           </span>
+        ) : g.key === 'outfit' ? (
+          <Item part={config.cap ? 'cap' : 'glasses'} config={config.cap || config.glasses ? config : { ...config, cap: '#f70492' }} />
         ) : (
-          <Mini config={g.key === 'face' ? { ...config, ...BARE } : config} view={g.view} />
+          <Mini config={{ ...config, ...BARE }} view={g.view} />
         )}
       </button>
     ));
   } else if (!part) {
     tiles = group.parts.map((k) => (
       <button key={k} type="button" className="ab-tile" aria-label={PARTS[k].label} title={PARTS[k].label} onClick={() => setPath([group.key, k])}>
-        {k === 'skin' ? (
-          <svg viewBox={VIEWS.face} width="40" height="40" aria-hidden="true" dangerouslySetInnerHTML={{ __html: headSwatchSvg(config.skin) }} />
-        ) : k === 'bg' ? (
-          <span className="ab-chip" style={{ background: config.bg }} />
-        ) : (
-          <Mini config={bare(k, config)} view={PARTS[k].view} />
-        )}
+        <PartFace part={k} config={config} />
       </button>
     ));
   } else {
     const opts = part.kind === 'color' ? (part.optional ? [null, ...part.presets] : part.presets) : part.options;
     tiles = opts.map((opt) => {
       const on = opt === config[partKey] || (opt && config[partKey] && String(opt).toLowerCase() === String(config[partKey]).toLowerCase());
-      let face;
-      if (partKey === 'skin') {
-        face = <svg viewBox={VIEWS.face} width="40" height="40" aria-hidden="true" dangerouslySetInnerHTML={{ __html: headSwatchSvg(opt) }} />;
-      } else if (partKey === 'bg') {
-        face = <span className="ab-chip" style={{ background: opt }} />;
-      } else {
-        face = <Mini config={bare(partKey, { ...config, [partKey]: opt })} view={part.view} />;
-      }
+      const face = <PartFace part={partKey} config={{ ...config, [partKey]: opt }} />;
       return (
         <button
           key={String(opt)}
           type="button"
           className={'ab-tile' + (on ? ' on' : '')}
+          data-kind={['skin', 'bg', 'blush'].includes(partKey) ? undefined : 'item'}
           aria-label={optionLabel(partKey, opt)}
           title={optionLabel(partKey, opt)}
           aria-pressed={!!on}
