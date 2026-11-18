@@ -44,7 +44,8 @@ export const BODY = ['slim', 'regular', 'broad'];
 export const OUTFIT = ['tee', 'hoodie', 'shirt'];
 export const DETAIL = ['none', 'pocket', 'stripe'];
 
-/* The avatar in the Figma (Frame 4): pink cap, round glasses, tongue out. */
+/* The default look (after the first face of the doodle pack, drawn with our own
+   parts): short black hair, dot eyes, a small smile, nothing on top. */
 export const defaultAvatar = {
   category: 'person',
   style: 'outline',
@@ -55,20 +56,20 @@ export const defaultAvatar = {
   head: 'classic',
   ears: 'regular',
   tilt: 'straight',
-  hair: 'none',
+  hair: 'short',
   hairColor: '#1a1a1a',
-  eyes: 'open',
+  eyes: 'dots',
   gaze: 'center',
   brows: 'none',
-  nose: 'hook',
-  mouth: 'tongue',
+  nose: 'tick',
+  mouth: 'smile',
   tongue: '#f70410',
   blush: null,
   gesture: 'none',
   tears: null,
-  cap: '#f70492',
+  cap: null,
   hat: 'cap',
-  glasses: '#000000',
+  glasses: null,
   torso: false,
   body: 'regular',
   outfit: 'tee',
