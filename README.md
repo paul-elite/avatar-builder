@@ -68,8 +68,7 @@ One editor that starts broad and reveals detail only when it's relevant:
      Mouth (shape, tongue) · Nose · Cheeks (blush) · Hands
    - Hair: style, colour, headwear, hat
    - Outfit: head only / with torso, then body, outfit, colour, details
-   - Frame: the backdrop's colour and shape (circle, rounded, square, or full: no frame,
-     the page stays light grey and the shadow shows; the colour still fills the download)
+   - Frame: the colour of the round background (the avatar always sits in a circle)
 3. **Inside a category:** its items, e.g. Hair → Style, Colour, Headwear.
    Items that don't apply stay hidden: hair colour until there is hair, tongue
    colour until the mouth shows one, and Body, Outfit, Outfit colour and Details
@@ -118,7 +117,7 @@ type AvatarConfig = {
   category: 'person';          // setup (more to come)
   style: 'outline';            // setup (more to come)
   bg: string;                  // background colour, or 'transparent' (tap the background to change it)
-  frame: 'circle' | 'rounded' | 'square' | 'full'; // the backdrop's shape (exports too)
+  frame: 'circle';             // always round now; older values render as a circle
   shadow: boolean;
   skin: string;
   head: 'classic' | 'round' | 'square';   // classic = the Figma head, ears built in

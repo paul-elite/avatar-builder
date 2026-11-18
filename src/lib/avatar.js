@@ -137,7 +137,8 @@ export const PRIMARY = [
   },
   { key: 'hair', label: 'Hair', bar: true, items: ['hair', 'hairColor', 'cap', 'hat'] },
   { key: 'outfit', label: 'Outfit', bar: true, items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
-  { key: 'frame', label: 'Frame', bar: true, items: ['frame', 'bg'] },
+  // The avatar always sits in the round background; Frame picks its colour (one item, so it opens straight to it)
+  { key: 'frame', label: 'Frame', bar: true, items: ['bg'] },
 ];
 
 export const visibleItems = (group, c) => group.items.filter((k) => !ITEMS[k].when || ITEMS[k].when(c));
@@ -249,7 +250,7 @@ export const PART_TARGETS = {
   hair: ['hair', 'hair'],
   cap: ['hair', 'cap'],
   torso: ['outfit'],
-  background: ['frame', 'bg'],
+  background: ['frame'],
 };
 
 /* One item on its own, for option tiles: the item, not the avatar wearing it. */
@@ -300,12 +301,9 @@ export function avatarToSvg(config, { size = 512 } = {}) {
   const c = { ...defaultAvatar, ...config };
   const view = viewFor(c);
   const [x, y, w, h] = view.split(' ').map(Number);
-  // The background takes the frame's shape: a circle, a rounded square, or the whole square
+  // The background is always round (older saved looks with another frame render round too)
   const fill = c.bg && c.bg !== 'transparent' ? c.bg : null;
-  const bg = !fill ? ''
-    : c.frame === 'circle' ? `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2}" fill="${fill}"/>`
-    : c.frame === 'rounded' ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w * 0.24}" fill="${fill}"/>`
-    : `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`;
+  const bg = !fill ? '' : `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2}" fill="${fill}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" width="${size}" height="${size}" role="img" aria-label="Avatar">${bg}${innerSvg(c, { id: 'export' })}</svg>`;
 }
 

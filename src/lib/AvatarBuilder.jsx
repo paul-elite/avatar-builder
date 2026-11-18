@@ -469,11 +469,12 @@ export default function AvatarBuilder({
   // with a torso it stays centred left–right and keeps the body in frame. Exports keep the full views.
   // On the framed backdrop the avatar sits in a shape (no shadow); 'full' drops the shape (shadow on).
   // The page behind stays light grey at all times; the colour only fills the shape (and the download).
-  const framed = backdrop === 'circle' && config.frame !== 'full';
+  // Always the round background on the circle backdrop, whatever frame an older saved look has
+  const framed = backdrop === 'circle';
   const view = config.torso ? '-23.5 -16 257 257' : '10.5 -12.85 189 189';
 
   return (
-    <div className={('ab-root ' + className).trim()} style={framed ? { '--ab-fill': config.bg } : backdrop === 'circle' ? undefined : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop} data-frame={backdrop === 'circle' ? config.frame || 'circle' : undefined}>
+    <div className={('ab-root ' + className).trim()} style={framed ? { '--ab-fill': config.bg } : backdrop === 'circle' ? undefined : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop} data-frame={backdrop === 'circle' ? 'circle' : undefined}>
       {setupDone && !inSetup && (
         <button type="button" className="ab-setup-chip" onClick={() => go(['setup'], 'down')} aria-label="Change category and style">
           {SETUP.map((s) => s.names[config[s.key]] || config[s.key]).join(' · ')}
