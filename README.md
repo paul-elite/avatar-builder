@@ -62,7 +62,7 @@ One editor that starts broad and reveals detail only when it's relevant:
 2. **The default toolbar:** the Figma Frame 4 skin bar: undo/redo, the four
    head fills and the colour wheel (which opens the skin colour row and grid).
    Under it in the stack sit **all the categories:** Skin · Hair · Face · Eyes ·
-   Features · Torso, plus shuffle and download. × on the default toolbar brings
+   Features · Torso (Head: shape, ears, tilt), plus shuffle and download. × on the default toolbar brings
    them up; × on the categories returns to the default.
 3. **Inside a category:** its items, e.g. Hair → Style, Colour, Headwear.
    Items that don't apply stay hidden: hair colour until there is hair, tongue
@@ -81,7 +81,7 @@ and the one below rises back. Selections persist across every move (and, with
 `persist`, across visits); undo/redo count changes to the avatar only.
 
 The head, cap, glasses, eyes, brows, nose, blush, tears, tongue and frown come
-from the Avatars Figma file. Hair, the torso and outfits are drawn to match,
+from the Avatars Figma file. Hair, the round and square heads, ears, the drawn eye set, the torso and outfits are drawn to match,
 as placeholders for Figma art.
 
 ## Headless helpers
@@ -108,10 +108,14 @@ type AvatarConfig = {
   bg: string;                  // background colour, or 'transparent' (tap the background to change it)
   shadow: boolean;
   skin: string;
+  head: 'classic' | 'round' | 'square';   // classic = the Figma head, ears built in
+  ears: 'none' | 'small' | 'regular' | 'big'; // for round / square heads
+  tilt: 'straight' | 'left' | 'right';
   hair: 'none' | 'short' | 'curly' | 'long' | 'bun';
   hairColor: string;
   cap: string | null;          // headwear colour; null = none
-  eyes: 'open' | 'closed' | 'wink' | 'dots';
+  eyes: 'open' | 'round' | 'wide' | 'big' | 'side' | 'up' | 'sleepy' | 'peek' | 'angry'
+      | 'skeptical' | 'bored' | 'happy' | 'sad' | 'closed' | 'wink' | 'flat' | 'squeeze' | 'dead' | 'dots';
   glasses: string | null;
   tears: string | null;
   brows: 'none' | 'raised' | 'flat' | 'worried';
