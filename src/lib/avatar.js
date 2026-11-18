@@ -34,6 +34,8 @@ export const BROWS = ['none', 'raised', 'flat', 'worried'];
 export const NOSE = ['hook', 'dot', 'tick', 'none'];
 export const GAZE = ['left', 'center', 'right'];
 export const GESTURE = ['none', 'nose', 'chin'];
+// The backdrop's shape; 'full' fills the whole background (no frame, and the shadow shows)
+export const FRAME = ['circle', 'rounded', 'square', 'full'];
 // Eye styles whose pupils can look around
 const GAZE_EYES = ['round', 'wide', 'big', 'up', 'sleepy', 'peek', 'angry', 'bored'];
 export const MOUTH = ['tongue', 'smile', 'smirk', 'open', 'o', 'frown', 'wobble', 'none'];
@@ -47,6 +49,7 @@ export const defaultAvatar = {
   category: 'person',
   style: 'outline',
   bg: '#ffffff',
+  frame: 'circle',
   shadow: true,
   skin: '#ffffff',
   head: 'classic',
@@ -86,7 +89,7 @@ export const SETUP = [
 
 export const ITEMS = {
   skin: { label: 'Skin colour', kind: 'color', presets: SKIN },
-  head: { label: 'Shape', kind: 'shape', options: HEAD },
+  head: { label: 'Head shape', kind: 'shape', options: HEAD },
   // The Figma (classic) head has its ears built in
   ears: { label: 'Ears', kind: 'shape', options: EARS, when: (c) => c.head && c.head !== 'classic' },
   tilt: { label: 'Tilt', kind: 'shape', options: TILT },
@@ -98,7 +101,7 @@ export const ITEMS = {
   mouth: { label: 'Mouth', kind: 'shape', options: MOUTH },
   tongue: { label: 'Tongue', kind: 'color', presets: TONGUE, when: (c) => c.mouth === 'tongue' || c.mouth === 'open' },
   brows: { label: 'Brows', kind: 'shape', options: BROWS },
-  eyes: { label: 'Shape', kind: 'shape', options: EYES },
+  eyes: { label: 'Eyes', kind: 'shape', options: EYES },
   gaze: { label: 'Look', kind: 'shape', options: GAZE, when: (c) => GAZE_EYES.includes(c.eyes) },
   glasses: { label: 'Glasses', kind: 'color', presets: GLASSES, optional: true },
   tears: { label: 'Tears', kind: 'color', presets: TEARS, optional: true },
@@ -111,19 +114,16 @@ export const ITEMS = {
   outfitColor: { label: 'Outfit colour', kind: 'color', presets: OUTFIT_COLOR, when: (c) => c.torso },
   detail: { label: 'Details', kind: 'shape', options: DETAIL, when: (c) => c.torso },
   bg: { label: 'Colour', kind: 'color', presets: BG },
+  frame: { label: 'Frame', kind: 'shape', options: FRAME },
   shadow: { label: 'Shadow', kind: 'shape', options: [true, false] },
 };
 
 export const PRIMARY = [
-  { key: 'skin', label: 'Skin', items: ['skin'] },
-  { key: 'head', label: 'Head', items: ['head', 'ears', 'tilt'] },
+  { key: 'face', label: 'Face', items: ['skin', 'head', 'ears', 'tilt', 'eyes', 'gaze', 'glasses', 'tears', 'mouth', 'tongue', 'brows', 'nose', 'blush', 'gesture'] },
   { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap', 'hat'] },
-  { key: 'face', label: 'Face', items: ['mouth', 'tongue', 'brows'] },
-  { key: 'eyes', label: 'Eyes', items: ['eyes', 'gaze', 'glasses', 'tears'] },
-  { key: 'features', label: 'Features', items: ['nose', 'blush', 'gesture'] },
-  { key: 'torso', label: 'Torso', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
-  // Reached by tapping the background, not shown in the category bar
-  { key: 'background', label: 'Background', items: ['bg'], tapOnly: true },
+  { key: 'outfit', label: 'Outfit', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
+  { key: 'background', label: 'Background', items: ['bg'] },
+  { key: 'frame', label: 'Frame', items: ['frame'] },
 ];
 
 export const visibleItems = (group, c) => group.items.filter((k) => !ITEMS[k].when || ITEMS[k].when(c));
@@ -222,21 +222,20 @@ function headLayers(c, id, L, s) {
 
 /* Where a tap on each part of the preview leads: [category, item] */
 export const PART_TARGETS = {
-  torso: ['torso'],
-  hair: ['hair', 'hair'],
-  // The face itself opens every category (skin colour is already on the default bar)
-  skin: [],
-  tears: ['eyes', 'tears'],
-  blush: ['features', 'blush'],
-  brows: ['face', 'brows'],
-  eyes: ['eyes', 'eyes'],
-  glasses: ['eyes', 'glasses'],
-  nose: ['features', 'nose'],
+  skin: ['face'], // the face itself opens the Face category
+  ears: ['face', 'ears'],
+  eyes: ['face', 'eyes'],
+  glasses: ['face', 'glasses'],
+  tears: ['face', 'tears'],
   mouth: ['face', 'mouth'],
+  brows: ['face', 'brows'],
+  nose: ['face', 'nose'],
+  blush: ['face', 'blush'],
+  hand: ['face', 'gesture'],
+  hair: ['hair', 'hair'],
   cap: ['hair', 'cap'],
+  torso: ['outfit'],
   background: ['background'],
-  ears: ['head', 'ears'],
-  hand: ['features', 'gesture'],
 };
 
 /* One item on its own, for option tiles: the item, not the avatar wearing it. */
@@ -287,7 +286,12 @@ export function avatarToSvg(config, { size = 512 } = {}) {
   const c = { ...defaultAvatar, ...config };
   const view = viewFor(c);
   const [x, y, w, h] = view.split(' ').map(Number);
-  const bg = c.bg && c.bg !== 'transparent' ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c.bg}"/>` : '';
+  // The background takes the frame's shape: a circle, a rounded square, or the whole square
+  const fill = c.bg && c.bg !== 'transparent' ? c.bg : null;
+  const bg = !fill ? ''
+    : c.frame === 'circle' ? `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2}" fill="${fill}"/>`
+    : c.frame === 'rounded' ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w * 0.24}" fill="${fill}"/>`
+    : `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" width="${size}" height="${size}" role="img" aria-label="Avatar">${bg}${innerSvg(c, { id: 'export' })}</svg>`;
 }
 
@@ -305,7 +309,7 @@ export function randomAvatar(base = defaultAvatar) {
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const c = { ...base };
   for (const [k, p] of Object.entries(ITEMS)) {
-    if (k === 'bg' || k === 'shadow') continue; // not editable for now
+    if (k === 'bg' || k === 'shadow' || k === 'frame') continue; // the setting, not the look
     if (k === 'torso') c.torso = Math.random() < 0.5;
     else if (p.kind === 'shape') c[k] = pick(p.options);
     else c[k] = p.optional && Math.random() < 0.45 ? null : pick(p.presets);

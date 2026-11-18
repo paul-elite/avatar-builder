@@ -92,6 +92,11 @@
 .ab-page { --ab-circle: min(340px, 82vw); }
 .ab-root[data-backdrop="circle"] .ab-stage { border-radius: 50%; background: var(--ab-fill, #ffffff); transition: background-color 240ms ease, transform 240ms ease-in-out; }
 .ab-stage[data-tappable] { cursor: pointer; }
+/* Frame: the backdrop's shape */
+.ab-root[data-frame] .ab-stage { transition: background-color 240ms ease, border-radius 240ms ease-in-out, transform 240ms ease-in-out; }
+.ab-root[data-frame="rounded"] .ab-stage { border-radius: 24%; }
+.ab-root[data-frame="square"] .ab-stage { border-radius: 0; }
+.ab-root[data-frame="full"] .ab-stage { background: transparent; }
 .ab-root[data-backdrop="circle"]:not(.ab-page) .ab-stage { width: min(340px, 82vw); aspect-ratio: 1; }
 .ab-page .ab-dock {
   position: absolute;

@@ -15,13 +15,15 @@ const ICONS = {
   face: <><path {...L} d="M5 4h14v7a7 7 0 0 1-14 0Z" /><path {...L} d="M8.5 8.5h1.5M14 8.5h1.5M9 13c1.6 1.6 4.4 1.6 6 0" /></>, // a mask
   eyes: <><circle {...L} cx="7" cy="16" r="3.5" /><circle {...L} cx="17" cy="16" r="3.5" /><path {...L} d="M5 13 8 5h2.5v8.5M19 13 16 5h-2.5v8.5M10.5 16h3" /></>, // binoculars
   features: <><path {...L} d="M4 20 15 9" /><path {...L} d="M17.5 3v3.5M15.75 4.75h3.5M20.5 9v2.5M19.25 10.25h2.5M11 3.5v2M10 4.5h2" /></>, // a magic wand
-  torso: <path {...L} d="M8.5 3.5 3.5 6.5l2 4 2-1V20.5h9V9.5l2 1 2-4-5-3c-.5 1.5-2 2.5-3.5 2.5S9 5 8.5 3.5Z" />, // a tee
+  outfit: <path {...L} d="M8.5 3.5 3.5 6.5l2 4 2-1V20.5h9V9.5l2 1 2-4-5-3c-.5 1.5-2 2.5-3.5 2.5S9 5 8.5 3.5Z" />, // a tee
+  background: <><path {...L} d="m5 11.5 6.5-6.5 7 7-6.5 6.5a1.5 1.5 0 0 1-2.1 0L5 13.6a1.5 1.5 0 0 1 0-2.1Z" /><path {...L} d="M5 12h13.5M9 7.5 6.5 5M20 15.5s1.5 2 1.5 3a1.5 1.5 0 0 1-3 0c0-1 1.5-3 1.5-3Z" /></>, // a paint bucket
+  frame: <path {...L} d="M7 3v14h14M3 7h14v14" />, // crop marks
 
   /* Head */
   ears: <><circle cx="5.5" cy="12" r="1.5" fill="currentColor" /><path {...L} d="M9.5 8.5a5 5 0 0 1 0 7M13 5.5a9 9 0 0 1 0 13M16.5 3a12.5 12.5 0 0 1 0 18" /></>, // listening
   tilt: <path {...L} d="M20 12a8 8 0 1 1-2.35-5.65M20 4v4.5h-4.5" />, // a turn
   // head shape: a circle and a square
-  'head:head': <><circle {...L} cx="8.5" cy="8.5" r="5" /><rect {...L} x="12" y="12" width="8.5" height="8.5" rx="1.5" /></>,
+  'face:head': <><circle {...L} cx="8.5" cy="8.5" r="5" /><rect {...L} x="12" y="12" width="8.5" height="8.5" rx="1.5" /></>,
 
   /* Hair */
   'hair:hair': <><circle {...L} cx="6" cy="6" r="2.5" /><circle {...L} cx="6" cy="18" r="2.5" /><path {...L} d="M8.2 7.3 20 18M8.2 16.7 20 6" /></>, // scissors
@@ -35,7 +37,7 @@ const ICONS = {
   brows: <><path {...L} d="M9 9a3 3 0 1 1 4.4 2.7c-.9.5-1.4 1.1-1.4 2.3" /><Dot x={12} y={18} /></>, // a question
 
   /* Eyes */
-  'eyes:eyes': <><path {...L} d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle {...L} cx="12" cy="12" r="2.5" /></>, // an eye
+  'face:eyes': <><path {...L} d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle {...L} cx="12" cy="12" r="2.5" /></>, // an eye
   gaze: <><circle {...L} cx="12" cy="12" r="9" /><path {...L} d="m15.5 8.5-2 5-5 2 2-5Z" /></>, // a compass
   glasses: <path {...L} d="M12 6.5C10 5 7 4.5 4 5v13.5c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5ZM12 6.5V20" />, // a book
   tears: <><path {...L} d="M7 14.5a3.8 3.8 0 0 1-.4-7.6 5.5 5.5 0 0 1 10.6 1.6 3 3 0 0 1-.2 6Z" /><path {...L} d="m8.5 17.5-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5" /></>, // rain
@@ -47,7 +49,7 @@ const ICONS = {
 
   /* Torso */
   body: <><path {...L} d="M3 15.5 15.5 3 21 8.5 8.5 21Z" /><path {...L} d="m7 11.5 1.5 1.5M10 8.5l1.5 1.5M13 5.5l1.5 1.5" /></>, // a ruler
-  outfit: <><path {...L} d="M12 7.5a2 2 0 1 1 2-2" /><path {...L} d="M12 7.5V9l-8.6 6.6A1.4 1.4 0 0 0 4.3 18h15.4a1.4 1.4 0 0 0 .9-2.4L12 9" /></>, // a hanger
+  'outfit:outfit': <><path {...L} d="M12 7.5a2 2 0 1 1 2-2" /><path {...L} d="M12 7.5V9l-8.6 6.6A1.4 1.4 0 0 0 4.3 18h15.4a1.4 1.4 0 0 0 .9-2.4L12 9" /></>, // a hanger
   outfitColor: <><path {...L} d="M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.3-1.6-1.3-2.8 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8Z" /><Dot x={7.5} y={11} /><Dot x={9.5} y={7} /><Dot x={14.5} y={7} /></>, // a palette
   detail: <path {...L} d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z" />, // a star
 };
