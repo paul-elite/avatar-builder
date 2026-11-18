@@ -124,6 +124,38 @@
 .ab-crumbs span + span::before { content: "·"; margin-right: 6px; color: var(--ab-faint); }
 .ab-crumb-now { color: var(--ab-ink); }
 
+/* The item toggle above the toolbar (Style | Colour | Headwear) */
+.ab-seg {
+  display: inline-flex;
+  gap: 2px;
+  max-width: calc(100vw - 32px);
+  padding: 3px;
+  overflow-x: auto;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--ab-bar-shadow);
+  scrollbar-width: none;
+}
+.ab-seg::-webkit-scrollbar { display: none; }
+.ab-seg-btn {
+  position: relative;
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ab-muted);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 120ms ease-out;
+}
+.ab-seg-btn::before { content: ""; position: absolute; inset: -8px 0; } /* 44px tall tap area */
+.ab-seg-btn:hover { color: var(--ab-ink); }
+.ab-seg-btn:active { transform: scale(0.97); }
+.ab-seg-btn.on { background: var(--ab-dark); color: #fff; }
+
 .ab-stack { position: relative; max-width: calc(100vw - 32px); }
 
 .ab-peek {

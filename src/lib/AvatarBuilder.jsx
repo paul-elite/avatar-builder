@@ -293,6 +293,9 @@ export default function AvatarBuilder({
           ? ['Customize']
           : [group.label, ...(path[2] && item && shown.length > 1 ? [item.label] : [])];
 
+  // An open item's siblings in its category (switches like Torso's are shown inline, not opened)
+  const siblings = group && item ? shown.filter((k) => ITEMS[k].kind !== 'toggle') : [];
+
   let tiles = null;
   let extras = null;
 
@@ -435,15 +438,34 @@ export default function AvatarBuilder({
       </div>
 
       <div className="ab-dock">
-        <div className="ab-crumbs" aria-live="polite">
-          {crumbs.map((c, i) => (
-            <span key={i} className={i === crumbs.length - 1 ? 'ab-crumb-now' : undefined}>{c}</span>
-          ))}
-        </div>
+        {siblings.length > 1 ? (
+          // Inside an item: a toggle of the category's items, to switch straight between them
+          <div className="ab-seg" role="tablist" aria-label={group.label}>
+            {siblings.map((k) => (
+              <button
+                key={k}
+                type="button"
+                role="tab"
+                aria-selected={k === itemKey}
+                className={'ab-seg-btn' + (k === itemKey ? ' on' : '')}
+                onClick={() => k !== itemKey && go(['all', group.key, k], 'swap')}
+              >
+                {ITEMS[k].label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="ab-crumbs" aria-live="polite">
+            {crumbs.map((c, i) => (
+              <span key={i} className={i === crumbs.length - 1 ? 'ab-crumb-now' : undefined}>{c}</span>
+            ))}
+          </div>
+        )}
 
         <div className="ab-stack">
-          {Array.from({ length: Math.min(depth, 2) }, (_, i) => (
-            <span key={i} className="ab-peek" style={{ '--depth': Math.min(depth, 2) - i }} aria-hidden="true" />
+          {/* At most two trays show: the toolbar and one behind it, however deep you are */}
+          {Array.from({ length: Math.min(depth, 1) }, (_, i) => (
+            <span key={i} className="ab-peek" style={{ '--depth': 1 }} aria-hidden="true" />
           ))}
 
           {item && item.kind === 'color' && (

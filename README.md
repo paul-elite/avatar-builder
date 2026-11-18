@@ -75,8 +75,9 @@ Tap any part of the avatar to jump straight to its editor: the cap opens
 Hair · Headwear, the glasses Eyes · Glasses, the face opens all the categories, and so on. Tap
 the background (the circle on the live page) to change its colour.
 
-One floating toolbar shows the current level and a breadcrumb says where you
-are. Going deeper sinks it into the stack behind; × or Escape closes the level
+One floating toolbar shows the current level, with a label above it; inside an
+item the label becomes a toggle of the category's items (Style | Colour |
+Headwear) to switch straight between them. At most one tray shows behind it. Going deeper sinks it into the stack behind; × or Escape closes the level
 and the one below rises back. Selections persist across every move (and, with
 `persist`, across visits); undo/redo count changes to the avatar only.
 
