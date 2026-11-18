@@ -1,72 +1,134 @@
+import * as P from './parts.js';
+
 /* =========================================================================
-   Headless avatar renderer — no React, no DOM. A single source of truth that
-   both the <AvatarBuilder> UI and avatarToSvg() draw from, so the preview and
-   any saved/exported avatar always match.
+   Headless avatar model + renderer — no React, no DOM. The <AvatarBuilder>
+   UI and avatarToSvg() both draw from here, so the preview and any saved or
+   exported avatar always match.
+
+   The look comes from the Avatars Figma file: one outlined head with a soft
+   offset shadow, and parts layered on it in a shared 176.8 × 160.1 space.
    ========================================================================= */
 
-export const SKIN = ['#f2d6c2', '#e8b98f', '#c88a5e', '#8d5524', '#5a3620'];
-export const HAIR_COLOR = ['#2b2b2b', '#5a3620', '#6b4226', '#b5651d', '#d9a441', '#9ca3af', '#f472b6', '#8d78f5', '#60a5fa', '#c0392b'];
-export const BG = ['#eef3ff', '#ffe9ef', '#eafff0', '#fff5da', '#f1eaff', '#ffeede', '#f3f3f3', '#0a0a0a'];
-export const HAIR = ['none', 'short', 'bun', 'long'];
-export const EYES = ['dots', 'happy', 'glasses'];
-export const MOUTH = ['smile', 'neutral', 'open'];
+/* ---- Palettes ---------------------------------------------------------- */
+export const BG = ['#f2f2f2', '#ffffff', '#ffe4f1', '#e3f1ff', '#e9f9d9', '#fff3cf', '#ece6ff', '#1a1a1a'];
+// The first four are the Figma toolbar's head fills
+export const SKIN = ['#d9d9d7', '#ffffff', '#ececea', '#444755', '#f3d2b9', '#d9a47e', '#a8693f', '#6b3f22'];
+export const CAP = ['#f70492', '#50c810', '#1084fe', '#ff7a00', '#8b5cf6', '#1a1a1a'];
+export const GLASSES = ['#000000', '#f70492', '#1084fe', '#c8a24a'];
+export const BLUSH = ['#fc5cb9', '#ff8a65', '#f70410'];
+export const TEARS = ['#b2ebff', '#8fd3ff', '#c7f0d8'];
+export const TONGUE = ['#f70410', '#ff6fa5'];
 
-/* The option sets, keyed by config field — lets a host build its own UI. */
-export const AVATAR_OPTIONS = { bg: BG, skin: SKIN, hairColor: HAIR_COLOR, hair: HAIR, eyes: EYES, mouth: MOUTH };
+export const EYES = ['open', 'closed', 'wink', 'dots'];
+export const BROWS = ['none', 'raised', 'flat', 'worried'];
+export const NOSE = ['hook', 'dot', 'none'];
+export const MOUTH = ['tongue', 'smile', 'open', 'frown', 'none'];
 
+/* The avatar in the Figma (Frame 4): pink cap, round glasses, tongue out. */
 export const defaultAvatar = {
-  bg: BG[0],
-  skin: SKIN[1],
-  hairColor: HAIR_COLOR[0],
-  hair: 'short',
-  eyes: 'dots',
-  mouth: 'smile',
+  bg: '#f2f2f2',
+  shadow: true,
+  skin: '#ffffff',
+  eyes: 'open',
+  brows: 'none',
+  nose: 'hook',
+  mouth: 'tongue',
+  tongue: '#f70410',
+  blush: null,
+  tears: null,
+  cap: '#f70492',
+  glasses: '#000000',
 };
 
-/* The inner SVG shapes (no wrapping <svg>), as a string. */
-export function innerSvg(config) {
+/* ---- The builder's structure: groups → parts → options ----------------
+   kind 'color': presets are colors (null = off when `optional`), plus a
+   custom color. kind 'shape': named variants. `view` is the square crop of
+   the avatar a tile shows for that part. */
+export const GROUPS = [
+  { key: 'background', label: 'Background', parts: ['bg', 'shadow'], view: 'full' },
+  { key: 'face', label: 'Face', parts: ['skin', 'eyes', 'brows', 'nose', 'mouth', 'blush', 'tears'], view: 'face' },
+  { key: 'outfit', label: 'Outfit', parts: ['cap', 'glasses'], view: 'top' },
+];
+
+export const PARTS = {
+  bg: { label: 'Color', kind: 'color', presets: BG, view: 'full' },
+  shadow: { label: 'Shadow', kind: 'shape', options: [true, false], view: 'full' },
+  skin: { label: 'Skin', kind: 'color', presets: SKIN, view: 'face', swatch: 'head' },
+  eyes: { label: 'Eyes', kind: 'shape', options: EYES, view: 'eyes' },
+  brows: { label: 'Brows', kind: 'shape', options: BROWS, view: 'brows' },
+  nose: { label: 'Nose', kind: 'shape', options: NOSE, view: 'nose' },
+  mouth: { label: 'Mouth', kind: 'shape', options: MOUTH, view: 'mouth' },
+  blush: { label: 'Blush', kind: 'color', presets: BLUSH, optional: true, view: 'face' },
+  tears: { label: 'Tears', kind: 'color', presets: TEARS, optional: true, view: 'face' },
+  cap: { label: 'Cap', kind: 'color', presets: CAP, optional: true, view: 'top' },
+  glasses: { label: 'Glasses', kind: 'color', presets: GLASSES, optional: true, view: 'eyes' },
+};
+
+/* Every field's choices, for a host building its own UI. */
+export const AVATAR_OPTIONS = Object.fromEntries(
+  Object.entries(PARTS).map(([k, p]) => [k, p.kind === 'color' ? (p.optional ? [null, ...p.presets] : p.presets) : p.options]),
+);
+
+/* Square crops of the avatar space, for the full avatar and for tiles. */
+export const VIEWS = {
+  full: '-6 -10 189 189',
+  face: '20 -2 165 165',
+  top: '26 -8 158 158',
+  eyes: '52 46 108 108',
+  brows: '56 30 96 96',
+  nose: '79 89 52 52',
+  mouth: '80 110 50 50',
+};
+
+/* ---- Rendering --------------------------------------------------------- */
+
+// A lighter tint of a hex color (for the cap's brim)
+function tint(hex, amount = 0.38) {
+  const h = (hex || '#000000').replace('#', '');
+  const n = parseInt(h.length === 3 ? h.replace(/./g, '$&$&') : h, 16);
+  const mix = (c) => Math.round(c + (255 - c) * amount);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(mix);
+  return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+}
+
+let uid = 0;
+
+/* The avatar's layers (no wrapping <svg>), as a string. `id` keeps the tears
+   mask unique when several avatars share a page. */
+export function innerSvg(config, { id = 'ab' + (++uid) } = {}) {
   const c = { ...defaultAvatar, ...config };
-  let s = `<circle cx="100" cy="100" r="100" fill="${c.bg}"/>`;
-
-  if (c.hair === 'long') s += `<path d="M44 90a56 56 0 0 1 112 0v70H44Z" fill="${c.hairColor}"/>`;
-
-  s += `<rect x="88" y="128" width="24" height="30" fill="${c.skin}"/>`;
-  s += `<circle cx="100" cy="96" r="50" fill="${c.skin}"/>`;
-
-  if (c.hair === 'short' || c.hair === 'long') {
-    s += `<path d="M50 92a50 50 0 0 1 100 0c0-14-20-30-50-30S50 78 50 92Z" fill="${c.hairColor}"/>`;
-  } else if (c.hair === 'bun') {
-    s += `<circle cx="100" cy="46" r="13" fill="${c.hairColor}"/>`;
-    s += `<path d="M52 90a48 48 0 0 1 96 0c0-16-22-28-48-28S52 74 52 90Z" fill="${c.hairColor}"/>`;
-  }
-
-  if (c.eyes === 'dots') {
-    s += `<circle cx="82" cy="95" r="5" fill="#2b2b2b"/><circle cx="118" cy="95" r="5" fill="#2b2b2b"/>`;
-  } else if (c.eyes === 'happy') {
-    s += `<path d="M75 97q7-9 14 0" fill="none" stroke="#2b2b2b" stroke-width="3" stroke-linecap="round"/>`;
-    s += `<path d="M111 97q7-9 14 0" fill="none" stroke="#2b2b2b" stroke-width="3" stroke-linecap="round"/>`;
-  } else if (c.eyes === 'glasses') {
-    s += `<circle cx="82" cy="96" r="12" fill="none" stroke="#2b2b2b" stroke-width="3"/>`;
-    s += `<circle cx="118" cy="96" r="12" fill="none" stroke="#2b2b2b" stroke-width="3"/>`;
-    s += `<line x1="94" y1="96" x2="106" y2="96" stroke="#2b2b2b" stroke-width="3"/>`;
-    s += `<circle cx="82" cy="96" r="4" fill="#2b2b2b"/><circle cx="118" cy="96" r="4" fill="#2b2b2b"/>`;
-  }
-
-  if (c.mouth === 'smile') {
-    s += `<path d="M84 118q16 16 32 0" fill="none" stroke="#9a4b3b" stroke-width="3" stroke-linecap="round"/>`;
-  } else if (c.mouth === 'neutral') {
-    s += `<line x1="86" y1="120" x2="114" y2="120" stroke="#9a4b3b" stroke-width="3" stroke-linecap="round"/>`;
-  } else if (c.mouth === 'open') {
-    s += `<ellipse cx="100" cy="120" rx="10" ry="7" fill="#9a4b3b"/>`;
-  }
-
+  let s = '';
+  if (c.shadow) s += P.shadow();
+  s += P.head(c);
+  if (c.tears) s += P.tears(c, id);
+  if (c.blush) s += P.blush(c);
+  s += (P.brows[c.brows] || P.brows.none)(c);
+  s += (P.eyes[c.eyes] || P.eyes.open)(c);
+  if (c.glasses) s += P.glasses(c);
+  s += (P.nose[c.nose] || P.nose.none)(c);
+  s += (P.mouth[c.mouth] || P.mouth.none)(c);
+  if (c.cap) s += P.cap(c, tint(c.cap));
   return s;
 }
 
+/* The head silhouette in a color, for skin swatches. */
+export function headSwatchSvg(color) {
+  // Light fills get a hairline edge so they still read on the white toolbar
+  const h = String(color).replace('#', '');
+  const n = parseInt(h.length === 3 ? h.replace(/./g, '$&$&') : h, 16);
+  const lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  const edge = lum > 0.86 ? '#d9d9d7' : color;
+  return `<path d="${P.headPath}" fill="${color}" stroke="${edge}" stroke-width="2.4"/>`;
+}
+
 /* A complete, standalone SVG document string — drop into an <img src>, save,
-   or render a saved avatar anywhere without the builder UI. */
-export function avatarToSvg(config, { size = 220 } = {}) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="${size}" height="${size}" role="img" aria-label="Avatar">${innerSvg(config)}</svg>`;
+   or render a saved avatar anywhere without the builder UI. The background
+   fills the square unless bg is 'transparent'. */
+export function avatarToSvg(config, { size = 512 } = {}) {
+  const c = { ...defaultAvatar, ...config };
+  const [x, y, w, h] = VIEWS.full.split(' ').map(Number);
+  const bg = c.bg && c.bg !== 'transparent' ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c.bg}"/>` : '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEWS.full}" width="${size}" height="${size}" role="img" aria-label="Avatar">${bg}${innerSvg(c, { id: 'export' })}</svg>`;
 }
 
 /* A base64 data URI, handy for <img src={avatarToDataUri(config)} />. */
@@ -76,4 +138,16 @@ export function avatarToDataUri(config, opts) {
     ? Buffer.from(svg).toString('base64')
     : window.btoa(unescape(encodeURIComponent(svg)));
   return `data:image/svg+xml;base64,${encoded}`;
+}
+
+/* Pick a random look (used by the shuffle button). */
+export function randomAvatar() {
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const c = {};
+  for (const [k, p] of Object.entries(PARTS)) {
+    if (p.kind === 'shape') c[k] = pick(p.options);
+    else c[k] = p.optional && Math.random() < 0.45 ? null : pick(p.presets);
+  }
+  c.tongue = pick(TONGUE);
+  return { ...defaultAvatar, ...c };
 }
