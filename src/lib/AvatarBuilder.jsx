@@ -81,8 +81,8 @@ function ItemArt({ part, config, size = 40 }) {
   if (!inner) return <None />;
   return <svg viewBox={ITEM_VIEWS[part]} width={size} height={size} aria-hidden="true" dangerouslySetInnerHTML={{ __html: inner }} />;
 }
-const HeadSwatch = ({ color, size = 40 }) => (
-  <svg viewBox={VIEWS.face} width={size} height={size} aria-hidden="true" dangerouslySetInnerHTML={{ __html: headSwatchSvg(color) }} />
+const HeadSwatch = ({ color, shape, size = 40 }) => (
+  <svg viewBox={VIEWS.face} width={size} height={size} aria-hidden="true" dangerouslySetInnerHTML={{ __html: headSwatchSvg(color, shape) }} />
 );
 const Chip = ({ color }) => (color ? <span className="ab-chip" style={{ background: color }} /> : <None />);
 
@@ -91,7 +91,7 @@ function Face({ item, config, size }) {
   switch (item) {
     case 'body': return <ItemArt part="body" config={{ ...config, outfitColor: '#d9d9d7', outfit: 'tee', detail: 'none' }} size={size} />;
     case 'outfitColor': return <Chip color={config.outfitColor} />;
-    case 'skin': return <HeadSwatch color={config.skin} size={size} />;
+    case 'skin': return <HeadSwatch color={config.skin} shape={config.head} size={size} />;
     case 'bg': return <Chip color={config.bg} />;
     case 'blush': return <Chip color={config.blush} />;
     case 'tears': return <Chip color={config.tears} />;
@@ -104,7 +104,8 @@ function Face({ item, config, size }) {
 /* The art for each primary category's tile */
 function CategoryArt({ group, config }) {
   switch (group) {
-    case 'skin': return <HeadSwatch color={config.skin} size={30} />;
+    case 'skin': return <HeadSwatch color={config.skin} shape={config.head} size={30} />;
+    case 'head': return <ItemArt part="head" config={config} size={30} />;
     case 'hair': return config.hair !== 'none' ? <ItemArt part="hair" config={config} size={30} /> : <ItemArt part="cap" config={{ ...config, cap: config.cap || '#f70492' }} size={30} />;
     case 'face': return <ItemArt part="mouth" config={{ ...config, mouth: config.mouth === 'none' ? 'smile' : config.mouth }} size={30} />;
     case 'eyes': return <ItemArt part="eyes" config={config} size={30} />;

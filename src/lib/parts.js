@@ -12,18 +12,55 @@ const HEAD_D =
 /* The head silhouette alone, for skin swatches and masks. */
 export const headPath = HEAD_D;
 
+/* ---- Head shapes ----
+   classic is the Figma head (ears built in). The drawn shapes have no ears of their own:
+   ears are a separate part behind them. All keep the classic's width at the cap line
+   (x 38–172 around y 73) so the cap, hair and glasses still sit right. */
+export const HEADS = {
+  classic: HEAD_D,
+  round: 'M38 84C38 40 66 6 105 6C144 6 172 40 172 84C172 128 144 160 105 160C66 160 38 128 38 84Z',
+  square: 'M38 58C38 24 66 6 105 6C144 6 172 24 172 58V116C172 144 148 159 105 159C62 159 38 144 38 116Z',
+};
+export const headD = (c) => HEADS[(c && c.head) || 'classic'] || HEAD_D;
+// Where each drawn shape's side sits at ear height (y 104)
+const EAR_EDGE = { round: [39, 171], square: [38, 172] };
+
+// The soft offset shadow: Figma's for the classic head, a shrunk offset copy for the others
+export const shadow = (c) =>
+  !c || !c.head || c.head === 'classic'
+    ? FIGMA_SHADOW()
+    : `<path d="${headD(c)}" transform="translate(-13 6) scale(0.88)" fill="#000" fill-opacity="0.1"/>`;
+
+/* ---- Ears (drawn; behind the head, so only the outer half shows) ---- */
+const EAR_SIZE = { small: [9, 11], regular: [12, 15], big: [16, 20] };
+export function ears(c) {
+  const size = EAR_SIZE[c.ears];
+  const edge = EAR_EDGE[c.head];
+  if (!size || !edge) return '';
+  const [rx, ry] = size;
+  const cy = 104;
+  const one = (x, dir) => {
+    const cx = x + dir * rx * 0.1; // centred just inside the head, so about 90% of the ear shows (dir 1 = left ear)
+    const inner = x - dir * 1;
+    const out = x - dir * rx * 0.62;
+    return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${c.skin}" stroke="#1A1A1A" stroke-width="4"/>` +
+      `<path d="M${inner} ${cy - ry * 0.5}C${out} ${cy - ry * 0.45} ${out} ${cy + ry * 0.4} ${inner} ${cy + ry * 0.5}" fill="none" stroke="#1A1A1A" stroke-width="3" stroke-linecap="round"/>`;
+  };
+  return one(edge[0], 1) + one(edge[1], -1);
+}
+
 // Figma: Vector 3 (the soft offset shadow)
-export const shadow = () =>
+const FIGMA_SHADOW = () =>
   `<path fill-rule="evenodd" clip-rule="evenodd" d="M122.584 123.505C112.832 139.166 96.8838 146.803 81.6087 148.27C70.7792 149.027 59.2992 146.664 48.8722 139.765C45.8548 137.28 38.9184 130.979 35.3119 125.659C33.0145 122.269 31.24 121.798 29.4677 121.327C27.7624 120.875 26.0592 120.422 23.8943 117.371C19.4796 111.149 13.7636 102.965 19.1776 97.7433L20.6547 96.7223C19.1195 93.081 15.4977 82.6998 13.3247 64.8919C10.5492 42.1467 28.5526 26.5457 43.8814 18.7127C44.5099 18.3915 45.1436 18.0842 45.7812 17.79C51.4624 15.1099 63.931 10.8126 76.7263 11.3634C93.9246 12.1037 116.788 18.7934 123.734 40.6293C129.172 57.7253 130.201 68.6719 130.321 72.6218L132.089 72.9351C139.186 75.4291 137.395 85.2495 135.972 92.7447C135.274 96.4202 133.913 97.5405 132.551 98.6622C131.136 99.8278 129.719 100.995 129.041 105.033C127.977 111.372 124.293 119.989 122.584 123.505Z" fill="#000" fill-opacity="0.1"/>`;
 
 // Figma: Vector 2 (head: skin fill + 4px outline)
 export const head = (c) =>
-  `<path fill-rule="evenodd" clip-rule="evenodd" d="${HEAD_D}" fill="${c.skin}"/>` +
-  `<path d="${HEAD_D}" stroke="#1A1A1A" stroke-width="4" fill="none" stroke-linejoin="round"/>`;
+  `<path fill-rule="evenodd" clip-rule="evenodd" d="${headD(c)}" fill="${c.skin}"/>` +
+  `<path d="${headD(c)}" stroke="#1A1A1A" stroke-width="4" fill="none" stroke-linejoin="round"/>`;
 
 // Figma: Mask group (tears, clipped to the head)
 export const tears = (c, id) =>
-  `<mask id="${id}-tears" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="33" y="3" width="144" height="157"><path d="${HEAD_D}" fill="#fff"/></mask>` +
+  `<mask id="${id}-tears" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="33" y="3" width="144" height="157"><path d="${headD(c)}" fill="#fff"/></mask>` +
   `<g mask="url(#${id}-tears)">` +
   `<path d="M65.5 98.9996V89.9996C72.8333 88.333 87.5 85.9996 87.5 89.9996C87.5 94.9996 89 93.9996 89 109C89 119 92 116 92 120.5C92 125 93.5 128.5 93.5 135.5C93.5 142.5 94.5 146.5 94.5 148C94.5 149.2 93.8333 159.833 93.5 165L62 160.5C62.6667 158.166 64.3 152.6 65.5 149C67 144.5 65.5 147 65.5 142V129.5V124.5C65.5 121 68 118.5 68 116V107.5C68 101.5 65.5 103 65.5 98.9996Z" fill="${c.tears}"/>` +
   `<path d="M123.5 97.2086V88.2086C130.833 86.5419 145.5 84.2086 145.5 88.2086C145.5 93.2086 147 92.2086 147 107.209C147 117.209 150 114.209 150 118.709C150 123.209 151.5 126.709 151.5 133.709C151.5 140.709 152.5 144.709 152.5 146.209C152.5 147.409 151.833 158.042 151.5 163.209L120 158.709C120.667 156.375 122.3 150.809 123.5 147.209C125 142.709 123.5 145.209 123.5 140.209V127.709V122.709C123.5 119.209 126 116.709 126 114.209V105.709C126 99.7086 123.5 101.209 123.5 97.2086Z" fill="${c.tears}"/>` +
@@ -37,6 +74,43 @@ const EYE_R = 'M129.583 92H126C124.067 92 122.5 90.433 122.5 88.5C122.5 86.567 1
 const SHUT_L = '<path d="M66 87.0002C68.3333 88.8336 75.8 91.4002 87 87.0002" stroke="#000" stroke-width="6" stroke-linecap="round" fill="none"/>';
 const SHUT_R = '<path d="M142 85.5705C139.667 87.4039 132.2 89.9705 121 85.5705" stroke="#000" stroke-width="6" stroke-linecap="round" fill="none"/>';
 
+/* The drawn eye set: whites with a black edge (so they read on any skin) and solid pupils.
+   Each draws one eye at (x, y); `side` is -1 for the left eye, 1 for the right. */
+const EL = [79, 91], ER = [132, 91];
+const WHITE = 'fill="#fff" stroke="#000" stroke-width="3" stroke-linejoin="round"';
+const INK = (w = 4.5) => `fill="none" stroke="#000" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+const half = (x, y, r, up) => `M${x - r} ${y}A${r} ${r} 0 0 ${up ? 1 : 0} ${x + r} ${y}Z`; // a half disc, dome up or down
+// Drawn at a base size, then enlarged a quarter about each eye's centre (big, readable eyes like the reference)
+const grow = (x, y, svg) => `<g transform="translate(${x} ${y}) scale(1.25) translate(${-x} ${-y})">${svg}</g>`;
+const both = (f) => () => grow(...EL, f(...EL, -1)) + grow(...ER, f(...ER, 1));
+const EYE_SET = {
+  round: both((x, y) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x}" cy="${y}" r="5" fill="#000"/>`),
+  wide: both((x, y) => `<circle cx="${x}" cy="${y}" r="12" ${WHITE}/><circle cx="${x}" cy="${y}" r="3.6" fill="#000"/>`),
+  big: both((x, y) => `<circle cx="${x}" cy="${y}" r="11" ${WHITE}/><circle cx="${x}" cy="${y + 0.5}" r="7" fill="#000"/>`),
+  side: both((x, y) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x - 4.5}" cy="${y + 1}" r="5" fill="#000"/>`),
+  up: both((x, y) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x - 2.5}" cy="${y - 4}" r="5" fill="#000"/>`),
+  // Heavy lids: the lower half, pupils pressed up under the lid
+  sleepy: both((x, y) => `<path d="${half(x, y - 2, 11, false)}" ${WHITE}/><path d="${half(x, y - 2, 5, false)}" fill="#000"/>`),
+  // Peeking: the upper half, pupils resting on the lower edge
+  peek: both((x, y, d) => `<path d="${half(x, y + 3, 11, true)}" ${WHITE}/><path d="${half(x + d * 3, y + 3, 5, true)}" fill="#000"/>`),
+  // Cross: the lid slopes down toward the nose
+  angry: both((x, y, d) => {
+    const r = 10.5, a1 = d < 0 ? -150 : -30, a2 = d < 0 ? 10 : 170;
+    const P = (a) => [x + r * Math.cos((a * Math.PI) / 180), y + r * Math.sin((a * Math.PI) / 180)].map((v) => v.toFixed(2)).join(' ');
+    return `<path d="M${P(a1)}A${r} ${r} 0 1 ${d < 0 ? 0 : 1} ${P(a2)}Z" ${WHITE}/><circle cx="${x - d * 2}" cy="${y + 4}" r="4.5" fill="#000"/>`;
+  }),
+  // One lid down, the other eye glancing over
+  skeptical: () =>
+    grow(...EL, `<path d="${half(EL[0], EL[1] - 2, 11, false)}" ${WHITE}/><path d="${half(EL[0] - 2, EL[1] - 2, 5, false)}" fill="#000"/>`) +
+    grow(...ER, `<circle cx="${ER[0]}" cy="${ER[1] - 2}" r="11" ${WHITE}/><circle cx="${ER[0] - 4}" cy="${ER[1] + 1}" r="5" fill="#000"/>`),
+  bored: both((x, y) => `<rect x="${x - 12}" y="${y - 5}" width="24" height="10" rx="2.5" ${WHITE}/><circle cx="${x}" cy="${y}" r="3.6" fill="#000"/>`),
+  happy: both((x, y) => `<path d="M${x - 9} ${y - 3}Q${x} ${y + 9} ${x + 9} ${y - 3}" ${INK()}/>`),
+  sad: both((x, y) => `<path d="M${x - 9} ${y + 4}Q${x} ${y - 8} ${x + 9} ${y + 4}" ${INK()}/>`),
+  flat: both((x, y) => `<path d="M${x - 10} ${y}H${x + 10}" ${INK()}/>`),
+  squeeze: both((x, y, d) => `<path d="M${x + d * 8} ${y - 7}L${x - d * 7} ${y}L${x + d * 8} ${y + 7}" ${INK()}/>`),
+  dead: both((x, y) => `<path d="M${x - 7} ${y - 7}L${x + 7} ${y + 7}M${x + 7} ${y - 7}L${x - 7} ${y + 7}" ${INK()}/>`),
+};
+
 export const eyes = {
   open: () => `<path d="${EYE_L}" fill="#000"/><path d="${EYE_R}" fill="#000"/>`,
   closed: () => SHUT_L + SHUT_R,
@@ -44,6 +118,7 @@ export const eyes = {
   wink: () => `<path d="${EYE_L}" fill="#000"/>` + SHUT_R,
   // Drawn: round dots
   dots: () => '<circle cx="79" cy="90" r="6" fill="#000"/><circle cx="132" cy="90" r="6" fill="#000"/>',
+  ...EYE_SET,
 };
 
 /* ---- Brows ---- */

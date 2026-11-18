@@ -24,7 +24,11 @@ export const OUTFIT_COLOR = ['#1084fe', '#f70492', '#50c810', '#ff7a00', '#ffe40
 
 export const CATEGORIES = ['person'];
 export const STYLES = ['outline'];
-export const EYES = ['open', 'closed', 'wink', 'dots'];
+export const EYES = ['open', 'round', 'wide', 'big', 'side', 'up', 'sleepy', 'peek', 'angry', 'skeptical', 'bored', 'happy', 'sad', 'closed', 'wink', 'flat', 'squeeze', 'dead', 'dots'];
+export const HEAD = ['classic', 'round', 'square'];
+export const EARS = ['none', 'small', 'regular', 'big'];
+export const TILT = ['straight', 'left', 'right'];
+const TILT_DEG = { straight: 0, left: -10, right: 10 };
 export const BROWS = ['none', 'raised', 'flat', 'worried'];
 export const NOSE = ['hook', 'dot', 'none'];
 export const MOUTH = ['tongue', 'smile', 'open', 'frown', 'none'];
@@ -40,6 +44,9 @@ export const defaultAvatar = {
   bg: '#ffffff',
   shadow: true,
   skin: '#ffffff',
+  head: 'classic',
+  ears: 'regular',
+  tilt: 'straight',
   hair: 'none',
   hairColor: '#1a1a1a',
   eyes: 'open',
@@ -71,6 +78,10 @@ export const SETUP = [
 
 export const ITEMS = {
   skin: { label: 'Skin colour', kind: 'color', presets: SKIN },
+  head: { label: 'Shape', kind: 'shape', options: HEAD },
+  // The Figma (classic) head has its ears built in
+  ears: { label: 'Ears', kind: 'shape', options: EARS, when: (c) => c.head && c.head !== 'classic' },
+  tilt: { label: 'Tilt', kind: 'shape', options: TILT },
   hair: { label: 'Style', kind: 'shape', options: HAIR },
   hairColor: { label: 'Colour', kind: 'color', presets: HAIR_COLOR, when: (c) => c.hair !== 'none' },
   cap: { label: 'Headwear', kind: 'color', presets: CAP, optional: true },
@@ -93,6 +104,7 @@ export const ITEMS = {
 
 export const PRIMARY = [
   { key: 'skin', label: 'Skin', items: ['skin'] },
+  { key: 'head', label: 'Head', items: ['head', 'ears', 'tilt'] },
   { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap'] },
   { key: 'face', label: 'Face', items: ['mouth', 'tongue', 'brows'] },
   { key: 'eyes', label: 'Eyes', items: ['eyes', 'glasses', 'tears'] },
@@ -115,7 +127,7 @@ export const AVATAR_OPTIONS = {
 
 /* ---- Views ------------------------------------------------------------- */
 export const VIEWS = {
-  full: '-6 -16 189 189',
+  full: '-6 -16 195 195',
   bust: '-40 -16 257 257',
   face: '20 -2 165 165',
   top: '26 -8 158 158',
@@ -126,7 +138,10 @@ export const viewFor = (c) => (c && c.torso ? VIEWS.bust : VIEWS.full);
 export const ITEM_VIEWS = {
   cap: '33 -27 144 144',
   glasses: '35 20 140 140',
-  eyes: '63 49 84 84',
+  eyes: '58 46 94 94',
+  head: '20 -2 165 165',
+  ears: '10 70 68 68',
+  tilt: '2 -18 206 206',
   brows: '62 25 84 84',
   nose: '87 95 32 32',
   mouth: '83 112 44 44',
@@ -160,11 +175,21 @@ let uid = 0;
 export function innerSvg(config, { id = 'ab' + (++uid), parts = false } = {}) {
   const c = { ...defaultAvatar, ...config };
   const L = (part, svg) => (!svg ? '' : parts ? `<g data-part="${part}">${svg}</g>` : svg);
+  // The head and everything on it tilt together, about the top of the neck
+  const deg = TILT_DEG[c.tilt] || 0;
+  const rot = (svg) => (deg && svg ? `<g transform="rotate(${deg} 105 150)">${svg}</g>` : svg);
   let s = '';
-  if (c.shadow) s += P.shadow();
+  if (c.shadow) s += rot(P.shadow(c));
   if (c.torso) s += L('torso', P.torso(c, id));
-  if (P.hairBack[c.hair]) s += L('hair', P.hairBack[c.hair](c));
-  s += L('skin', P.head(c));
+  let h = '';
+  h += L('ears', P.ears(c));
+  if (P.hairBack[c.hair]) h += L('hair', P.hairBack[c.hair](c));
+  h += L('skin', P.head(c));
+  s += rot(headLayers(c, id, L, h));
+  return s;
+}
+
+function headLayers(c, id, L, s) {
   if (c.tears) s += L('tears', P.tears(c, id));
   if (c.blush) s += L('blush', P.blush(c));
   s += L('brows', (P.brows[c.brows] || P.brows.none)(c));
@@ -192,6 +217,7 @@ export const PART_TARGETS = {
   mouth: ['face', 'mouth'],
   cap: ['hair', 'cap'],
   background: ['background'],
+  ears: ['head', 'ears'],
 };
 
 /* One item on its own, for option tiles: the item, not the avatar wearing it. */
@@ -208,25 +234,28 @@ export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
     case 'tears': return c.tears ? P.tears(c, id) : '';
     case 'hair':
       if (c.hair === 'none') return '';
-      return (P.hairBack[c.hair] ? P.hairBack[c.hair](c) : '') + `<path d="${P.headPath}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>` + P.hairFront[c.hair](c);
+      return (P.hairBack[c.hair] ? P.hairBack[c.hair](c) : '') + `<path d="${P.headD(c)}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>` + P.hairFront[c.hair](c);
     case 'body':
     case 'outfit':
     case 'outfitColor':
     case 'detail':
       return P.torso({ ...c, torso: true }, id);
-    case 'shadow': return (c.shadow ? P.shadow() : '') + `<path d="${P.headPath}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>`;
+    case 'shadow': return (c.shadow ? P.shadow(c) : '') + `<path d="${P.headD(c)}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>`;
+    case 'head': { const w = { ...c, skin: '#fff', ears: c.ears === 'none' ? 'none' : c.ears || 'regular' }; return P.ears(w) + P.head(w); }
+    case 'ears': return c.ears === 'none' || !c.head || c.head === 'classic' ? '' : P.ears({ ...c, skin: '#fff' }) + P.head({ ...c, skin: '#fff' });
+    case 'tilt': { const w = { ...c, skin: '#fff' }; const d = TILT_DEG[c.tilt] || 0; return `<g transform="rotate(${d} 105 150)">${P.ears(w)}${P.head(w)}</g>`; }
     default: return '';
   }
 }
 
 /* The head silhouette in a color, for skin swatches. */
-export function headSwatchSvg(color) {
+export function headSwatchSvg(color, shape) {
   // Light fills get a hairline edge so they still read on the white toolbar
   const h = String(color).replace('#', '');
   const n = parseInt(h.length === 3 ? h.replace(/./g, '$&$&') : h, 16);
   const lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
   const edge = lum > 0.86 ? '#d9d9d7' : color;
-  return `<path d="${P.headPath}" fill="${color}" stroke="${edge}" stroke-width="2.4"/>`;
+  return `<path d="${P.headD({ head: shape })}" fill="${color}" stroke="${edge}" stroke-width="2.4"/>`;
 }
 
 /* A complete, standalone SVG document string — drop into an <img src>, save,
