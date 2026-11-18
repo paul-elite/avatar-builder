@@ -3,3 +3,8 @@ dist
 dist-lib
 .DS_Store
 *.local
+
+# Locally installed agent skills
+.agents/
+.claude/
+skills-lock.json
