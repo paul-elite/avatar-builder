@@ -369,23 +369,7 @@
 .ab-wheel:active { transform: scale(0.94); }
 
 /* Colour-wheel icon (Figma UI/Colour wheel): spectrum ring, top shine, white hub */
-.ab-wheel-icon {
-  position: relative;
-  display: block;
-  flex: none;
-  border-radius: 50%;
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 50%),
-    conic-gradient(from 90deg, #f00, #ff7f00 30deg, #ff0 60deg, #0f0 120deg, #0ff 180deg, #00f 240deg, #f0f 300deg, #ff007f 330deg, #f00);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
-}
-.ab-wheel-icon span {
-  position: absolute;
-  inset: 17.86%; /* 18px hub in a 28px wheel */
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0.5px 1.5px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(0, 0, 0, 0.08);
-}
+.ab-wheel-icon { display: block; flex: none; }
 
 .ab-sep { width: 1px; height: 24px; margin: 0 3px; background: var(--ab-line); }
 
@@ -561,8 +545,9 @@
   height: 56px;
   padding: 4px 12px;
   border-radius: 14px;
+  border: 0.5px solid #e5e5e5;
   background: #fafafa;
-  box-shadow: inset 0 0 0 0.5px #e5e5e5, inset 0 1px 1px #fff;
+  box-shadow: inset 0 1px 1px #fff;
 }
 .ab-bar[data-level="default"] .ab-hist-btn { color: var(--ab-ink); }
 .ab-bar[data-level="default"] .ab-hist-btn:disabled { color: var(--ab-faint); }
