@@ -141,7 +141,6 @@ export default function AvatarBuilder({
   size = 240,
   exportSize = 512,
   showActions = true,
-  tabs = 'light', // 'dark': every bar in the default bar's dark finish (a sample)
   persist,
   className = '',
   backdrop = 'plain', // 'plain' | 'circle': a white circle behind the preview (and no drop shadow on it)
@@ -576,7 +575,7 @@ export default function AvatarBuilder({
   const view = config.torso ? '-23.5 -16 257 257' : '10.5 -12.85 189 189';
 
   return (
-    <div className={('ab-root ' + className).trim()} style={framed ? { '--ab-fill': config.bg } : backdrop === 'circle' ? undefined : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-tabs={tabs} data-backdrop={backdrop} data-frame={backdrop === 'circle' ? 'circle' : undefined}>
+    <div className={('ab-root ' + className).trim()} style={framed ? { '--ab-fill': config.bg } : backdrop === 'circle' ? undefined : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop} data-frame={backdrop === 'circle' ? 'circle' : undefined}>
       <div className="ab-ghosts" ref={ghostsRef} aria-hidden="true" />
       {setupDone && !inSetup && (
         <button type="button" className="ab-setup-chip" onClick={() => go(['setup'], 'down')} aria-label="Change category and style">
