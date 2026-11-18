@@ -25,44 +25,43 @@ export const OUTFIT_COLOR = ['#1084fe', '#f70492', '#50c810', '#ff7a00', '#ffe40
 
 export const CATEGORIES = ['person'];
 export const STYLES = ['outline'];
-export const EYES = ['open', 'round', 'wide', 'big', 'side', 'up', 'sleepy', 'peek', 'angry', 'skeptical', 'bored', 'happy', 'sad', 'closed', 'wink', 'flat', 'squeeze', 'dead', 'dots'];
-export const HEAD = ['classic', 'round', 'square'];
+export const EYES = ['boy', 'open', 'round', 'wide', 'big', 'side', 'up', 'sleepy', 'peek', 'angry', 'skeptical', 'bored', 'happy', 'sad', 'closed', 'wink', 'flat', 'squeeze', 'dead', 'dots'];
+export const HEAD = ['boy', 'classic', 'round', 'square'];
 export const EARS = ['none', 'small', 'regular', 'big'];
 export const TILT = ['straight', 'left', 'right'];
 const TILT_DEG = { straight: 0, left: -10, right: 10 };
 export const BROWS = ['none', 'raised', 'flat', 'worried'];
-export const NOSE = ['hook', 'dot', 'tick', 'none'];
+export const NOSE = ['boy', 'hook', 'dot', 'tick', 'none'];
 export const GAZE = ['left', 'center', 'right'];
 export const GESTURE = ['none', 'nose', 'chin'];
 // The backdrop's shape; 'full' fills the whole background (no frame, and the shadow shows)
 export const FRAME = ['circle', 'rounded', 'square', 'full'];
 // Eye styles whose pupils can look around
 const GAZE_EYES = ['round', 'wide', 'big', 'up', 'sleepy', 'peek', 'angry', 'bored'];
-export const MOUTH = ['tongue', 'smile', 'smirk', 'open', 'o', 'frown', 'wobble', 'none'];
-export const HAIR = ['none', 'short', 'bangs', 'sidebob', 'curly', 'long', 'bun', 'underhat'];
+export const MOUTH = ['boy', 'tongue', 'smile', 'smirk', 'open', 'o', 'frown', 'wobble', 'none'];
+export const HAIR = ['none', 'boy', 'short', 'bangs', 'sidebob', 'curly', 'long', 'bun', 'underhat'];
 export const BODY = ['slim', 'regular', 'broad'];
 export const OUTFIT = ['tee', 'hoodie', 'shirt'];
 export const DETAIL = ['none', 'pocket', 'stripe'];
 
-/* The default look (after the first face of the doodle pack, drawn with our own
-   parts): short black hair, dot eyes, a small smile, nothing on top. */
+/* The default look: the boy (Downloads/Boy avatar.svg), grey skin, black hair. */
 export const defaultAvatar = {
   category: 'person',
   style: 'outline',
   bg: '#ffffff',
   frame: 'circle',
   shadow: true,
-  skin: '#ffffff',
-  head: 'classic',
+  skin: '#d9d9d7',
+  head: 'boy',
   ears: 'regular',
   tilt: 'straight',
-  hair: 'short',
+  hair: 'boy',
   hairColor: '#1a1a1a',
-  eyes: 'dots',
+  eyes: 'boy',
   gaze: 'center',
   brows: 'none',
-  nose: 'tick',
-  mouth: 'smile',
+  nose: 'boy',
+  mouth: 'boy',
   tongue: '#f70410',
   blush: null,
   gesture: 'none',
@@ -92,7 +91,7 @@ export const ITEMS = {
   skin: { label: 'Skin colour', kind: 'color', presets: SKIN },
   head: { label: 'Head shape', kind: 'shape', options: HEAD },
   // The Figma (classic) head has its ears built in
-  ears: { label: 'Ears', kind: 'shape', options: EARS, when: (c) => c.head && c.head !== 'classic' },
+  ears: { label: 'Ears', kind: 'shape', options: EARS, when: (c) => c.head === 'round' || c.head === 'square' },
   tilt: { label: 'Tilt', kind: 'shape', options: TILT },
   hair: { label: 'Style', kind: 'shape', options: HAIR },
   hairColor: { label: 'Colour', kind: 'color', presets: HAIR_COLOR, when: (c) => c.hair !== 'none' },
@@ -232,6 +231,7 @@ function headLayers(c, id, L, s) {
   s += L('hair', (P.hairFront[c.hair] || P.hairFront.none)(c));
   // Hands come up in front of the face and hair
   s += L('hand', (P.hands[c.gesture] || P.hands.none)(c));
+  if (c.head === 'boy') s += L('skin', P.boyEars(c));
   if (c.cap) s += L('cap', (P.hats[c.hat] || P.hats.cap)(c, tint(c.cap)));
   return s;
 }
@@ -278,9 +278,9 @@ export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
     case 'detail':
       return P.torso({ ...c, torso: true }, id);
     case 'shadow': return (c.shadow ? P.shadow(c) : '') + `<path d="${P.headD(c)}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>`;
-    case 'head': { const w = { ...c, skin: '#fff', ears: c.ears === 'none' ? 'none' : c.ears || 'regular' }; return P.ears(w) + P.head(w); }
-    case 'ears': return c.ears === 'none' || !c.head || c.head === 'classic' ? '' : P.ears({ ...c, skin: '#fff' }) + P.head({ ...c, skin: '#fff' });
-    case 'tilt': { const w = { ...c, skin: '#fff' }; const d = TILT_DEG[c.tilt] || 0; return `<g transform="rotate(${d} 105 150)">${P.ears(w)}${P.head(w)}</g>`; }
+    case 'head': { const w = { ...c, skin: '#fff', ears: c.ears === 'none' ? 'none' : c.ears || 'regular' }; return P.ears(w) + P.head(w) + (w.head === 'boy' ? P.boyEars(w) : ''); }
+    case 'ears': return c.ears === 'none' || !(c.head === 'round' || c.head === 'square') ? '' : P.ears({ ...c, skin: '#fff' }) + P.head({ ...c, skin: '#fff' });
+    case 'tilt': { const w = { ...c, skin: '#fff' }; const d = TILT_DEG[c.tilt] || 0; return `<g transform="rotate(${d} 105 150)">${P.ears(w)}${P.head(w)}${w.head === 'boy' ? P.boyEars(w) : ''}</g>`; }
     default: return '';
   }
 }
