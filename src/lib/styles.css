@@ -506,7 +506,7 @@
   background: #141415;
   box-shadow: inset -0.5px 0 0.5px rgba(205, 210, 215, 0.25), inset 0 0 0.2px rgba(166, 172, 179, 0.66);
 }
-.ab-bar[data-level="default"] .ab-tiles { gap: 4px; }
+.ab-bar[data-level="default"] .ab-tiles { gap: 8px; }
 .ab-bar[data-level="default"] .ab-cat { width: 56px; height: 56px; border-radius: 12px; }
 .ab-bar[data-level="default"] .ab-cat:hover { background: rgba(255, 255, 255, 0.05); }
 .ab-bar[data-level="default"] .ab-cat-label { color: #93939c; }
@@ -527,15 +527,15 @@
 .ab-bar[data-level="default"] .ab-cat svg { width: auto; height: auto; }
 .ab-peek[data-dark] { background: #151313; opacity: 0.6; }
 @media (max-width: 480px) {
-  .ab-bar[data-level="default"] { gap: 6px; padding: 4px; }
-  .ab-bar[data-level="default"] .ab-history { gap: 2px; padding: 3px; border-radius: 14px; }
-  .ab-bar[data-level="default"] .ab-tiles { gap: 4px; }
-  .ab-bar[data-level="default"] .ab-hist-btn,
-  .ab-raised { width: 36px; height: 36px; border-radius: 10px; }
-  /* 56px tiles don't fit four across at phone width with undo/redo and download */
-  .ab-bar[data-level="default"] .ab-cat,
-  .ab-bar[data-level="default"] .ab-cat.on { width: 48px; height: 48px; }
-  .ab-root .ab-raised { width: 44px; height: 44px; border-radius: 13px; }
+  /* Four 56px tabs, 8px apart, fit at phone width: the undo/redo well shrinks to
+     two narrow full-height buttons, download narrows, and the divider goes */
+  .ab-bar[data-level="default"] { gap: 4px; padding: 4px; }
+  .ab-bar[data-level="default"] .ab-history { gap: 0; padding: 2px; border-radius: 12px; }
+  .ab-bar[data-level="default"] .ab-hist-btn { width: 26px; height: 52px; border-radius: 10px; }
+  .ab-bar[data-level="default"] .ab-hist-btn svg { width: 20px; height: 20px; }
+  .ab-bar[data-level="default"] .ab-tiles { gap: 8px; }
+  .ab-bar[data-level="default"] .ab-sep { display: none; }
+  .ab-root .ab-raised { width: 36px; height: 56px; border-radius: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
