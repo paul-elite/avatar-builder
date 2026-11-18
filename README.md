@@ -59,11 +59,12 @@ One editor that starts broad and reveals detail only when it's relevant:
 
 1. **Setup:** the foundation, category and style (one option each for now).
    Shown on the first visit, then reachable from the chip at the top.
-2. **The default toolbar:** Face · Hair · Outfit · Background · Frame, plus
+2. **The default toolbar:** Face · Features · Hair · Outfit · Background · Frame, plus
    shuffle and download. It's the floor: there's no × on it, and closing
    anything always comes back here.
-   - Face: skin, head shape, ears, tilt, eyes, look, glasses, tears, mouth,
-     tongue, brows, nose, blush, hands
+   - Face: skin, head shape, ears, tilt
+   - Features, organ by organ: Eyes (shape, look, brows, glasses, tears) ·
+     Mouth (shape, tongue) · Nose · Cheeks (blush) · Hands
    - Hair: style, colour, headwear, hat
    - Outfit: head only / with torso, then body, outfit, colour, details
    - Background: its colour

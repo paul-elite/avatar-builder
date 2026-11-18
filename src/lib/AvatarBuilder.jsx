@@ -219,7 +219,8 @@ export default function AvatarBuilder({
   };
   const open = (key) => go([...path, key], 'down');
   /* Paths: ['setup'] · [] the default bar (Face · Hair · Outfit · Background · Frame) ·
-     ['all', group] a category · ['all', group, item] an item */
+     ['all', group] a category · ['all', group, item] an item ·
+     Features nests one more level: ['all', 'features'] the organs · ['all', 'features', organ] · [..., organ, item] */
   const back = () => {
     if (grid) return setGrid(false);
     if (path[0] === 'setup' && !setupDone) return;
@@ -265,22 +266,29 @@ export default function AvatarBuilder({
   const inSetup = path[0] === 'setup';
   const isDefault = !path.length;
   const inAll = path[0] === 'all';
-  const group = inAll && path[1] ? PRIMARY.find((g) => g.key === path[1]) : null;
+  const top = inAll && path[1] ? PRIMARY.find((g) => g.key === path[1]) : null;
+  // A category with organs (Features) shows them first; the organ then acts as the category
+  const organ = top && top.organs && path[2] ? top.organs.find((o) => o.key === path[2]) : null;
+  const group = top && top.organs ? organ : top;
+  const base = !group ? [] : organ ? ['all', top.key, organ.key] : ['all', top.key]; // the path to `group`
+  const at = base.length; // where the item sits in the path
   const shown = group ? visibleItems(group, config) : [];
   // A category with one visible item opens that item directly
   // (a switch, like Torso's head only / with torso, always shows inline at the category level)
-  const itemKey = group ? path[2] || (shown.length === 1 && ITEMS[shown[0]].kind !== 'toggle' ? shown[0] : null) : null;
+  const itemKey = group ? path[at] || (shown.length === 1 && ITEMS[shown[0]].kind !== 'toggle' ? shown[0] : null) : null;
   const item = itemKey ? ITEMS[itemKey] : null;
   // If an open item stops applying (e.g. hair colour after choosing no hair), step back to its category
   useEffect(() => {
-    if (group && path[2] && !shown.includes(path[2]) && phase === 'idle') go(['all', group.key], 'up');
+    if (group && path[at] && !shown.includes(path[at]) && phase === 'idle') go(base, 'up');
   });
 
   const crumbs = inSetup
     ? ['Setup']
-    : !group
-      ? ['Avatar']
-      : [group.label, ...(path[2] && item && shown.length > 1 ? [item.label] : [])];
+    : top && top.organs && !organ
+      ? [top.label]
+      : !group
+        ? ['Avatar']
+        : [...(organ ? [top.label] : []), group.label, ...(path[at] && item && shown.length > 1 ? [item.label] : [])];
 
   // An open item's siblings in its category (switches like Torso's are shown inline, not opened)
   const siblings = group && item ? shown.filter((k) => ITEMS[k].kind !== 'toggle') : [];
@@ -323,6 +331,14 @@ export default function AvatarBuilder({
         </>
       );
     }
+  } else if (top && top.organs && !organ) {
+    // Features: the organs, each a metaphor
+    tiles = top.organs.map((o) => (
+      <button key={o.key} type="button" className="ab-tile ab-cat" onClick={() => open(o.key)} aria-label={o.label}>
+        <span className="ab-cat-art"><NavIcon name={o.key} group={top.key} /></span>
+        <span className="ab-cat-label">{o.label}</span>
+      </button>
+    ));
   } else if (!item) {
     // The category's items; a toggle (Torso) shows its two choices inline, and what it unlocks follows
     tiles = shown.map((k) => {
@@ -438,7 +454,7 @@ export default function AvatarBuilder({
                 role="tab"
                 aria-selected={k === itemKey}
                 className={'ab-seg-btn' + (k === itemKey ? ' on' : '')}
-                onClick={() => k !== itemKey && go(['all', group.key, k], 'swap')}
+                onClick={() => k !== itemKey && go([...base, k], 'swap')}
               >
                 {ITEMS[k].label}
               </button>

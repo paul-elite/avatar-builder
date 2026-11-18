@@ -98,10 +98,10 @@ export const ITEMS = {
   cap: { label: 'Headwear', kind: 'color', presets: CAP, optional: true },
   // Which hat; the colour item above also turns headwear off
   hat: { label: 'Hat', kind: 'shape', options: HAT, when: (c) => !!c.cap },
-  mouth: { label: 'Mouth', kind: 'shape', options: MOUTH },
+  mouth: { label: 'Shape', kind: 'shape', options: MOUTH },
   tongue: { label: 'Tongue', kind: 'color', presets: TONGUE, when: (c) => c.mouth === 'tongue' || c.mouth === 'open' },
   brows: { label: 'Brows', kind: 'shape', options: BROWS },
-  eyes: { label: 'Eyes', kind: 'shape', options: EYES },
+  eyes: { label: 'Shape', kind: 'shape', options: EYES },
   gaze: { label: 'Look', kind: 'shape', options: GAZE, when: (c) => GAZE_EYES.includes(c.eyes) },
   glasses: { label: 'Glasses', kind: 'color', presets: GLASSES, optional: true },
   tears: { label: 'Tears', kind: 'color', presets: TEARS, optional: true },
@@ -119,7 +119,19 @@ export const ITEMS = {
 };
 
 export const PRIMARY = [
-  { key: 'face', label: 'Face', items: ['skin', 'head', 'ears', 'tilt', 'eyes', 'gaze', 'glasses', 'tears', 'mouth', 'tongue', 'brows', 'nose', 'blush', 'gesture'] },
+  { key: 'face', label: 'Face', items: ['skin', 'head', 'ears', 'tilt'] },
+  // Features is organ by organ: pick an organ, then its items (tears live under Eyes, and so on)
+  {
+    key: 'features',
+    label: 'Features',
+    organs: [
+      { key: 'eyes', label: 'Eyes', items: ['eyes', 'gaze', 'brows', 'glasses', 'tears'] },
+      { key: 'mouth', label: 'Mouth', items: ['mouth', 'tongue'] },
+      { key: 'nose', label: 'Nose', items: ['nose'] },
+      { key: 'cheeks', label: 'Cheeks', items: ['blush'] },
+      { key: 'hands', label: 'Hands', items: ['gesture'] },
+    ],
+  },
   { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap', 'hat'] },
   { key: 'outfit', label: 'Outfit', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
   { key: 'background', label: 'Background', items: ['bg'] },
@@ -224,14 +236,14 @@ function headLayers(c, id, L, s) {
 export const PART_TARGETS = {
   skin: ['face'], // the face itself opens the Face category
   ears: ['face', 'ears'],
-  eyes: ['face', 'eyes'],
-  glasses: ['face', 'glasses'],
-  tears: ['face', 'tears'],
-  mouth: ['face', 'mouth'],
-  brows: ['face', 'brows'],
-  nose: ['face', 'nose'],
-  blush: ['face', 'blush'],
-  hand: ['face', 'gesture'],
+  eyes: ['features', 'eyes', 'eyes'],
+  glasses: ['features', 'eyes', 'glasses'],
+  tears: ['features', 'eyes', 'tears'],
+  brows: ['features', 'eyes', 'brows'],
+  mouth: ['features', 'mouth', 'mouth'],
+  nose: ['features', 'nose'],
+  blush: ['features', 'cheeks'],
+  hand: ['features', 'hands'],
   hair: ['hair', 'hair'],
   cap: ['hair', 'cap'],
   torso: ['outfit'],

@@ -36,8 +36,15 @@ const ICONS = {
   tongue: <><circle {...L} cx="12" cy="8.5" r="5.5" /><path {...L} d="M12 8.5a2 2 0 1 1 2 2M12 14v7" /></>, // a lollipop
   brows: <><path {...L} d="M9 9a3 3 0 1 1 4.4 2.7c-.9.5-1.4 1.1-1.4 2.3" /><Dot x={12} y={18} /></>, // a question
 
+  /* Features: one metaphor per organ */
+  'features:eyes': <><circle {...L} cx="7" cy="16" r="3.5" /><circle {...L} cx="17" cy="16" r="3.5" /><path {...L} d="M5 13 8 5h2.5v8.5M19 13 16 5h-2.5v8.5M10.5 16h3" /></>, // binoculars
+  'features:mouth': <><rect {...L} x="9" y="3" width="6" height="11" rx="3" /><path {...L} d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6" /></>, // a microphone
+  'features:nose': <><path {...L} d="M8 4l2 2.5 2-3 2 3L16 4v4a4 4 0 0 1-8 0Z" /><path {...L} d="M12 12v9M12 17.5c-2.4 0-3.9-1.4-4.4-3.4 2.4 0 3.9 1.4 4.4 3.4Z" /></>, // a flower
+  'features:cheeks': <path {...L} d="M12 19.5S4 14.8 4 9.3A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 8 2.3c0 5.5-8 10.2-8 10.2Z" />, // a heart
+  'features:hands': <path {...L} d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1V4a1.5 1.5 0 0 1 3 0v7m0-.5V5.5a1.5 1.5 0 0 1 3 0V14c0 3.8-2.6 6.5-6.2 6.5-2.4 0-4-1.1-5.4-3.2l-2.2-3.5a1.5 1.5 0 0 1 2.5-1.6L8 14" />, // a wave
+
   /* Eyes */
-  'face:eyes': <><path {...L} d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle {...L} cx="12" cy="12" r="2.5" /></>, // an eye
+  'eyes:eyes': <><path {...L} d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle {...L} cx="12" cy="12" r="2.5" /></>, // an eye
   gaze: <><circle {...L} cx="12" cy="12" r="9" /><path {...L} d="m15.5 8.5-2 5-5 2 2-5Z" /></>, // a compass
   glasses: <path {...L} d="M12 6.5C10 5 7 4.5 4 5v13.5c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5ZM12 6.5V20" />, // a book
   tears: <><path {...L} d="M7 14.5a3.8 3.8 0 0 1-.4-7.6 5.5 5.5 0 0 1 10.6 1.6 3 3 0 0 1-.2 6Z" /><path {...L} d="m8.5 17.5-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5" /></>, // rain
