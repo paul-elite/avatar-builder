@@ -266,7 +266,7 @@
 }
 .ab-chip-sm { width: 24px; height: 24px; }
 .ab-cat .ab-chip { width: 22px; height: 22px; border-radius: 7px; }
-.ab-cat svg { width: 30px; height: 30px; }
+.ab-cat svg { width: 26px; height: 26px; color: var(--ab-ink); }
 
 /* The colour wheel (Figma: a 28px colour ring) */
 .ab-wheel {

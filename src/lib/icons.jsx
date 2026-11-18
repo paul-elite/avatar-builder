@@ -1,0 +1,60 @@
+/* =========================================================================
+   Navigation icons: one metaphor per category and item, never the item itself
+   (option tiles show the actual item). Line icons on a 24px grid, 1.5px
+   strokes in the current colour, matching the toolbar's undo / shuffle icons.
+   ========================================================================= */
+
+const L = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' };
+const Dot = ({ x, y }) => <circle cx={x} cy={y} r="1.1" fill="currentColor" />;
+
+const ICONS = {
+  /* Categories */
+  skin: <path {...L} d="M12 3.5S6 10 6 14a6 6 0 0 0 12 0c0-4-6-10.5-6-10.5Z" />, // a drop of colour
+  head: <><circle {...L} cx="12" cy="8" r="4" /><path {...L} d="M4.5 20.5c1-4 4-6 7.5-6s6.5 2 7.5 6" /></>, // a bust
+  hair: <><rect {...L} x="3" y="5" width="18" height="5" rx="1.5" /><path {...L} d="M5.5 10v8M9 10v8M12.5 10v8M16 10v8M19 10v6" /></>, // a comb
+  face: <><path {...L} d="M5 4h14v7a7 7 0 0 1-14 0Z" /><path {...L} d="M8.5 8.5h1.5M14 8.5h1.5M9 13c1.6 1.6 4.4 1.6 6 0" /></>, // a mask
+  eyes: <><circle {...L} cx="7" cy="16" r="3.5" /><circle {...L} cx="17" cy="16" r="3.5" /><path {...L} d="M5 13 8 5h2.5v8.5M19 13 16 5h-2.5v8.5M10.5 16h3" /></>, // binoculars
+  features: <><path {...L} d="M4 20 15 9" /><path {...L} d="M17.5 3v3.5M15.75 4.75h3.5M20.5 9v2.5M19.25 10.25h2.5M11 3.5v2M10 4.5h2" /></>, // a magic wand
+  torso: <path {...L} d="M8.5 3.5 3.5 6.5l2 4 2-1V20.5h9V9.5l2 1 2-4-5-3c-.5 1.5-2 2.5-3.5 2.5S9 5 8.5 3.5Z" />, // a tee
+
+  /* Head */
+  ears: <><circle cx="5.5" cy="12" r="1.5" fill="currentColor" /><path {...L} d="M9.5 8.5a5 5 0 0 1 0 7M13 5.5a9 9 0 0 1 0 13M16.5 3a12.5 12.5 0 0 1 0 18" /></>, // listening
+  tilt: <path {...L} d="M20 12a8 8 0 1 1-2.35-5.65M20 4v4.5h-4.5" />, // a turn
+  // head shape: a circle and a square
+  'head:head': <><circle {...L} cx="8.5" cy="8.5" r="5" /><rect {...L} x="12" y="12" width="8.5" height="8.5" rx="1.5" /></>,
+
+  /* Hair */
+  'hair:hair': <><circle {...L} cx="6" cy="6" r="2.5" /><circle {...L} cx="6" cy="18" r="2.5" /><path {...L} d="M8.2 7.3 20 18M8.2 16.7 20 6" /></>, // scissors
+  hairColor: <><path {...L} d="m13 13.5 7-7.5a1.8 1.8 0 0 0-2.5-2.5L10 10.5" /><path {...L} d="M10 10.5c-2.2 0-3.7 1.6-3.7 3.6 0 1.6-1 2.6-2.8 3.1 3.2 1.3 7.3.6 8.9-2.4.6-1.6.4-2.8-2.4-4.3Z" /></>, // a brush
+  cap: <path {...L} d="M4 18.5h16M4.5 18.5 3 7.5l5 4 4-6.5 4 6.5 5-4-1.5 11" />, // a crown
+  hat: <><path {...L} d="M3 12a9 9 0 0 1 18 0Z" /><path {...L} d="M12 12v6.5a2 2 0 0 1-4 0" /></>, // an umbrella
+
+  /* Face */
+  mouth: <path {...L} d="M4 5h16v11H9.5L5 19.5V16H4Z" />, // a speech bubble
+  tongue: <><circle {...L} cx="12" cy="8.5" r="5.5" /><path {...L} d="M12 8.5a2 2 0 1 1 2 2M12 14v7" /></>, // a lollipop
+  brows: <><path {...L} d="M9 9a3 3 0 1 1 4.4 2.7c-.9.5-1.4 1.1-1.4 2.3" /><Dot x={12} y={18} /></>, // a question
+
+  /* Eyes */
+  'eyes:eyes': <><path {...L} d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle {...L} cx="12" cy="12" r="2.5" /></>, // an eye
+  gaze: <><circle {...L} cx="12" cy="12" r="9" /><path {...L} d="m15.5 8.5-2 5-5 2 2-5Z" /></>, // a compass
+  glasses: <path {...L} d="M12 6.5C10 5 7 4.5 4 5v13.5c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5ZM12 6.5V20" />, // a book
+  tears: <><path {...L} d="M7 14.5a3.8 3.8 0 0 1-.4-7.6 5.5 5.5 0 0 1 10.6 1.6 3 3 0 0 1-.2 6Z" /><path {...L} d="m8.5 17.5-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5" /></>, // rain
+
+  /* Features */
+  nose: <><path {...L} d="M8 4l2 2.5 2-3 2 3L16 4v4a4 4 0 0 1-8 0Z" /><path {...L} d="M12 12v9M12 17.5c-2.4 0-3.9-1.4-4.4-3.4 2.4 0 3.9 1.4 4.4 3.4Z" /></>, // a flower (smell)
+  blush: <path {...L} d="M12 19.5S4 14.8 4 9.3A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 8 2.3c0 5.5-8 10.2-8 10.2Z" />, // a heart
+  gesture: <path {...L} d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1V4a1.5 1.5 0 0 1 3 0v7m0-.5V5.5a1.5 1.5 0 0 1 3 0V14c0 3.8-2.6 6.5-6.2 6.5-2.4 0-4-1.1-5.4-3.2l-2.2-3.5a1.5 1.5 0 0 1 2.5-1.6L8 14" />, // a wave
+
+  /* Torso */
+  body: <><path {...L} d="M3 15.5 15.5 3 21 8.5 8.5 21Z" /><path {...L} d="m7 11.5 1.5 1.5M10 8.5l1.5 1.5M13 5.5l1.5 1.5" /></>, // a ruler
+  outfit: <><path {...L} d="M12 7.5a2 2 0 1 1 2-2" /><path {...L} d="M12 7.5V9l-8.6 6.6A1.4 1.4 0 0 0 4.3 18h15.4a1.4 1.4 0 0 0 .9-2.4L12 9" /></>, // a hanger
+  outfitColor: <><path {...L} d="M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.3-1.6-1.3-2.8 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8Z" /><Dot x={7.5} y={11} /><Dot x={9.5} y={7} /><Dot x={14.5} y={7} /></>, // a palette
+  detail: <path {...L} d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z" />, // a star
+};
+
+/* `name` is a category or item key; `group` disambiguates an item that shares its category's name */
+export function NavIcon({ name, group, size = 26 }) {
+  const art = (group && ICONS[`${group}:${name}`]) || ICONS[name];
+  if (!art) return null;
+  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{art}</svg>;
+}

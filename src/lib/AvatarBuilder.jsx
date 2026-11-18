@@ -4,6 +4,7 @@ import {
   defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg, randomAvatar,
 } from './avatar.js';
 import { downloadPng } from './export.js';
+import { NavIcon } from './icons.jsx';
 
 /* =========================================================================
    <AvatarBuilder /> — one editor, broad → detailed, with progressive disclosure.
@@ -101,20 +102,6 @@ function Face({ item, config, size }) {
   }
 }
 
-/* The art for each primary category's tile */
-function CategoryArt({ group, config }) {
-  switch (group) {
-    case 'skin': return <HeadSwatch color={config.skin} shape={config.head} size={30} />;
-    case 'head': return <ItemArt part="head" config={config} size={30} />;
-    case 'hair': return config.hair !== 'none' ? <ItemArt part="hair" config={config} size={30} /> : <ItemArt part="cap" config={{ ...config, cap: config.cap || '#f70492' }} size={30} />;
-    case 'face': return <ItemArt part="mouth" config={{ ...config, mouth: config.mouth === 'none' ? 'smile' : config.mouth }} size={30} />;
-    case 'eyes': return <ItemArt part="eyes" config={config} size={30} />;
-    case 'features': return <ItemArt part="nose" config={{ ...config, nose: config.nose === 'none' ? 'hook' : config.nose }} size={30} />;
-    case 'torso': return config.torso ? <ItemArt part="outfit" config={config} size={30} /> : <HeadSwatch color={config.skin} size={30} />;
-    case 'background': return <span className="ab-chip ab-chip-sm" style={{ background: config.bg }} />;
-    default: return null;
-  }
-}
 
 /* ---- The default toolbar: Figma Frame 4 (the four head fills + the colour wheel) ---- */
 const FILLS = ['#d9d9d7', '#ffffff', '#d9d9d7', '#444755']; // the first and third are the same grey in Figma
@@ -332,7 +319,7 @@ export default function AvatarBuilder({
   } else if (!group && !item) {
     tiles = PRIMARY.filter((g) => !g.tapOnly).map((g) => (
       <button key={g.key} type="button" className="ab-tile ab-cat" onClick={() => go(['all', g.key], 'down')} aria-label={g.label}>
-        <span className="ab-cat-art"><CategoryArt group={g.key} config={config} /></span>
+        <span className="ab-cat-art"><NavIcon name={g.key} /></span>
         <span className="ab-cat-label">{g.label}</span>
       </button>
     ));
@@ -360,13 +347,12 @@ export default function AvatarBuilder({
           </div>
         );
       }
-      // An item that is currently off shows a faint sample of itself, not a "none" mark
+      // An item that's currently off (no glasses, no blush…) shows its icon faded
       const off = config[k] === null || config[k] === 'none';
-      const sample = !off ? config : it.kind === 'color' ? { ...config, [k]: it.presets[0] } : { ...config, [k]: it.options.find((o) => o !== 'none'), ...(k === 'hair' ? { cap: null } : {}) };
       return (
         <button key={k} type="button" className="ab-tile ab-cat" onClick={() => open(k)} aria-label={it.label}>
-          <span className="ab-cat-art" style={off ? { opacity: 0.35 } : undefined}>
-            <Face item={k} config={sample} size={30} />
+          <span className="ab-cat-art" style={off ? { opacity: 0.4 } : undefined}>
+            <NavIcon name={k} group={group.key} />
           </span>
           <span className="ab-cat-label">{it.label}</span>
         </button>

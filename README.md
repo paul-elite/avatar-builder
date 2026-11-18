@@ -68,6 +68,9 @@ One editor that starts broad and reveals detail only when it's relevant:
    Items that don't apply stay hidden: hair colour until there is hair, tongue
    colour until the mouth shows one, and Body, Outfit, Outfit colour and Details
    until Torso is set to *With torso* (choosing *Head only* hides them again).
+   Categories and items show metaphorical line icons (a comb for Hair, a
+   crown for Headwear, a lollipop for Tongue, a flower for Nose…), faded when
+   that item is off.
 4. **An item:** its options, each drawn as the item itself; colours as a row,
    with an "all colours" grid behind it.
 
