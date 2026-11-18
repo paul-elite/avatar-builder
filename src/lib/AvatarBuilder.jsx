@@ -161,6 +161,8 @@ export default function AvatarBuilder({
   const [lastTop, setLastTop] = useState('face');
   // Moving between levels: a snapshot of every bar and tray, played forward once the new level renders
   const flip = useRef(null);
+  const rootRef = useRef(null);
+  const pressRef = useRef(null); // the last control pressed, so a new bar can grow out of it
   const stackRef = useRef(null);
   const ghostsRef = useRef(null);
   const timers = useRef([]);
@@ -232,9 +234,16 @@ export default function AvatarBuilder({
     }
     // Every other move: snapshot the bars and trays, switch level, then FLIP each one to its new place
     if (stackRef.current && !reducedMotion()) {
-      flip.current = [...stackRef.current.querySelectorAll('[data-layer]')].map((el) => ({
-        key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect(), clone: el.cloneNode(true),
-      }));
+      // Where the move came from: the tab (or part of the avatar) just pressed, else the focused control
+      const pressed = pressRef.current && performance.now() - pressRef.current.t < 1500 ? pressRef.current.el : document.activeElement;
+      const from = pressed && pressed !== document.body && rootRef.current && rootRef.current.contains(pressed) ? pressed.getBoundingClientRect() : null;
+      pressRef.current = null;
+      flip.current = {
+        from,
+        layers: [...stackRef.current.querySelectorAll('[data-layer]')].map((el) => ({
+          key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect(), clone: el.cloneNode(true),
+        })),
+      };
     }
     setPath(next);
     if (next[0] === 'all' && next[1]) setLastTop(next[1] === 'features' ? 'face' : next[1]);
@@ -329,7 +338,7 @@ export default function AvatarBuilder({
       return g;
     };
     const fadeKids = (el, keyframes, opts) => [...el.children].forEach((c) => c.animate(keyframes, opts));
-    const before = new Map(snap.map((o) => [o.key, o]));
+    const before = new Map(snap.layers.map((o) => [o.key, o]));
     const now = [...stackRef.current.querySelectorAll('[data-layer]')];
     // A bar that sits on the default bar slides out from behind it, and back in when it closes
     const homeEl = stackRef.current.querySelector('[data-layer="home"][data-kind="bar"]');
@@ -341,10 +350,14 @@ export default function AvatarBuilder({
       const bar = el.dataset.kind === 'bar';
       if (!old) {
         if (bar) {
-          // Solid surfaces never fade through what's behind them; only the contents fade in
-          const from = homeEl && el !== homeEl ? `translateY(${homeTop - r.top}px)` : 'translateY(10px) scale(0.97)';
-          el.animate([{ transform: from }, { transform: 'none' }], { duration: homeEl && el !== homeEl ? T : 200, easing: homeEl && el !== homeEl ? ease : 'ease-out' });
-          fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: 'ease-out' }); // contents arrive with the surface
+          // A new bar grows out of the tab that opened it: it starts centred on that tab at half
+          // size (never from nothing) and opens to its place. Solid surface; only the contents fade in.
+          const o = snap.from;
+          const from = o
+            ? `translate(${o.left + o.width / 2 - (r.left + r.width / 2)}px, ${o.top + o.height / 2 - (r.top + r.height / 2)}px) scale(0.5)`
+            : 'translateY(10px) scale(0.97)';
+          el.animate([{ transformOrigin: '50% 50%', transform: from }, { transformOrigin: '50% 50%', transform: 'none' }], { duration: o ? T : 200, easing: o ? 'cubic-bezier(0.2, 0.8, 0.2, 1)' : 'ease-out' });
+          fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'ease-out' }); // contents arrive with the surface
         }
         else el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: 150, delay: 120, easing: 'ease-out', fill: 'backwards' });
       } else if (old.kind === el.dataset.kind) {
@@ -575,7 +588,10 @@ export default function AvatarBuilder({
   const view = config.torso ? '-23.5 -16 257 257' : '10.5 -12.85 189 189';
 
   return (
-    <div className={('ab-root ' + className).trim()} style={framed ? { '--ab-fill': config.bg } : backdrop === 'circle' ? undefined : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop} data-frame={backdrop === 'circle' ? 'circle' : undefined}>
+    <div
+      ref={rootRef}
+      onPointerDownCapture={(e) => { const t = e.target.closest && e.target.closest('button, [data-part]'); pressRef.current = t ? { el: t, t: performance.now() } : null; }}
+      className={('ab-root ' + className).trim()} style={framed ? { '--ab-fill': config.bg } : backdrop === 'circle' ? undefined : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop} data-frame={backdrop === 'circle' ? 'circle' : undefined}>
       <div className="ab-ghosts" ref={ghostsRef} aria-hidden="true" />
       {setupDone && !inSetup && (
         <button type="button" className="ab-setup-chip" onClick={() => go(['setup'], 'down')} aria-label="Change category and style">
