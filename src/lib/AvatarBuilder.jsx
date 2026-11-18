@@ -107,7 +107,8 @@ function Face({ item, config, size }) {
 
 
 /* ---- The default toolbar: Figma Frame 4 (the four head fills + the colour wheel) ---- */
-const FILLS = ['#d9d9d7', '#ffffff', '#d9d9d7', '#444755']; // the first and third are the same grey in Figma
+// Four distinct skin tones (Figma repeated the grey; the third is now a warm peach so every tile does something)
+const FILLS = ['#d9d9d7', '#ffffff', '#f3d2b9', '#444755'];
 const TILE_HEAD =
   'M12.0245 18.5527C11.8588 20.2797 11.83 21.6975 11.8624 22.8042C11.9003 24.1011 12.0223 24.9709 12.1065 25.411L11.7487 25.5544C10.3696 26.3836 11.1971 28.3183 11.8407 29.7923C12.1563 30.5152 12.494 30.6841 12.8321 30.8533V30.8533C13.1835 31.0292 13.5354 31.2052 13.8633 32.0034C14.3782 33.2563 15.5489 34.8594 16.0699 35.5043C17.9478 37.386 20.2555 38.3845 22.5695 38.7136C25.8517 39.096 29.5588 38.2427 32.33 35.4658C32.851 34.8209 34.0217 33.2179 34.5366 31.9649C34.8645 31.1668 35.2164 30.9907 35.5678 30.8149C35.9059 30.6457 36.2436 30.4767 36.5592 29.7539C37.2028 28.2798 38.0303 26.3451 36.6512 25.516L36.2934 25.3726C36.3755 24.9432 36.4936 24.105 36.5346 22.8603C36.5714 21.7402 36.5458 20.2909 36.3754 18.5142C35.9157 13.7236 31.4106 11.3282 27.8249 10.4069C25.1572 9.72152 22.3358 10.0454 21.0171 10.3411C20.8694 10.3729 20.722 10.4076 20.5749 10.4454C16.9893 11.3667 12.4842 13.762 12.0245 18.5527Z';
 function FigmaHeadTile({ fill, on }) {
@@ -160,8 +161,6 @@ export default function AvatarBuilder({
   const [instance, setInstance] = useState(0);
   const [grid, setGrid] = useState(false);
   const [history, setHistory] = useState({ past: [], future: [] });
-  // Which of the default bar's head tiles is on (two are the same grey, so it's tracked by position)
-  const [fillPick, setFillPick] = useState(() => FILLS.findIndex((f) => eq(f, { ...defaultAvatar, ...defaultValue, ...saved?.config }.skin)));
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const after = (ms, fn) => timers.current.push(setTimeout(fn, reducedMotion() ? 0 : ms));
@@ -320,12 +319,10 @@ export default function AvatarBuilder({
       </button>
     );
   } else if (isDefault) {
-    // The picked tile while it still matches the skin (undo, the colour row), else the first that does
-    const pickIdx = eq(FILLS[fillPick], config.skin) ? fillPick : FILLS.findIndex((f) => eq(f, config.skin));
-    tiles = FILLS.map((fill, i) => {
-      const on = pickIdx === i;
+    tiles = FILLS.map((fill) => {
+      const on = eq(config.skin, fill);
       return (
-        <button key={i} type="button" className="ab-tile" aria-label={`Skin ${fill}`} aria-pressed={on} onClick={() => { setFillPick(i); set('skin', fill); }}>
+        <button key={fill} type="button" className="ab-tile" aria-label={`Skin ${fill}`} aria-pressed={on} onClick={() => set('skin', fill)}>
           <FigmaHeadTile fill={fill} on={on} />
         </button>
       );

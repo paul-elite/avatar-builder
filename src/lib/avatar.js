@@ -13,7 +13,7 @@ import * as P from './parts.js';
 /* ---- Palettes ---------------------------------------------------------- */
 export const BG = ['#ffffff', '#f2f2f2', '#ffe4f1', '#e3f1ff', '#e9f9d9', '#fff3cf', '#ece6ff', '#1a1a1a'];
 // The first four are the Figma toolbar's head fills
-export const SKIN = ['#d9d9d7', '#ffffff', '#ececea', '#444755', '#f3d2b9', '#d9a47e', '#a8693f', '#6b3f22'];
+export const SKIN = ['#d9d9d7', '#ffffff', '#f3d2b9', '#444755', '#e8b98f', '#c68642', '#a8693f', '#6b3f22'];
 export const HAIR_COLOR = ['#1a1a1a', '#5a3620', '#a8693f', '#e8b04b', '#f2e3c6', '#f70492', '#1084fe', '#8b5cf6'];
 export const CAP = ['#f70492', '#50c810', '#1084fe', '#ff7a00', '#8b5cf6', '#ffffff', '#1a1a1a'];
 export const HAT = ['cap', 'side', 'beanie'];
