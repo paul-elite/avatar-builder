@@ -40,7 +40,7 @@ import { NavIcon, BarIcon } from './icons.jsx';
 
 // demote overlaps enter: the new bar starts as the old one is still settling into the tray,
 // so there's never a frame with an empty slab. 'tab' (switching sibling items) keeps the bar.
-const MS = { exit: 130, promote: 240, demote: 130, enter: 190, tab: 180 };
+const MS = { exit: 130, promote: 240, demote: 130, enter: 190, tab: 180, over: 200, sink: 130, settle: 150 };
 
 /* ---- Colours: a row first, the full grid behind a button ---- */
 const hsl = (h, s, l) => {
@@ -159,6 +159,10 @@ export default function AvatarBuilder({
   const [history, setHistory] = useState({ past: [], future: [] });
   // The category you last opened stays lit on the default toolbar
   const [lastTop, setLastTop] = useState('face');
+  // While two bars are layered (one over the other), the stacked tray waits
+  const [layering, setLayering] = useState(false);
+  const underRef = useRef(null);
+  const overRef = useRef(null);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const after = (ms, fn) => timers.current.push(setTimeout(fn, reducedMotion() ? 0 : ms));
@@ -182,6 +186,13 @@ export default function AvatarBuilder({
     setHistory((h) => ({ past: h.past.slice(0, -1), future: [config, ...h.future] }));
     emit(history.past[history.past.length - 1]);
   };
+  // Back to the default look; the saved copy in this browser is cleared too (undo brings it back)
+  const reset = () => {
+    try { if (persist) window.localStorage.removeItem(persist); } catch { /* storage unavailable */ }
+    setGrid(false);
+    commit({ ...defaultAvatar, category: config.category, style: config.style });
+  };
+  const edited = changed({ ...defaultAvatar, category: config.category, style: config.style }, config);
   const redo = () => {
     if (!history.future.length) return;
     setHistory((h) => ({ past: [...h.past, config], future: h.future.slice(1) }));
@@ -216,6 +227,40 @@ export default function AvatarBuilder({
       setPath(next);
       setPhase('tab');
       after(MS.tab, () => setPhase('idle'));
+      return;
+    }
+    // Deeper or back: two bars, one over the other, then the lower one becomes the stack
+    if ((dir === 'down' || dir === 'up') && barRef.current && !reducedMotion()) {
+      const slot = dir === 'down' ? underRef.current : overRef.current;
+      const ghost = barRef.current.cloneNode(true);
+      ghost.removeAttribute('data-phase');
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.inert = true;
+      ghost.style.width = barRef.current.getBoundingClientRect().width + 'px';
+      slot.replaceChildren(ghost);
+      setLayering(true);
+      setPath(next);
+      if (next[0] === 'all' && next[1]) setLastTop(next[1] === 'features' ? 'face' : next[1]);
+      setInstance((n) => n + 1);
+      if (dir === 'down') {
+        // 1 · the new bar lands on top of the old one · 2 · the old one sinks into the tray behind
+        setPhase('over');
+        after(MS.over, () => {
+          ghost.setAttribute('data-phase', 'demote');
+          after(MS.sink, () => {
+            setLayering(false);
+            setPhase('idle');
+            after(MS.settle, () => slot.replaceChildren());
+          });
+        });
+      } else {
+        // 1 · the bar below rises out of the tray, under this one · 2 · this one lifts off
+        setPhase('promote');
+        after(MS.promote - 80, () => {
+          ghost.setAttribute('data-phase', 'lift');
+          after(MS.exit, () => { slot.replaceChildren(); setLayering(false); setPhase('idle'); });
+        });
+      }
       return;
     }
     const first = dir === 'down' ? 'demote' : 'exit';
@@ -481,6 +526,12 @@ export default function AvatarBuilder({
         </button>
       )}
 
+      {!inSetup && (
+        <button type="button" className="ab-reset" data-show={edited || undefined} onClick={reset} tabIndex={edited ? 0 : -1} aria-label="Reset to the default avatar" title="Reset to the default avatar">
+          Reset
+        </button>
+      )}
+
       <div className="ab-stage" onClick={onStageClick} data-tappable={!inSetup || undefined}>
         <svg
           viewBox={view}
@@ -528,9 +579,10 @@ export default function AvatarBuilder({
         )}
 
         <div className="ab-stack">
+          <div className="ab-layer" ref={underRef} aria-hidden="true" />
           {/* At most two trays show: the toolbar and one behind it, however deep you are */}
           {Array.from({ length: Math.min(depth, 1) }, (_, i) => (
-            <span key={i} className="ab-peek" data-dark={depth === 1 && !inSetup ? '' : undefined} style={{ '--depth': 1 }} aria-hidden="true" />
+            <span key={i} className="ab-peek" data-hidden={layering || undefined} data-dark={depth === 1 && !inSetup ? '' : undefined} style={{ '--depth': 1 }} aria-hidden="true" />
           ))}
 
           {shapeGrid && (
@@ -570,6 +622,7 @@ export default function AvatarBuilder({
             </div>
             {extras}
           </div>
+          <div className="ab-layer ab-layer-over" ref={overRef} aria-hidden="true" />
         </div>
 
         <button type="button" className="ab-close" data-show={canClose || undefined} onClick={back} aria-label="Close" tabIndex={canClose ? 0 : -1}>

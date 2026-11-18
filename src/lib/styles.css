@@ -59,6 +59,29 @@
   transition: color 140ms ease, background-color 140ms ease;
 }
 .ab-setup-chip:hover { color: var(--ab-ink); background: #fff; }
+/* Reset: top right, only once the look differs from the default */
+.ab-reset {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+  color: var(--ab-muted);
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.95);
+  transition: opacity 150ms ease-out, transform 150ms ease-out, color 140ms ease, background-color 140ms ease;
+}
+.ab-reset[data-show] { opacity: 1; pointer-events: auto; transform: none; }
+.ab-reset:hover { color: var(--ab-ink); background: #fff; }
+.ab-reset:active { transform: scale(0.97); }
+@media (max-width: 480px) { .ab-reset { top: 16px; right: 16px; } }
 
 /* ---- The avatar ---- */
 .ab-stage { display: grid; place-items: center; }
@@ -493,6 +516,17 @@
 .ab-bar[data-phase="enter"] > * { animation: ab-fade-in 140ms ease-out both; }
 @keyframes ab-exit { to { opacity: 0; transform: translateY(10px) scale(0.96); } }
 @keyframes ab-fade-in { from { opacity: 0; } }
+/* Two bars, one over the other: the new bar lands on the old one (which stays put),
+   then the old one sinks into the tray behind. Never more than two layers. */
+.ab-bar[data-phase="over"] { animation: ab-over 200ms ease-out both; }
+@keyframes ab-over { from { opacity: 0; transform: translateY(-12px) scale(0.97); } 40% { opacity: 1; } }
+.ab-bar[data-phase="lift"] { animation: ab-lift 130ms ease-in both; } /* the top bar leaves the way it came, in one piece */
+@keyframes ab-lift { to { opacity: 0; transform: translateY(-12px) scale(0.97); } }
+.ab-layer { position: absolute; inset: auto 0 0; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
+.ab-layer > .ab-bar { flex: none; }
+.ab-layer-over { z-index: 3; }
+.ab-peek { transition: opacity 150ms ease-out; }
+.ab-peek[data-hidden] { opacity: 0 !important; transition: none; }
 @keyframes ab-fade-out { to { opacity: 0; } }
 
 .ab-root button:focus-visible { outline: 2px solid #1084fe; outline-offset: 2px; }
