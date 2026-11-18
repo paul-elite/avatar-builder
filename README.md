@@ -69,7 +69,7 @@ One editor that starts broad and reveals detail only when it's relevant:
    - Hair: style, colour, headwear, hat
    - Outfit: head only / with torso, then body, outfit, colour, details
    - Frame: the backdrop's colour and shape (circle, rounded, square, or full: no frame,
-     the colour fills the page and the shadow shows)
+     the page stays light grey and the shadow shows; the colour still fills the download)
 3. **Inside a category:** its items, e.g. Hair → Style, Colour, Headwear.
    Items that don't apply stay hidden: hair colour until there is hair, tongue
    colour until the mouth shows one, and Body, Outfit, Outfit colour and Details
