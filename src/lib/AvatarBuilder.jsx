@@ -38,7 +38,9 @@ import { NavIcon, BarIcon } from './icons.jsx';
    Import the stylesheet once: import 'avatar-builder/styles.css'
    ========================================================================= */
 
-const MS = { exit: 150, promote: 240, demote: 190, enter: 190 };
+// demote overlaps enter: the new bar starts as the old one is still settling into the tray,
+// so there's never a frame with an empty slab. 'tab' (switching sibling items) keeps the bar.
+const MS = { exit: 130, promote: 240, demote: 130, enter: 190, tab: 180 };
 
 /* ---- Colours: a row first, the full grid behind a button ---- */
 const hsl = (h, s, l) => {
@@ -208,6 +210,14 @@ export default function AvatarBuilder({
   const go = (next, dir) => {
     if (phase !== 'idle') return;
     setGrid(false);
+    if (dir === 'tab') {
+      // Same level, another item: the bar stays put, its width morphs and only its contents change
+      barWidth.current = barRef.current ? barRef.current.getBoundingClientRect().width : null;
+      setPath(next);
+      setPhase('tab');
+      after(MS.tab, () => setPhase('idle'));
+      return;
+    }
     const first = dir === 'down' ? 'demote' : 'exit';
     const second = dir === 'up' ? 'promote' : 'enter';
     setPhase(first);
@@ -250,6 +260,34 @@ export default function AvatarBuilder({
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
+  });
+  // The item toggle's pill: measured onto the chosen tab, sliding when it changes
+  const segRef = useRef(null);
+  const segPlaced = useRef(false);
+  useLayoutEffect(() => {
+    const seg = segRef.current;
+    if (!seg) { segPlaced.current = false; return; }
+    const on = seg.querySelector('.ab-seg-btn.on');
+    const ind = seg.querySelector('.ab-seg-ind');
+    if (!on || !ind) return;
+    if (!segPlaced.current) ind.style.transition = 'none'; // the first placement doesn't slide in from nowhere
+    ind.style.width = on.offsetWidth + 'px';
+    ind.style.transform = `translateX(${on.offsetLeft - 3}px)`;
+    const ghost = ind.firstChild;
+    if (ghost) { ghost.style.transition = ind.style.transition; ghost.style.transform = `translateX(${3 - on.offsetLeft}px)`; }
+    if (!segPlaced.current) { void ind.offsetWidth; ind.style.transition = ''; if (ghost) ghost.style.transition = ''; segPlaced.current = true; }
+  });
+  // Switching items keeps the bar: its width eases from the old to the new instead of jumping
+  const barRef = useRef(null);
+  const barWidth = useRef(null);
+  useLayoutEffect(() => {
+    const bar = barRef.current;
+    const from = barWidth.current;
+    if (!bar || from == null || phase !== 'tab') return;
+    barWidth.current = null;
+    const to = bar.getBoundingClientRect().width;
+    if (Math.abs(to - from) < 1 || reducedMotion()) return;
+    bar.animate([{ width: from + 'px' }, { width: to + 'px' }], { duration: MS.tab, easing: 'cubic-bezier(0.45, 0, 0.1, 1)' });
   });
   // A tap on a part edits that part; anywhere else on the stage edits the background
   const onStageClick = (e) => { const g = e.target.closest && e.target.closest('[data-part]'); jump(g ? g.dataset.part : 'background'); };
@@ -459,7 +497,14 @@ export default function AvatarBuilder({
       <div className="ab-dock">
         {siblings.length > 1 ? (
           // Inside an item: a toggle of the category's items, to switch straight between them
-          <div className="ab-seg" role="tablist" aria-label={group.label}>
+          <div className="ab-seg" role="tablist" aria-label={group.label} ref={segRef}>
+            {/* One dark pill that slides to the chosen item, rather than two crossfading */}
+            <span className="ab-seg-ind" aria-hidden="true">
+              {/* White copies of the labels ride inside the pill, so text is legible at every frame of the slide */}
+              <span className="ab-seg-ghost">
+                {siblings.map((k) => <span key={k} className="ab-seg-btn">{ITEMS[k].label}</span>)}
+              </span>
+            </span>
             {siblings.map((k) => (
               <button
                 key={k}
@@ -467,7 +512,7 @@ export default function AvatarBuilder({
                 role="tab"
                 aria-selected={k === itemKey}
                 className={'ab-seg-btn' + (k === itemKey ? ' on' : '')}
-                onClick={() => k !== itemKey && go([...base, k], 'swap')}
+                onClick={() => k !== itemKey && go([...base, k], 'tab')}
               >
                 {ITEMS[k].label}
               </button>
@@ -514,7 +559,7 @@ export default function AvatarBuilder({
             </div>
           )}
 
-          <div className="ab-bar" key={instance} data-phase={phase} data-level={inSetup ? 'setup' : isDefault ? 'default' : item ? 'item' : 'category'} role="toolbar" aria-label={crumbs.join(' · ')}>
+          <div className="ab-bar" ref={barRef} key={instance} data-phase={phase} data-level={inSetup ? 'setup' : isDefault ? 'default' : item ? 'item' : 'category'} role="toolbar" aria-label={crumbs.join(' · ')}>
             {!inSetup && <div className="ab-history">
               <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
               <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>

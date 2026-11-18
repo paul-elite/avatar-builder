@@ -71,6 +71,9 @@
 }
 /* With the colour grid open, the avatar moves up to stay in view above it */
 .ab-root[data-grid] .ab-avatar { transform: translateY(-150px); }
+/* An open grid covers the item toggle's place: the toggle steps out instead of showing through */
+.ab-seg, .ab-crumbs { transition: opacity 140ms ease-out; }
+.ab-root[data-grid] .ab-seg, .ab-root[data-grid] .ab-crumbs { opacity: 0; pointer-events: none; }
 /* Tap a part to edit it */
 .ab-avatar[data-tappable] [data-part] { cursor: pointer; }
 @media (hover: hover) {
@@ -142,6 +145,31 @@
   scrollbar-width: none;
 }
 .ab-seg::-webkit-scrollbar { display: none; }
+.ab-seg { position: relative; }
+.ab-seg-ind {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 9px;
+  z-index: 2;
+  overflow: hidden;
+  background: var(--ab-dark);
+  pointer-events: none;
+  will-change: transform;
+  transition: transform 200ms cubic-bezier(0.45, 0, 0.1, 1), width 200ms cubic-bezier(0.45, 0, 0.1, 1);
+}
+.ab-seg-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 2px;
+  will-change: transform;
+  transition: transform 200ms cubic-bezier(0.45, 0, 0.1, 1);
+}
+.ab-seg-ghost .ab-seg-btn { display: inline-flex; align-items: center; font: inherit; color: #fff; }
+.ab-seg-ghost .ab-seg-btn::before { content: none; }
 .ab-seg-btn {
   position: relative;
   height: 28px;
@@ -159,7 +187,7 @@
 .ab-seg-btn::before { content: ""; position: absolute; inset: -8px 0; } /* 44px tall tap area */
 .ab-seg-btn:hover { color: var(--ab-ink); }
 .ab-seg-btn:active { transform: scale(0.97); }
-.ab-seg-btn.on { background: var(--ab-dark); color: #fff; }
+.ab-seg-btn.on { color: var(--ab-ink); }
 
 .ab-stack { position: relative; max-width: calc(100vw - 32px); }
 
@@ -424,15 +452,26 @@
    enter:   the deeper toolbar arrives on top
    exit:    the current toolbar leaves (closing)
    promote: the level below rises out of the stack into its place */
-.ab-bar[data-phase="demote"] { animation: ab-demote 190ms ease-in-out both; }
-.ab-bar[data-phase="demote"] > * { animation: ab-fade-out 90ms ease-out both; }
+.ab-bar[data-phase="demote"] { animation: ab-demote 130ms ease-in both; }
+.ab-bar[data-phase="demote"] > * { animation: ab-fade-out 80ms ease-out both; }
 .ab-bar[data-phase="enter"] { animation: ab-enter 190ms ease-out both; }
-.ab-bar[data-phase="exit"] { animation: ab-exit 150ms ease-out both; }
+.ab-bar[data-phase="exit"] { animation: ab-exit 130ms ease-out both; }
+.ab-bar[data-phase="exit"] > * { animation: ab-fade-out 70ms ease-out both; } /* words leave first, then the surface */
 .ab-bar[data-phase="promote"] { animation: ab-promote 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.ab-bar[data-phase="promote"] > * { animation: ab-fade-in 150ms ease-out 100ms both; }
+.ab-bar[data-phase="promote"] > * { animation: ab-fade-in 150ms ease-out 40ms both; } /* contents come up with the bar, no empty slab */
 @keyframes ab-demote { to { opacity: 0.5; transform: translateY(31px) scale(0.86, 0.6); } }
+/* The dark default bar is solid: it sinks into the tray without turning into a grey ghost */
+.ab-bar[data-level="default"][data-phase="demote"] { animation-name: ab-demote-solid; }
+.ab-bar[data-level="default"][data-phase="promote"] { animation-name: ab-promote-solid; }
+@keyframes ab-demote-solid { to { transform: translateY(31px) scale(0.86, 0.6); } }
+@keyframes ab-promote-solid { from { transform: translateY(31px) scale(0.86, 0.6); } }
+/* Switching sibling items: the bar stays, its contents cross in */
+.ab-bar[data-phase="tab"] > * { animation: ab-tab-in 160ms ease-out both; }
+@keyframes ab-tab-in { from { opacity: 0.25; transform: translateY(2px); } }
 @keyframes ab-promote { from { opacity: 0.5; transform: translateY(31px) scale(0.86, 0.6); } }
-@keyframes ab-enter { from { opacity: 0; transform: translateY(-6px) scale(0.97); } }
+/* The bar is solid: it turns opaque early so the tray never shows through it; its contents follow */
+@keyframes ab-enter { from { opacity: 0; transform: translateY(-6px) scale(0.97); } 35% { opacity: 1; } }
+.ab-bar[data-phase="enter"] > * { animation: ab-fade-in 140ms ease-out both; }
 @keyframes ab-exit { to { opacity: 0; transform: translateY(10px) scale(0.96); } }
 @keyframes ab-fade-in { from { opacity: 0; } }
 @keyframes ab-fade-out { to { opacity: 0; } }
@@ -525,7 +564,7 @@
 .ab-bar[data-level="default"] .ab-cat.on[aria-label="Frame"] .ab-cat-art svg { width: 26px; height: 26px; }
 .ab-bar[data-level="default"] .ab-cat.on .ab-cat-label { color: #000; }
 .ab-bar[data-level="default"] .ab-cat svg { width: auto; height: auto; }
-.ab-peek[data-dark] { background: #151313; opacity: 0.6; }
+.ab-peek[data-dark] { background: #1d1d20; opacity: 1; }
 @media (max-width: 480px) {
   /* Four 56px tabs, 8px apart, fit at phone width: the undo/redo well shrinks to
      two narrow full-height buttons, download narrows, and the divider goes */
