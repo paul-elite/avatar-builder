@@ -39,7 +39,7 @@ export const FRAME = ['circle', 'rounded', 'square', 'full'];
 // Eye styles whose pupils can look around
 const GAZE_EYES = ['round', 'wide', 'big', 'up', 'sleepy', 'peek', 'angry', 'bored'];
 export const MOUTH = ['boy', 'tongue', 'smile', 'smirk', 'open', 'o', 'frown', 'wobble', 'none'];
-export const HAIR = ['none', 'boy', 'short', 'bangs', 'sidebob', 'curly', 'long', 'bun', 'underhat'];
+export const HAIR = ['none', 'boy', 'tufts', 'swept', 'spiky', 'mop', 'curlytop', 'buzz', 'short', 'bangs', 'sidebob', 'curly', 'long', 'bun', 'underhat'];
 export const BODY = ['slim', 'regular', 'broad'];
 export const OUTFIT = ['tee', 'hoodie', 'shirt'];
 export const DETAIL = ['none', 'pocket', 'stripe'];
