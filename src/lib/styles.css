@@ -203,6 +203,28 @@
 .ab-cat .ab-chip { width: 22px; height: 22px; border-radius: 7px; }
 .ab-cat svg { width: 30px; height: 30px; }
 
+/* The colour wheel (Figma: a 28px colour ring) */
+.ab-wheel {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: conic-gradient(#ff4f4e, #ffb900, #00cc1a, #1084fe, #8b5cf6, #f70492, #ff4f4e);
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+.ab-wheel span {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: #f2f2f2;
+  box-shadow: 0 0 0 1.5px #1a1a1a;
+}
+.ab-wheel::before { content: ""; position: absolute; inset: -8px; }
+.ab-wheel:active { transform: scale(0.94); }
+
 .ab-sep { width: 1px; height: 24px; margin: 0 3px; background: var(--ab-line); }
 
 /* Setup and the torso switch: text choices */

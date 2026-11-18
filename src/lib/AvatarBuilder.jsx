@@ -115,6 +115,19 @@ function CategoryArt({ group, config }) {
   }
 }
 
+/* ---- The default toolbar: Figma Frame 4 (the four head fills + the colour wheel) ---- */
+const FILLS = ['#d9d9d7', '#ffffff', '#d9d9d7', '#444755']; // the first and third are the same grey in Figma
+const TILE_HEAD =
+  'M12.0245 18.5527C11.8588 20.2797 11.83 21.6975 11.8624 22.8042C11.9003 24.1011 12.0223 24.9709 12.1065 25.411L11.7487 25.5544C10.3696 26.3836 11.1971 28.3183 11.8407 29.7923C12.1563 30.5152 12.494 30.6841 12.8321 30.8533V30.8533C13.1835 31.0292 13.5354 31.2052 13.8633 32.0034C14.3782 33.2563 15.5489 34.8594 16.0699 35.5043C17.9478 37.386 20.2555 38.3845 22.5695 38.7136C25.8517 39.096 29.5588 38.2427 32.33 35.4658C32.851 34.8209 34.0217 33.2179 34.5366 31.9649C34.8645 31.1668 35.2164 30.9907 35.5678 30.8149C35.9059 30.6457 36.2436 30.4767 36.5592 29.7539C37.2028 28.2798 38.0303 26.3451 36.6512 25.516L36.2934 25.3726C36.3755 24.9432 36.4936 24.105 36.5346 22.8603C36.5714 21.7402 36.5458 20.2909 36.3754 18.5142C35.9157 13.7236 31.4106 11.3282 27.8249 10.4069C25.1572 9.72152 22.3358 10.0454 21.0171 10.3411C20.8694 10.3729 20.722 10.4076 20.5749 10.4454C16.9893 11.3667 12.4842 13.762 12.0245 18.5527Z';
+function FigmaHeadTile({ fill, on }) {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+      {on && <rect width="48" height="48" rx="14" fill="#1A1A1A" />}
+      <path d={TILE_HEAD} fillRule="evenodd" clipRule="evenodd" fill={fill} stroke={on ? fill : '#D9D9D7'} strokeWidth="0.576" />
+    </svg>
+  );
+}
+
 const eq = (a, b) => a === b || (a != null && b != null && String(a).toLowerCase() === String(b).toLowerCase());
 const changed = (a, b) => Object.keys({ ...a, ...b }).some((k) => !eq(a[k], b[k]));
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -150,6 +163,8 @@ export default function AvatarBuilder({
   const [instance, setInstance] = useState(0);
   const [grid, setGrid] = useState(false);
   const [history, setHistory] = useState({ past: [], future: [] });
+  // Which of the default bar's head tiles is on (two are the same grey, so it's tracked by position)
+  const [fillPick, setFillPick] = useState(() => FILLS.findIndex((f) => eq(f, { ...defaultAvatar, ...defaultValue, ...saved?.config }.skin)));
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const after = (ms, fn) => timers.current.push(setTimeout(fn, reducedMotion() ? 0 : ms));
@@ -194,10 +209,14 @@ export default function AvatarBuilder({
     });
   };
   const open = (key) => go([...path, key], 'down');
+  /* Paths: ['setup'] · [] the default (skin) bar · ['palette'] its colour row ·
+     ['all'] every category (in the stack under the default) · ['all', group] · ['all', group, item] */
   const back = () => {
     if (grid) return setGrid(false);
-    if (!path.length || (path[0] === 'setup' && !setupDone)) return;
-    // A category whose only visible item is open directly closes straight to primary
+    if (path[0] === 'setup' && !setupDone) return;
+    if (!path.length) return go(['all'], 'up'); // close the default: the categories rise from the stack
+    if (path[0] === 'all' && path.length === 1) return go([], 'up'); // and close back to the default
+    if (path[0] === 'setup' || path[0] === 'palette') return go([], 'up');
     go(path.slice(0, -1), 'up');
   };
   const finishSetup = () => {
@@ -213,22 +232,29 @@ export default function AvatarBuilder({
 
   /* ---- What the current level shows ---- */
   const inSetup = path[0] === 'setup';
-  const group = !inSetup && path[0] ? PRIMARY.find((g) => g.key === path[0]) : null;
+  const isDefault = !path.length;
+  const inPalette = path[0] === 'palette';
+  const inAll = path[0] === 'all';
+  const group = inAll && path[1] ? PRIMARY.find((g) => g.key === path[1]) : null;
   const shown = group ? visibleItems(group, config) : [];
   // A category with one visible item opens that item directly
   // (a switch, like Torso's head only / with torso, always shows inline at the category level)
-  const itemKey = group ? path[1] || (shown.length === 1 && ITEMS[shown[0]].kind !== 'toggle' ? shown[0] : null) : null;
+  const itemKey = inPalette ? 'skin' : group ? path[2] || (shown.length === 1 && ITEMS[shown[0]].kind !== 'toggle' ? shown[0] : null) : null;
   const item = itemKey ? ITEMS[itemKey] : null;
   // If an open item stops applying (e.g. hair colour after choosing no hair), step back to its category
   useEffect(() => {
-    if (group && path[1] && !shown.includes(path[1]) && phase === 'idle') go([group.key], 'up');
+    if (group && path[2] && !shown.includes(path[2]) && phase === 'idle') go(['all', group.key], 'up');
   });
 
   const crumbs = inSetup
     ? ['Setup']
-    : !group
-      ? ['Customize']
-      : [group.label, ...(path[1] && item && shown.length > 1 ? [item.label] : [])];
+    : isDefault
+      ? ['Skin']
+      : inPalette
+        ? ['Skin', 'Colour']
+        : !group
+          ? ['Customize']
+          : [group.label, ...(path[2] && item && shown.length > 1 ? [item.label] : [])];
 
   let tiles = null;
   let extras = null;
@@ -251,9 +277,21 @@ export default function AvatarBuilder({
         {setupDone ? 'Done' : 'Customize'} <ArrowIcon />
       </button>
     );
-  } else if (!group) {
+  } else if (isDefault) {
+    // The picked tile while it still matches the skin (undo, the colour row), else the first that does
+    const pickIdx = eq(FILLS[fillPick], config.skin) ? fillPick : FILLS.findIndex((f) => eq(f, config.skin));
+    tiles = FILLS.map((fill, i) => {
+      const on = pickIdx === i;
+      return (
+        <button key={i} type="button" className="ab-tile" aria-label={`Skin ${fill}`} aria-pressed={on} onClick={() => { setFillPick(i); set('skin', fill); }}>
+          <FigmaHeadTile fill={fill} on={on} />
+        </button>
+      );
+    });
+    extras = <button type="button" className="ab-wheel" onClick={() => go(['palette'], 'down')} aria-label="More colours"><span aria-hidden="true" /></button>;
+  } else if (!group && !item) {
     tiles = PRIMARY.map((g) => (
-      <button key={g.key} type="button" className="ab-tile ab-cat" onClick={() => open(g.key)} aria-label={g.label}>
+      <button key={g.key} type="button" className="ab-tile ab-cat" onClick={() => go(['all', g.key], 'down')} aria-label={g.label}>
         <span className="ab-cat-art"><CategoryArt group={g.key} config={config} /></span>
         <span className="ab-cat-label">{g.label}</span>
       </button>
@@ -330,7 +368,8 @@ export default function AvatarBuilder({
   }
 
   // Levels below the current one, shown as the stack behind the toolbar
-  const depth = inSetup ? (setupDone ? 1 : 0) : path.length;
+  // Something always sits under the default bar (the categories) and under the categories (the default)
+  const depth = inSetup ? (setupDone ? 1 : 0) : isDefault ? 1 : inPalette ? 2 : path.length;
   const canClose = depth > 0 && phase !== 'exit';
   const view = viewFor(config);
 
@@ -387,7 +426,7 @@ export default function AvatarBuilder({
             </div>
           )}
 
-          <div className="ab-bar" key={instance} data-phase={phase} data-level={inSetup ? 'setup' : !group ? 'primary' : item ? 'item' : 'category'} role="toolbar" aria-label={crumbs.join(' · ')}>
+          <div className="ab-bar" key={instance} data-phase={phase} data-level={inSetup ? 'setup' : isDefault ? 'default' : item ? 'item' : !group ? 'primary' : 'category'} role="toolbar" aria-label={crumbs.join(' · ')}>
             {!inSetup && <div className="ab-history">
               <button type="button" className="ab-icon" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
               <button type="button" className="ab-icon" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>

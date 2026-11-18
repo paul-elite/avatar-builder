@@ -98,7 +98,7 @@ export const PRIMARY = [
   { key: 'eyes', label: 'Eyes', items: ['eyes', 'glasses', 'tears'] },
   { key: 'features', label: 'Features', items: ['nose', 'blush'] },
   { key: 'torso', label: 'Torso', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
-  { key: 'background', label: 'Background', items: ['bg', 'shadow'] },
+  // No background controls for now: the page stays #f2f2f2 and the shadow stays on
 ];
 
 export const visibleItems = (group, c) => group.items.filter((k) => !ITEMS[k].when || ITEMS[k].when(c));
@@ -235,6 +235,7 @@ export function randomAvatar(base = defaultAvatar) {
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const c = { ...base };
   for (const [k, p] of Object.entries(ITEMS)) {
+    if (k === 'bg' || k === 'shadow') continue; // not editable for now
     if (k === 'torso') c.torso = Math.random() < 0.5;
     else if (p.kind === 'shape') c[k] = pick(p.options);
     else c[k] = p.optional && Math.random() < 0.45 ? null : pick(p.presets);

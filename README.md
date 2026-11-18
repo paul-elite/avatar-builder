@@ -58,8 +58,11 @@ One editor that starts broad and reveals detail only when it's relevant:
 
 1. **Setup:** the foundation, category and style (one option each for now).
    Shown on the first visit, then reachable from the chip at the top.
-2. **Customize (the default stage):** Skin · Hair · Face · Eyes · Features ·
-   Torso · Background, plus shuffle and download.
+2. **The default toolbar:** the Figma Frame 4 skin bar: undo/redo, the four
+   head fills and the colour wheel (which opens the skin colour row and grid).
+   Under it in the stack sit **all the categories:** Skin · Hair · Face · Eyes ·
+   Features · Torso, plus shuffle and download. × on the default toolbar brings
+   them up; × on the categories returns to the default.
 3. **Inside a category:** its items, e.g. Hair → Style, Colour, Headwear.
    Items that don't apply stay hidden: hair colour until there is hair, tongue
    colour until the mouth shows one, and Body, Outfit, Outfit colour and Details
@@ -97,7 +100,7 @@ import {
 type AvatarConfig = {
   category: 'person';          // setup (more to come)
   style: 'outline';            // setup (more to come)
-  bg: string;                  // background colour, or 'transparent'
+  bg: string;                  // background colour, or 'transparent' (no control in the editor for now)
   shadow: boolean;
   skin: string;
   hair: 'none' | 'short' | 'curly' | 'long' | 'bun';
