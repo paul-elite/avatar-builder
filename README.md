@@ -126,6 +126,7 @@ type AvatarConfig = {
   tongue: string;
   nose: 'hook' | 'dot' | 'tick' | 'none';
   blush: string | null;
+  gesture: 'none' | 'nose' | 'chin'; // hands: finger to the nose, hand under the chin
   torso: boolean;              // false = head only
   body: 'slim' | 'regular' | 'broad';
   outfit: 'tee' | 'hoodie' | 'shirt';

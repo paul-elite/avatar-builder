@@ -33,6 +33,7 @@ const TILT_DEG = { straight: 0, left: -10, right: 10 };
 export const BROWS = ['none', 'raised', 'flat', 'worried'];
 export const NOSE = ['hook', 'dot', 'tick', 'none'];
 export const GAZE = ['left', 'center', 'right'];
+export const GESTURE = ['none', 'nose', 'chin'];
 // Eye styles whose pupils can look around
 const GAZE_EYES = ['round', 'wide', 'big', 'up', 'sleepy', 'peek', 'angry', 'bored'];
 export const MOUTH = ['tongue', 'smile', 'smirk', 'open', 'o', 'frown', 'wobble', 'none'];
@@ -60,6 +61,7 @@ export const defaultAvatar = {
   mouth: 'tongue',
   tongue: '#f70410',
   blush: null,
+  gesture: 'none',
   tears: null,
   cap: '#f70492',
   hat: 'cap',
@@ -102,6 +104,7 @@ export const ITEMS = {
   tears: { label: 'Tears', kind: 'color', presets: TEARS, optional: true },
   nose: { label: 'Nose', kind: 'shape', options: NOSE },
   blush: { label: 'Blush', kind: 'color', presets: BLUSH, optional: true },
+  gesture: { label: 'Hands', kind: 'shape', options: GESTURE },
   torso: { label: 'Torso', kind: 'toggle', options: [false, true], names: { false: 'Head only', true: 'With torso' } },
   body: { label: 'Body', kind: 'shape', options: BODY, when: (c) => c.torso },
   outfit: { label: 'Outfit', kind: 'shape', options: OUTFIT, when: (c) => c.torso },
@@ -117,7 +120,7 @@ export const PRIMARY = [
   { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap', 'hat'] },
   { key: 'face', label: 'Face', items: ['mouth', 'tongue', 'brows'] },
   { key: 'eyes', label: 'Eyes', items: ['eyes', 'gaze', 'glasses', 'tears'] },
-  { key: 'features', label: 'Features', items: ['nose', 'blush'] },
+  { key: 'features', label: 'Features', items: ['nose', 'blush', 'gesture'] },
   { key: 'torso', label: 'Torso', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
   // Reached by tapping the background, not shown in the category bar
   { key: 'background', label: 'Background', items: ['bg'], tapOnly: true },
@@ -150,6 +153,7 @@ export const ITEM_VIEWS = {
   glasses: '35 20 140 140',
   eyes: '58 46 94 94',
   gaze: '58 46 94 94',
+  gesture: '22 92 150 150',
   head: '20 -2 165 165',
   ears: '10 70 68 68',
   tilt: '2 -18 206 206',
@@ -210,6 +214,8 @@ function headLayers(c, id, L, s) {
   s += L('mouth', (P.mouth[c.mouth] || P.mouth.none)(c));
   // Hair sits over the head; a cap, when worn, covers its top
   s += L('hair', (P.hairFront[c.hair] || P.hairFront.none)(c));
+  // Hands come up in front of the face and hair
+  s += L('hand', (P.hands[c.gesture] || P.hands.none)(c));
   if (c.cap) s += L('cap', (P.hats[c.hat] || P.hats.cap)(c, tint(c.cap)));
   return s;
 }
@@ -230,6 +236,7 @@ export const PART_TARGETS = {
   cap: ['hair', 'cap'],
   background: ['background'],
   ears: ['head', 'ears'],
+  hand: ['features', 'gesture'],
 };
 
 /* One item on its own, for option tiles: the item, not the avatar wearing it. */
@@ -245,6 +252,7 @@ export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
     case 'nose': return (P.nose[c.nose] || P.nose.none)(c);
     case 'mouth': return (P.mouth[c.mouth] || P.mouth.none)(c);
     case 'tongue': return P.mouth.tongue(c);
+    case 'gesture': return (P.hands[c.gesture] || P.hands.none)({ ...c, skin: c.skin || '#fff' });
     case 'tears': return c.tears ? P.tears(c, id) : '';
     case 'hair':
       if (c.hair === 'none') return '';

@@ -212,6 +212,32 @@ export const hats = {
     Array.from({ length: 11 }, (_, i) => `<path d="M${50 + i * 11} 52V69" stroke="#000" stroke-opacity="0.22" stroke-width="2.5" stroke-linecap="round"/>`).join(''),
 };
 
+/* ---- Hands (drawn; over the face, in the skin colour) ----
+   Each is drawn pointing up in its own space, then placed and turned. */
+const HAND = (c) => `fill="${c.skin}" stroke="#000" stroke-width="4" stroke-linejoin="round"`;
+const knuckles = (x0, y0, n, gap, len) =>
+  Array.from({ length: n }, (_, i) => `<path d="M${x0 + i * gap} ${y0}V${y0 + len}" stroke="#000" stroke-width="3" stroke-linecap="round"/>`).join('');
+export const hands = {
+  none: () => '',
+  // A finger to the nose: a fist at the left cheek, the index finger reaching across to the nostril
+  nose: (c) =>
+    `<g transform="translate(60 128) rotate(64)">` +
+    `<rect x="-17" y="34" width="26" height="46" ${HAND(c)}/>` +
+    `<rect x="1" y="-38" width="12" height="46" rx="6" ${HAND(c)}/>` +
+    `<rect x="-19" y="-4" width="36" height="40" rx="15" ${HAND(c)}/>` +
+    `<path d="M-19 12C-27 12 -29 22 -19 24" ${HAND(c)}/>` +
+    knuckles(-9, 3, 2, 9, 8) +
+    `</g>`,
+  // Thinking: a hand cupped under the chin on the right, thumb up the cheek
+  chin: (c) =>
+    `<g transform="translate(132 156) rotate(-12)">` +
+    `<rect x="-12" y="18" width="28" height="48" ${HAND(c)}/>` +
+    `<rect x="-26" y="-2" width="50" height="28" rx="13" ${HAND(c)}/>` +
+    `<rect x="12" y="-26" width="13" height="34" rx="6.5" ${HAND(c)}/>` +
+    `<path d="M-22 10H8" stroke="#000" stroke-width="3" stroke-linecap="round"/>` +
+    `</g>`,
+};
+
 /* =========================================================================
    Drawn to match (placeholders for Figma art): hair, torso, outfits.
    Same space and style: black 4px outlines, flat fills.
