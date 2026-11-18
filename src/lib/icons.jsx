@@ -9,7 +9,6 @@ const Dot = ({ x, y }) => <circle cx={x} cy={y} r="1.1" fill="currentColor" />;
 
 const ICONS = {
   /* Categories */
-  skin: <path {...L} d="M12 3.5S6 10 6 14a6 6 0 0 0 12 0c0-4-6-10.5-6-10.5Z" />, // a drop of colour
   head: <><circle {...L} cx="12" cy="8" r="4" /><path {...L} d="M4.5 20.5c1-4 4-6 7.5-6s6.5 2 7.5 6" /></>, // a bust
   hair: <><rect {...L} x="3" y="5" width="18" height="5" rx="1.5" /><path {...L} d="M5.5 10v8M9 10v8M12.5 10v8M16 10v8M19 10v6" /></>, // a comb
   face: <><path {...L} d="M5 4h14v7a7 7 0 0 1-14 0Z" /><path {...L} d="M8.5 8.5h1.5M14 8.5h1.5M9 13c1.6 1.6 4.4 1.6 6 0" /></>, // a mask
@@ -63,9 +62,16 @@ const ICONS = {
 
 /* `name` is a category or item key; `group` disambiguates an item that shares its category's name */
 export function NavIcon({ name, group, size = 26 }) {
+  if (name === 'skin' && !(group && ICONS[`${group}:skin`])) return <ColourWheel size={size} />;
   const art = (group && ICONS[`${group}:${name}`]) || ICONS[name];
   if (!art) return null;
   return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{art}</svg>;
+}
+
+/* The colour wheel (Figma "UI/Colour wheel" 44:2): a spectrum ring around a
+   white hub. SVG has no conic gradient, so it's drawn with CSS. */
+export function ColourWheel({ size = 26 }) {
+  return <span className="ab-wheel-icon" style={{ width: size, height: size }} aria-hidden="true"><span /></span>;
 }
 
 /* =========================================================================
