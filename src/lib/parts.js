@@ -202,7 +202,20 @@ const CURLS = (() => {
   return out;
 })();
 
+// Short crop: a flatter top and a straight fringe across the forehead
+const CROP = 'M36 80C33 34 52 2 105 2C158 2 177 34 174 80L166 57H44Z';
+// Blunt bangs: one straight edge just above the brows, covering the temples
+const BANGS = 'M35 84C31 34 58 0 105 0C152 0 179 34 175 84L171 60H39Z';
+// A bob behind the head, ending at the jaw
+const BOB = 'M31 80C27 32 60 -1 105 -1C150 -1 183 32 179 80L182 136C183 150 168 154 158 146H52C42 154 27 150 28 136Z';
+// Side-swept: a heavy sweep from the crown over the left eye, down to the cheek
+const SWEEP = 'M33 126C24 46 58 -1 110 -1C157 1 180 36 175 86C164 66 146 57 124 57C104 58 95 72 90 92C85 112 70 124 52 128C44 130 37 130 33 126Z';
+// Sideburns, for wearing a hat: only the bits below the brim show
+const BURNS = 'M37 70L54 72L50 99C46 101 41 101 38 98Z M173 70L156 72L160 99C164 101 169 101 172 98Z';
+
 export const hairBack = {
+  bangs: (c) => `<path d="${BOB}" fill="${c.hairColor}" ${OUT}/>`,
+  sidebob: (c) => `<path d="${BOB}" fill="${c.hairColor}" ${OUT}/>`,
   long: (c) =>
     `<path d="M34 72C30 32 60 4 105 4C150 4 180 32 176 72L183 148C174 160 154 160 147 150L63 150C56 160 36 160 27 148Z" fill="${c.hairColor}" ${OUT}/>`,
   bun: (c) => `<circle cx="105" cy="-4" r="17" fill="${c.hairColor}" ${OUT}/>`,
@@ -210,7 +223,10 @@ export const hairBack = {
 
 export const hairFront = {
   none: () => '',
-  short: (c) => `<path d="${FRINGE}" fill="${c.hairColor}" ${OUT}/>`,
+  short: (c) => `<path d="${CROP}" fill="${c.hairColor}" ${OUT}/>`,
+  bangs: (c) => `<path d="${BANGS}" fill="${c.hairColor}" ${OUT}/>`,
+  sidebob: (c) => `<path d="${SWEEP}" fill="${c.hairColor}" ${OUT}/>`,
+  underhat: (c) => `<path d="${BURNS}" fill="${c.hairColor}" ${OUT}/>`,
   long: (c) => `<path d="${FRINGE}" fill="${c.hairColor}" ${OUT}/>`,
   bun: (c) => `<path d="${FRINGE}" fill="${c.hairColor}" ${OUT}/>`,
   curly: (c) =>

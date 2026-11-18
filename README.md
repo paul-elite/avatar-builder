@@ -111,7 +111,7 @@ type AvatarConfig = {
   head: 'classic' | 'round' | 'square';   // classic = the Figma head, ears built in
   ears: 'none' | 'small' | 'regular' | 'big'; // for round / square heads
   tilt: 'straight' | 'left' | 'right';
-  hair: 'none' | 'short' | 'curly' | 'long' | 'bun';
+  hair: 'none' | 'short' | 'bangs' | 'sidebob' | 'curly' | 'long' | 'bun' | 'underhat';
   hairColor: string;
   cap: string | null;          // headwear colour; null = none
   eyes: 'open' | 'round' | 'wide' | 'big' | 'side' | 'up' | 'sleepy' | 'peek' | 'angry'
