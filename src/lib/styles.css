@@ -72,6 +72,31 @@
 /* With the colour grid open, the avatar moves up to stay in view above it */
 .ab-root[data-grid] .ab-avatar { transform: translateY(-150px); }
 
+/* Full page: the avatar sits dead centre on a circle, the toolbar 200px lower than it used to */
+.ab-page .ab-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--ab-circle);
+  height: var(--ab-circle);
+  border-radius: 50%;
+  background: #e8e7e6;
+  transform: translate(-50%, -50%);
+  transition: transform 240ms ease-in-out;
+}
+.ab-page { --ab-circle: min(340px, 82vw); }
+.ab-page .ab-dock {
+  position: absolute;
+  /* Where it sat before (just under the middle) plus 200px; never lower than fits the screen */
+  top: min(calc(50% + 300px), calc(100% - 158px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+}
+.ab-page[data-grid] .ab-stage { transform: translate(-50%, calc(-50% - 150px)); }
+.ab-page[data-grid] .ab-avatar { transform: none; }
+
 /* ---- Dock: where you are, the toolbar stack, close ---- */
 .ab-dock {
   display: flex;
