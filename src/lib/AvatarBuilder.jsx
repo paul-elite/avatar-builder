@@ -67,6 +67,8 @@ function HistoryIcon({ mirrored }) {
 const LINE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' };
 const CloseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" {...LINE} /></svg>;
 const DownloadIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" {...LINE} /></svg>;
+const MoreIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.9967 12.5V12M11.9967 6.5V6M11.9967 18.5V18M12.9967 12.5C12.9967 11.9477 12.549 11.5 11.9967 11.5C11.4444 11.5 10.9967 11.9477 10.9967 12.5C10.9967 13.0523 11.4444 13.5 11.9967 13.5C12.549 13.5 12.9967 13.0523 12.9967 12.5ZM12.9967 6.5C12.9967 5.94772 12.549 5.5 11.9967 5.5C11.4444 5.5 10.9967 5.94772 10.9967 6.5C10.9967 7.05228 11.4444 7.5 11.9967 7.5C12.549 7.5 12.9967 7.05228 12.9967 6.5ZM12.9967 18.5C12.9967 17.9477 12.549 17.5 11.9967 17.5C11.4444 17.5 10.9967 17.9477 10.9967 18.5C10.9967 19.0523 11.4444 19.5 11.9967 19.5C12.549 19.5 12.9967 19.0523 12.9967 18.5Z" {...LINE} /></svg>;
+const ResetIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.35-5.65M4 4v4.5h4.5" {...LINE} /></svg>;
 const ExpandIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4H20v5.5M9.5 20H4v-5.5M20 4l-6.5 6.5M4 20l6.5-6.5" {...LINE} /></svg>;
 // Shape rows longer than this scroll and get an expand button
 const SHAPE_ROW = 7;
@@ -156,6 +158,8 @@ export default function AvatarBuilder({
   const [phase, setPhase] = useState('idle'); // idle | exit | promote | demote | enter
   const [instance, setInstance] = useState(0);
   const [grid, setGrid] = useState(false);
+  const [menu, setMenu] = useState(false); // the ⋮ menu on the default bar
+  const menuRef = useRef(null);
   const [history, setHistory] = useState({ past: [], future: [] });
   // The category you last opened stays lit on the default toolbar
   const [lastTop, setLastTop] = useState('face');
@@ -436,10 +440,17 @@ export default function AvatarBuilder({
   };
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') back(); };
+    const onKey = (e) => { if (e.key === 'Escape') { if (menu) setMenu(false); else back(); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
+
+  useEffect(() => {
+    if (!menu) return undefined;
+    const onDown = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(false); };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [menu]);
 
   /* ---- What the current level shows ---- */
   const inSetup = path[0] === 'setup';
@@ -472,7 +483,7 @@ export default function AvatarBuilder({
   // An open item's siblings in its category (switches like Torso's are shown inline, not opened)
   const siblings = group && item ? shown.filter((k) => ITEMS[k].kind !== 'toggle') : [];
 
-  // The dark default bar (Figma: 2 · Default toolbar): Face · Hair · Outfit · Frame, then download.
+  // The default bar (Figma 88:5720): Face · Hair · Outfit · Color, then the ⋮ menu.
   // It stays as a full bar under a category (one over the other); deeper, it folds into the stack.
   const openTop = (key) => {
     if (inAll && path.length === 2 && path[1] === key) return;
@@ -484,12 +495,21 @@ export default function AvatarBuilder({
       <span className="ab-cat-label">{g.label}</span>
     </button>
   ));
-  const homeExtras = showActions ? (
+  // Figma 88:5720: the ⋮ menu holds what used to sit on the bar (download) plus starting over
+  const homeExtras = (
     <>
       <span className="ab-sep" aria-hidden="true" />
-      <button type="button" className="ab-raised" onClick={() => downloadPng(config, { size: exportSize })} aria-label="Download PNG" title="Download PNG"><DownloadIcon /></button>
+      <div className="ab-more" ref={menuRef}>
+        <button type="button" className="ab-more-btn" onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu} aria-label="More" title="More"><MoreIcon /></button>
+        <div className="ab-menu" role="menu" data-open={menu || undefined} aria-hidden={!menu}>
+          {showActions && (
+            <button type="button" role="menuitem" tabIndex={menu ? 0 : -1} onClick={() => { setMenu(false); downloadPng(config, { size: exportSize }); }}><DownloadIcon />Download PNG</button>
+          )}
+          <button type="button" role="menuitem" tabIndex={menu ? 0 : -1} disabled={!edited} onClick={() => { setMenu(false); reset(); }}><ResetIcon />Start over</button>
+        </div>
+      </div>
     </>
-  ) : null;
+  );
 
   let tiles = null;
   let extras = null;
@@ -737,6 +757,7 @@ export default function AvatarBuilder({
                 <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
                 <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
               </div>
+              <span className="ab-sep" aria-hidden="true" />
               <div className="ab-tiles">{homeTiles}</div>
               {homeExtras}
             </div>

@@ -138,7 +138,7 @@ export const PRIMARY = [
   { key: 'hair', label: 'Hair', bar: true, items: ['hair', 'hairColor', 'cap', 'hat'] },
   { key: 'outfit', label: 'Outfit', bar: true, items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
   // The avatar always sits in the round background; Frame picks its colour (one item, so it opens straight to it)
-  { key: 'frame', label: 'Frame', bar: true, items: ['bg'] },
+  { key: 'frame', label: 'Color', bar: true, items: ['bg'] },
 ];
 
 export const visibleItems = (group, c) => group.items.filter((k) => !ITEMS[k].when || ITEMS[k].when(c));

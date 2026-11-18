@@ -546,92 +546,123 @@
   /* Wider rows scroll; a soft fade at the edge says there's more */
 }
 
-/* ---- The default toolbar (Figma "Avatar builder UI" › 2 · Default toolbar), in white like every bar ----
-   Undo/redo sit in a recessed well, and the button you can press is raised out of it.
-   The category you last opened sits on a light tile. */
+/* ---- The default toolbar (Figma 88:5720) ----
+   Undo/redo share a soft well, the tabs sit on nothing until selected, and a ⋮ menu closes the row. */
 .ab-bar[data-level="default"] {
-  gap: 16px;
+  gap: 8px;
   padding: 4px;
-  border-radius: 20px;
+  border-radius: 18px;
   background: #fff;
 }
 .ab-bar[data-level="default"] .ab-history {
-  gap: 4px;
+  position: relative;
+  gap: 20px;
   width: auto;
-  height: auto;
-  padding: 4px;
-  border-radius: 16px;
-  background: var(--ab-field);
-  box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
-}
-.ab-bar[data-level="default"] .ab-hist-btn,
-.ab-raised {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border: 0;
-  border-radius: 12px;
-  color: var(--ab-ink);
-  opacity: 1;
-  cursor: pointer;
-  transition: background-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 120ms ease-out;
-}
-.ab-bar[data-level="default"] .ab-hist-btn:not(:disabled) {
-  background: #fff;
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 1px 1.5px rgba(0, 0, 0, 0.06);
-}
-.ab-raised {
-  width: 56px;
   height: 56px;
-  border-radius: 16px;
-  background: linear-gradient(#ffffff, #f3f3f5);
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 1px 0 #fff;
+  padding: 4px 12px;
+  border-radius: 14px;
+  background: #fafafa;
+  box-shadow: inset 0 0 0 0.5px #e5e5e5, inset 0 1px 1px #fff;
 }
-.ab-root .ab-raised { color: var(--ab-ink); opacity: 0.85; }
-.ab-bar[data-level="default"] .ab-hist-btn:hover:not(:disabled),
-.ab-root .ab-raised:hover { opacity: 1; }
-.ab-bar[data-level="default"] .ab-hist-btn:active:not(:disabled),
-.ab-raised:active { transform: scale(0.96); }
-.ab-bar[data-level="default"] .ab-hist-btn:disabled { background: transparent; color: var(--ab-faint); opacity: 1; }
+.ab-bar[data-level="default"] .ab-hist-btn { color: var(--ab-ink); }
+.ab-bar[data-level="default"] .ab-hist-btn:disabled { color: var(--ab-faint); }
 .ab-bar[data-level="default"] .ab-sep {
   width: 2px;
+  height: 13px;
   margin: 0;
-  border-radius: 100px;
-  background: var(--ab-line);
+  border-radius: 1px;
+  background: #eff0f1;
 }
-.ab-bar[data-level="default"] .ab-tiles { gap: 8px; }
-.ab-bar[data-level="default"] .ab-cat { width: 56px; height: 56px; border-radius: 12px; }
-.ab-bar[data-level="default"] .ab-cat:hover { background: var(--ab-field); }
-.ab-bar[data-level="default"] .ab-cat-label { color: var(--ab-muted); }
-.ab-bar[data-level="default"] .ab-cat:hover .ab-cat-label { color: var(--ab-ink); }
-.ab-bar[data-level="default"] .ab-cat.on {
+.ab-bar[data-level="default"] .ab-tiles { gap: 4px; }
+.ab-bar[data-level="default"] .ab-cat {
   width: 56px;
   height: 56px;
   grid-template-rows: 28px auto;
   gap: 0;
-  background: #ecedee; /* Figma 63:3599: flat, no shadow */
+  border-radius: 14px;
+  transition: background-color 140ms ease, transform 120ms ease-out;
 }
-.ab-bar[data-level="default"] .ab-cat.on .ab-cat-art { height: 28px; }
-.ab-bar[data-level="default"] .ab-cat.on .ab-cat-art svg { width: 23px; height: 28px; }
-.ab-bar[data-level="default"] .ab-cat.on[aria-label="Outfit"] .ab-cat-art svg,
-.ab-bar[data-level="default"] .ab-cat.on[aria-label="Frame"] .ab-cat-art svg { width: 26px; height: 26px; }
-.ab-bar[data-level="default"] .ab-cat.on .ab-cat-label { color: #303236; }
+.ab-bar[data-level="default"] .ab-cat[aria-label="Outfit"],
+.ab-bar[data-level="default"] .ab-cat[aria-label="Color"] { width: 60px; gap: 2px; }
+.ab-bar[data-level="default"] .ab-cat-art { height: 28px; }
 .ab-bar[data-level="default"] .ab-cat svg { width: auto; height: auto; }
+.ab-bar[data-level="default"] .ab-cat-label { color: var(--ab-muted); font-size: 10.5px; letter-spacing: 0.105px; line-height: normal; }
+.ab-bar[data-level="default"] .ab-cat:hover { background: #f7f7f8; }
+.ab-bar[data-level="default"] .ab-cat:hover .ab-cat-label { color: #0b0c0e; }
+.ab-bar[data-level="default"] .ab-cat:active { transform: scale(0.97); }
+.ab-bar[data-level="default"] .ab-cat.on { background: #eff0f1; }
+.ab-bar[data-level="default"] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
+
+/* ⋮ and its menu, which grows up out of the button */
+.ab-more { position: relative; flex: none; }
+.ab-root .ab-more-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 56px;
+  padding: 4px 12px 4px 4px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: #9fa3b1;
+  cursor: pointer;
+  transition: color 140ms ease, transform 120ms ease-out;
+}
+.ab-root .ab-more-btn:hover, .ab-root .ab-more-btn[aria-expanded="true"] { color: #0b0c0e; }
+.ab-more-btn:active { transform: scale(0.97); }
+.ab-menu {
+  position: absolute;
+  right: -4px;
+  bottom: calc(100% + 12px);
+  z-index: 5;
+  display: grid;
+  min-width: 176px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--ab-bar-shadow);
+  transform-origin: bottom right;
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+.ab-menu[data-open] { opacity: 1; transform: none; pointer-events: auto; }
+.ab-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: #0b0c0e;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+.ab-menu button svg { width: 20px; height: 20px; color: #9fa3b1; }
+.ab-menu button:hover:not(:disabled) { background: #f7f7f8; }
+.ab-menu button:disabled { color: var(--ab-faint); cursor: default; }
+.ab-menu button:disabled svg { color: var(--ab-faint); }
+
 @media (max-width: 480px) {
-  /* Four 56px tabs, 8px apart, fit at phone width: the undo/redo well shrinks to
-     two narrow full-height buttons, download narrows, and the divider goes */
-  .ab-bar[data-level="default"] { gap: 4px; padding: 4px; }
-  .ab-bar[data-level="default"] .ab-history { gap: 0; padding: 2px; border-radius: 12px; }
-  .ab-bar[data-level="default"] .ab-hist-btn { width: 26px; height: 52px; border-radius: 10px; }
-  .ab-bar[data-level="default"] .ab-hist-btn svg { width: 20px; height: 20px; }
-  .ab-bar[data-level="default"] .ab-tiles { gap: 8px; }
+  /* Four tabs, undo/redo and ⋮ in a phone-width bar: tighter well, no dividers */
+  .ab-bar[data-level="default"] { gap: 4px; }
+  .ab-bar[data-level="default"] .ab-history { gap: 4px; padding: 4px 6px; }
+  .ab-bar[data-level="default"] .ab-tiles { gap: 0; }
+  .ab-bar[data-level="default"] .ab-cat[aria-label="Outfit"],
+  .ab-bar[data-level="default"] .ab-cat[aria-label="Color"] { width: 56px; }
   .ab-bar[data-level="default"] .ab-sep { display: none; }
-  .ab-root .ab-raised { width: 36px; height: 56px; border-radius: 12px; }
+  .ab-root .ab-more-btn { padding: 4px 4px 4px 2px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ab-root, .ab-root * { transition-duration: 1ms !important; }
+  .ab-menu { transform: none; }
   .ab-bar[data-phase], .ab-bar[data-phase] > * { animation: none !important; }
 }
