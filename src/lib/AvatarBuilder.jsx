@@ -310,6 +310,14 @@ export default function AvatarBuilder({
   });
   // Switching items keeps the bar: its width eases from the old to the new instead of jumping
   const barRef = useRef(null);
+  // Figma 92:7014: the selected tab in the dark bar is tied to the bar above by a neck; centre it on the tab
+  useLayoutEffect(() => {
+    const bar = rootRef.current && rootRef.current.querySelector('.ab-bar[data-under]');
+    const tab = bar && bar.querySelector('.ab-cat.on');
+    if (!tab) return;
+    const b = bar.getBoundingClientRect(), t = tab.getBoundingClientRect();
+    bar.style.setProperty('--neck-x', `${t.left - b.left + t.width / 2}px`);
+  });
   const barWidth = useRef(null);
   useLayoutEffect(() => {
     const bar = barRef.current;
@@ -491,7 +499,7 @@ export default function AvatarBuilder({
   };
   const homeTiles = PRIMARY.filter((g) => g.bar).map((g) => (
     <button key={g.key} type="button" className={'ab-tile ab-cat' + (lastTop === g.key ? ' on' : '')} onClick={() => openTop(g.key)} data-opens={'all/' + g.key} aria-label={g.label} aria-pressed={!isDefault && lastTop === g.key}>
-      <span className="ab-cat-art"><BarIcon name={g.key} on={lastTop === g.key} fill={config.bg} /></span>
+      <span className="ab-cat-art"><BarIcon name={g.key} on={lastTop === g.key} dark={!isDefault} /></span>
       <span className="ab-cat-label">{g.label}</span>
     </button>
   ));
@@ -750,9 +758,16 @@ export default function AvatarBuilder({
               {tiles}
             </div>
             {extras}
+            {canClose && (
+              <>
+                <span className="ab-sep ab-sep-close" aria-hidden="true" />
+                <button type="button" className="ab-bar-close" onClick={back} aria-label="Close" title="Close"><CloseIcon /></button>
+              </>
+            )}
           </div>}
           {homeShown && (
-            <div className="ab-bar" data-layer="home" data-kind="bar" data-level="default" role="toolbar" aria-label="Avatar">
+            <div className="ab-bar" data-layer="home" data-kind="bar" data-level="default" data-under={!isDefault || undefined} role="toolbar" aria-label="Avatar">
+              {!isDefault && <span className="ab-neck" aria-hidden="true"><svg width="20" height="13" viewBox="0 0 20 13"><path d="M0 0H20C17.3 .3 16 1.8 16 4.5V8.5C16 11.2 17.3 12.7 20 13H0C2.7 12.7 4 11.2 4 8.5V4.5C4 1.8 2.7 .3 0 0Z" /></svg></span>}
               <div className="ab-history">
                 <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
                 <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
@@ -764,9 +779,6 @@ export default function AvatarBuilder({
           )}
         </div>
 
-        <button type="button" className="ab-close" data-show={canClose || undefined} onClick={back} aria-label="Close" tabIndex={canClose ? 0 : -1}>
-          <CloseIcon />
-        </button>
       </div>
     </div>
   );

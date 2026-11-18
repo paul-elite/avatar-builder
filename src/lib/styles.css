@@ -152,15 +152,21 @@
   max-width: 100%;
 }
 .ab-crumbs {
+  /* Figma 89:5842: a white pill, the current level on a light segment */
   display: flex;
-  gap: 6px;
-  min-height: 16px;
+  align-items: stretch;
+  height: 24px;
+  padding: 2px;
+  border-radius: 100px;
+  background: #fff;
+  box-shadow: 0 2px 4px 1px rgba(0, 0, 0, 0.05), 0 0 0 0.5px rgba(0, 0, 0, 0.12);
   color: var(--ab-muted);
   font-size: 12px;
-  letter-spacing: 0.01em;
+  line-height: 20px;
+  white-space: nowrap;
 }
-.ab-crumbs span + span::before { content: "·"; margin-right: 6px; color: var(--ab-faint); }
-.ab-crumb-now { color: var(--ab-ink); }
+.ab-crumbs span { padding: 0 8px; border-radius: 100px; }
+.ab-crumb-now { background: #eff0f1; color: var(--ab-ink); }
 
 /* The item toggle above the toolbar (Style | Colour | Headwear) */
 .ab-seg {
@@ -460,32 +466,25 @@
 .ab-cell:active { transform: scale(0.94); }
 .ab-cell[data-on] { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--ab-dark); }
 
-/* ---- Close: steps back one level (Figma: 36px, round, white) ---- */
-.ab-close {
+/* ---- Close: the × at the end of the top bar (Figma 92:7014) ---- */
+.ab-sep-close { flex: none; width: 2px; height: 13px; margin: 0; border-radius: 1px; background: #eff0f1; }
+.ab-root .ab-bar-close {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-top: 14px;
-  padding: 0;
+  height: 56px;
+  margin-right: -12px; /* the bar's own side padding already spaces it */
+  padding: 4px 12px 4px 4px;
   border: 0;
-  border-radius: 27px;
-  background: #fff;
-  color: #ababa6 !important;
-  opacity: 0;
-  transform: scale(0.9);
-  pointer-events: none;
+  border-radius: 14px;
+  background: none;
+  color: #9fa3b1;
   cursor: pointer;
-  box-shadow:
-    0 0 0 0.75px rgba(0, 0, 0, 0.05),
-    0 18px 10.5px rgba(75, 78, 88, 0.04),
-    0 7.5px 7.5px rgba(75, 78, 88, 0.07),
-    0 1.5px 4.5px rgba(75, 78, 88, 0.08);
-  transition: opacity 160ms ease-out, transform 160ms ease-out, color 140ms ease;
+  transition: color 140ms ease, transform 120ms ease-out;
 }
-.ab-close[data-show] { opacity: 1; transform: none; pointer-events: auto; }
-.ab-close:hover { color: var(--ab-ink) !important; }
-.ab-close:active { transform: scale(0.94); }
+.ab-root .ab-bar-close:hover { color: #0b0c0e; }
+.ab-bar-close:active { transform: scale(0.94); }
+
 
 /* ---- Moving between levels ----
    demote:  the current toolbar sinks into the stack (going deeper)
@@ -577,6 +576,35 @@
 .ab-bar[data-level="default"] .ab-cat:active { transform: scale(0.97); }
 .ab-bar[data-level="default"] .ab-cat.on { background: #eff0f1; }
 .ab-bar[data-level="default"] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
+
+/* Under an open category (Figma 92:7014) the default bar goes dark, and the selected tab
+   turns white and is tied to the bar above by a neck */
+.ab-bar[data-level="default"],
+.ab-bar[data-level="default"] .ab-history,
+.ab-bar[data-level="default"] .ab-cat { transition: background-color 180ms ease-out, border-color 180ms ease-out, transform 120ms ease-out; }
+.ab-bar[data-level="default"][data-under] { background: #202123; }
+.ab-bar[data-under] .ab-history { border-color: #3d4145; background: #26282b; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.33); }
+.ab-bar[data-under] .ab-hist-btn { color: #d8d9dd; }
+.ab-bar[data-under] .ab-hist-btn:disabled { color: #62656e; }
+.ab-bar[data-under] .ab-cat-label { color: #777c88; }
+.ab-bar[data-under] .ab-cat:hover { background: rgba(255, 255, 255, 0.06); }
+.ab-bar[data-under] .ab-cat:hover .ab-cat-label { color: #d8d9dd; }
+.ab-bar[data-under] .ab-cat.on,
+.ab-bar[data-under] .ab-cat.on:hover { background: #fff; }
+.ab-bar[data-under] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
+.ab-root .ab-bar[data-under] .ab-more-btn:hover,
+.ab-root .ab-bar[data-under] .ab-more-btn[aria-expanded="true"] { color: #fff; }
+.ab-neck {
+  position: absolute;
+  z-index: 2;
+  top: -9px; /* the 8px gap between bars, plus a hair over the bar above's edge */
+  left: calc(var(--neck-x, 50%) - 10px);
+  width: 20px;
+  height: 13px;
+  pointer-events: none;
+  animation: ab-fade-in 140ms ease-out 180ms both; /* after the bar above has landed */
+}
+.ab-neck svg { display: block; fill: #fff; }
 
 /* ⋮ and its menu, which grows up out of the button */
 .ab-more { position: relative; flex: none; }
