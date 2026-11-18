@@ -40,7 +40,7 @@ import { NavIcon, BarIcon } from './icons.jsx';
 
 // demote overlaps enter: the new bar starts as the old one is still settling into the tray,
 // so there's never a frame with an empty slab. 'tab' (switching sibling items) keeps the bar.
-const MS = { exit: 130, promote: 240, demote: 130, enter: 190, tab: 180, over: 200, sink: 130, settle: 150 };
+const MS = { tab: 180, flip: 260 };
 
 /* ---- Colours: a row first, the full grid behind a button ---- */
 const hsl = (h, s, l) => {
@@ -159,10 +159,10 @@ export default function AvatarBuilder({
   const [history, setHistory] = useState({ past: [], future: [] });
   // The category you last opened stays lit on the default toolbar
   const [lastTop, setLastTop] = useState('face');
-  // While two bars are layered (one over the other), the stacked tray waits
-  const [layering, setLayering] = useState(false);
-  const underRef = useRef(null);
-  const overRef = useRef(null);
+  // Moving between levels: a snapshot of every bar and tray, played forward once the new level renders
+  const flip = useRef(null);
+  const stackRef = useRef(null);
+  const ghostsRef = useRef(null);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const after = (ms, fn) => timers.current.push(setTimeout(fn, reducedMotion() ? 0 : ms));
@@ -225,54 +225,22 @@ export default function AvatarBuilder({
       // Same level, another item: the bar stays put, its width morphs and only its contents change
       barWidth.current = barRef.current ? barRef.current.getBoundingClientRect().width : null;
       setPath(next);
+      if (next[0] === 'all' && next[1]) setLastTop(next[1] === 'features' ? 'face' : next[1]);
       setPhase('tab');
       after(MS.tab, () => setPhase('idle'));
       return;
     }
-    // Deeper or back: two bars, one over the other, then the lower one becomes the stack
-    if ((dir === 'down' || dir === 'up') && barRef.current && !reducedMotion()) {
-      const slot = dir === 'down' ? underRef.current : overRef.current;
-      const ghost = barRef.current.cloneNode(true);
-      ghost.removeAttribute('data-phase');
-      ghost.setAttribute('aria-hidden', 'true');
-      ghost.inert = true;
-      ghost.style.width = barRef.current.getBoundingClientRect().width + 'px';
-      slot.replaceChildren(ghost);
-      setLayering(true);
-      setPath(next);
-      if (next[0] === 'all' && next[1]) setLastTop(next[1] === 'features' ? 'face' : next[1]);
-      setInstance((n) => n + 1);
-      if (dir === 'down') {
-        // 1 · the new bar lands on top of the old one · 2 · the old one sinks into the tray behind
-        setPhase('over');
-        after(MS.over, () => {
-          ghost.setAttribute('data-phase', 'demote');
-          after(MS.sink, () => {
-            setLayering(false);
-            setPhase('idle');
-            after(MS.settle, () => slot.replaceChildren());
-          });
-        });
-      } else {
-        // 1 · the bar below rises out of the tray, under this one · 2 · this one lifts off
-        setPhase('promote');
-        after(MS.promote - 80, () => {
-          ghost.setAttribute('data-phase', 'lift');
-          after(MS.exit, () => { slot.replaceChildren(); setLayering(false); setPhase('idle'); });
-        });
-      }
-      return;
+    // Every other move: snapshot the bars and trays, switch level, then FLIP each one to its new place
+    if (stackRef.current && !reducedMotion()) {
+      flip.current = [...stackRef.current.querySelectorAll('[data-layer]')].map((el) => ({
+        key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect(), clone: el.cloneNode(true),
+      }));
     }
-    const first = dir === 'down' ? 'demote' : 'exit';
-    const second = dir === 'up' ? 'promote' : 'enter';
-    setPhase(first);
-    after(dir === 'down' ? MS.demote : MS.exit, () => {
-      setPath(next);
-      if (next[0] === 'all' && next[1]) setLastTop(next[1] === 'features' ? 'face' : next[1]);
-      setInstance((n) => n + 1);
-      setPhase(second);
-      after(second === 'promote' ? MS.promote : MS.enter, () => setPhase('idle'));
-    });
+    setPath(next);
+    if (next[0] === 'all' && next[1]) setLastTop(next[1] === 'features' ? 'face' : next[1]);
+    setInstance((n) => n + 1);
+    setPhase('flip');
+    after(MS.flip, () => setPhase('idle'));
   };
   const open = (key) => go([...path, key], 'down');
   /* Paths: ['setup'] · [] the default bar (Face · Hair · Outfit · Background · Frame) ·
@@ -334,6 +302,81 @@ export default function AvatarBuilder({
     if (Math.abs(to - from) < 1 || reducedMotion()) return;
     bar.animate([{ width: from + 'px' }, { width: to + 'px' }], { duration: MS.tab, easing: 'cubic-bezier(0.45, 0, 0.1, 1)' });
   });
+  /* ---- Levels as layers ----------------------------------------------------
+     Bars and trays carry data-layer (the level they show) and data-kind (bar | tray).
+     After a move, each layer animates from where its level was:
+     · same level, same kind  → it slides to its new place
+     · bar → tray             → a copy of the bar folds into the tray (the tray waits)
+     · tray → bar             → the bar unfolds out of the tray
+     · new                    → a bar rises in, a tray fades in
+     · gone                   → a copy fades away where it was */
+  useLayoutEffect(() => {
+    const snap = flip.current;
+    const layer = ghostsRef.current;
+    if (!snap || !layer || !stackRef.current) return;
+    flip.current = null;
+    layer.replaceChildren();
+    const home = layer.getBoundingClientRect();
+    const ease = 'cubic-bezier(0.45, 0, 0.1, 1)';
+    const T = MS.flip - 20;
+    const toward = (a, b) => `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
+    const ghost = (old) => {
+      const g = old.clone;
+      g.removeAttribute('data-layer');
+      g.inert = true;
+      Object.assign(g.style, { position: 'absolute', margin: 0, left: old.rect.left - home.left + 'px', top: old.rect.top - home.top + 'px', width: old.rect.width + 'px', height: old.rect.height + 'px', right: 'auto', bottom: 'auto', transformOrigin: '0 0', transform: 'none' });
+      layer.appendChild(g);
+      return g;
+    };
+    const fadeKids = (el, keyframes, opts) => [...el.children].forEach((c) => c.animate(keyframes, opts));
+    const before = new Map(snap.map((o) => [o.key, o]));
+    const now = [...stackRef.current.querySelectorAll('[data-layer]')];
+    // A bar that sits on the default bar slides out from behind it, and back in when it closes
+    const homeEl = stackRef.current.querySelector('[data-layer="home"][data-kind="bar"]');
+    const homeTop = homeEl ? homeEl.getBoundingClientRect().top : null;
+    for (const el of now) {
+      const old = before.get(el.dataset.layer);
+      before.delete(el.dataset.layer);
+      const r = el.getBoundingClientRect();
+      const bar = el.dataset.kind === 'bar';
+      if (!old) {
+        if (bar) {
+          // Solid surfaces never fade through what's behind them; only the contents fade in
+          const from = homeEl && el !== homeEl ? `translateY(${homeTop - r.top}px)` : 'translateY(10px) scale(0.97)';
+          el.animate([{ transform: from }, { transform: 'none' }], { duration: homeEl && el !== homeEl ? T : 200, easing: homeEl && el !== homeEl ? ease : 'ease-out' });
+          fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 120, easing: 'ease-out' }); // contents arrive with the surface
+        }
+        else el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: 150, delay: 120, easing: 'ease-out', fill: 'backwards' });
+      } else if (old.kind === el.dataset.kind) {
+        if (Math.abs(old.rect.top - r.top) + Math.abs(old.rect.left - r.left) + Math.abs(old.rect.width - r.width) < 1) continue;
+        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: T, easing: ease });
+      } else if (bar) {
+        // out of the stack: the bar unfolds from its tray, its contents arriving as it opens
+        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r), opacity: 0.6 }, { transformOrigin: '0 0', transform: 'none', opacity: 1 }], { duration: T, easing: ease });
+        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 140, delay: T - 120, easing: 'ease-out', fill: 'backwards' });
+      } else {
+        // into the stack: a copy of the bar folds into the tray, then the tray takes over
+        const g = ghost(old);
+        const end = getComputedStyle(el).opacity;
+        el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: T });
+        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 90, easing: 'ease-out', fill: 'forwards' });
+        g.animate([{ transform: 'none', opacity: 1 }, { transform: toward(r, old.rect), opacity: end }], { duration: T, easing: ease, fill: 'forwards' })
+          .finished.then(() => g.remove(), () => {});
+      }
+    }
+    for (const old of before.values()) {
+      const g = ghost(old);
+      if (homeEl && old.kind === 'bar') {
+        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 90, easing: 'ease-out', fill: 'forwards' });
+        g.animate([{ transform: 'none', opacity: 1 }, { opacity: 1, offset: 0.7 }, { transform: `translateY(${homeTop - old.rect.top}px)`, opacity: 0 }], { duration: T, easing: ease, fill: 'forwards' })
+          .finished.then(() => g.remove(), () => {});
+        continue;
+      }
+      g.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(8px) scale(0.97)' }], { duration: 140, easing: 'ease-in', fill: 'forwards' })
+        .finished.then(() => g.remove(), () => {});
+    }
+  });
+
   // A tap on a part edits that part; anywhere else on the stage edits the background
   const onStageClick = (e) => { const g = e.target.closest && e.target.closest('[data-part]'); jump(g ? g.dataset.part : 'background'); };
 
@@ -379,6 +422,25 @@ export default function AvatarBuilder({
   // An open item's siblings in its category (switches like Torso's are shown inline, not opened)
   const siblings = group && item ? shown.filter((k) => ITEMS[k].kind !== 'toggle') : [];
 
+  // The dark default bar (Figma: 2 · Default toolbar): Face · Hair · Outfit · Frame, then download.
+  // It stays as a full bar under a category (one over the other); deeper, it folds into the stack.
+  const openTop = (key) => {
+    if (inAll && path.length === 2 && path[1] === key) return;
+    go(['all', key], inAll && path.length === 2 && path[1] !== 'features' ? 'tab' : 'down');
+  };
+  const homeTiles = PRIMARY.filter((g) => g.bar).map((g) => (
+    <button key={g.key} type="button" className={'ab-tile ab-cat' + (lastTop === g.key ? ' on' : '')} onClick={() => openTop(g.key)} aria-label={g.label} aria-pressed={!isDefault && lastTop === g.key}>
+      <span className="ab-cat-art"><BarIcon name={g.key} on={lastTop === g.key} fill={config.bg} /></span>
+      <span className="ab-cat-label">{g.label}</span>
+    </button>
+  ));
+  const homeExtras = showActions ? (
+    <>
+      <span className="ab-sep" aria-hidden="true" />
+      <button type="button" className="ab-raised" onClick={() => downloadPng(config, { size: exportSize })} aria-label="Download PNG" title="Download PNG"><DownloadIcon /></button>
+    </>
+  ) : null;
+
   let tiles = null;
   let extras = null;
   let shapeGrid = null;
@@ -402,21 +464,7 @@ export default function AvatarBuilder({
       </button>
     );
   } else if (isDefault) {
-    // The dark default bar (Figma: 2 · Default toolbar): Face · Hair · Outfit · Frame, then download
-    tiles = PRIMARY.filter((g) => g.bar).map((g) => (
-      <button key={g.key} type="button" className={'ab-tile ab-cat' + (lastTop === g.key ? ' on' : '')} onClick={() => go(['all', g.key], 'down')} aria-label={g.label}>
-        <span className="ab-cat-art"><BarIcon name={g.key} on={lastTop === g.key} fill={config.bg} /></span>
-        <span className="ab-cat-label">{g.label}</span>
-      </button>
-    ));
-    if (showActions) {
-      extras = (
-        <>
-          <span className="ab-sep" aria-hidden="true" />
-          <button type="button" className="ab-raised" onClick={() => downloadPng(config, { size: exportSize })} aria-label="Download PNG" title="Download PNG"><DownloadIcon /></button>
-        </>
-      );
-    }
+    // The default bar is drawn on its own (homeBar, below); nothing stacks on it here
   } else if (top && top.organs && !organ) {
     // Features: the organs, each a metaphor
     tiles = top.organs.map((o) => (
@@ -509,7 +557,15 @@ export default function AvatarBuilder({
   // Levels below the current one, shown as the stack behind the toolbar
   // The default bar is the floor: nothing under it, no ×. Everything else stacks on top of it.
   const depth = inSetup ? (setupDone ? 1 : 0) : isDefault ? 0 : path.length - 1;
-  const canClose = depth > 0 && phase !== 'exit';
+  const canClose = depth > 0;
+  // The levels under this one, nearest first, ending at the default bar ('home'), as back() walks them.
+  // One level under: it stays a full bar, one over the other. Two or more: they fold into trays (two show).
+  const parentOf = (p) => (p.join('/') === 'all/features' ? ['all', 'face'] : p.length <= 2 ? [] : p.slice(0, -1));
+  const below = [];
+  if (inAll) for (let p = parentOf(path); ; p = parentOf(p)) { below.push(p.length ? p.join('/') : 'home'); if (!p.length) break; }
+  const homeShown = isDefault || below.length === 1;
+  const trays = below.length >= 2 ? below.slice(0, 2) : [];
+  const levelKey = isDefault ? 'home' : path.join('/');
   // The preview centres the head itself (its silhouette spans x 33–177, y 3.5–160), not head + shadow;
   // with a torso it stays centred left–right and keeps the body in frame. Exports keep the full views.
   // On the framed backdrop the avatar sits in a shape (no shadow); 'full' drops the shape (shadow on).
@@ -520,6 +576,7 @@ export default function AvatarBuilder({
 
   return (
     <div className={('ab-root ' + className).trim()} style={framed ? { '--ab-fill': config.bg } : backdrop === 'circle' ? undefined : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop} data-frame={backdrop === 'circle' ? 'circle' : undefined}>
+      <div className="ab-ghosts" ref={ghostsRef} aria-hidden="true" />
       {setupDone && !inSetup && (
         <button type="button" className="ab-setup-chip" onClick={() => go(['setup'], 'down')} aria-label="Change category and style">
           {SETUP.map((s) => s.names[config[s.key]] || config[s.key]).join(' · ')}
@@ -578,11 +635,9 @@ export default function AvatarBuilder({
           </div>
         )}
 
-        <div className="ab-stack">
-          <div className="ab-layer" ref={underRef} aria-hidden="true" />
-          {/* At most two trays show: the toolbar and one behind it, however deep you are */}
-          {Array.from({ length: Math.min(depth, 1) }, (_, i) => (
-            <span key={i} className="ab-peek" data-hidden={layering || undefined} data-dark={depth === 1 && !inSetup ? '' : undefined} style={{ '--depth': 1 }} aria-hidden="true" />
+        <div className="ab-stack" ref={stackRef}>
+          {trays.map((k, i) => (
+            <span key={k} className="ab-peek" data-layer={k} data-kind="tray" data-dark={k === 'home' ? '' : undefined} style={{ '--depth': i + 1 }} aria-hidden="true" />
           ))}
 
           {shapeGrid && (
@@ -612,8 +667,8 @@ export default function AvatarBuilder({
             </div>
           )}
 
-          <div className="ab-bar" ref={barRef} key={instance} data-phase={phase} data-level={inSetup ? 'setup' : isDefault ? 'default' : item ? 'item' : 'category'} role="toolbar" aria-label={crumbs.join(' · ')}>
-            {!inSetup && <div className="ab-history">
+          {!isDefault && <div className="ab-bar" ref={barRef} key={instance} data-layer={levelKey} data-kind="bar" data-phase={phase} data-level={inSetup ? 'setup' : isDefault ? 'default' : item ? 'item' : 'category'} role="toolbar" aria-label={crumbs.join(' · ')}>
+            {!inSetup && !homeShown && <div className="ab-history">
               <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
               <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
             </div>}
@@ -621,8 +676,17 @@ export default function AvatarBuilder({
               {tiles}
             </div>
             {extras}
-          </div>
-          <div className="ab-layer ab-layer-over" ref={overRef} aria-hidden="true" />
+          </div>}
+          {homeShown && (
+            <div className="ab-bar" data-layer="home" data-kind="bar" data-level="default" role="toolbar" aria-label="Avatar">
+              <div className="ab-history">
+                <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
+                <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
+              </div>
+              <div className="ab-tiles">{homeTiles}</div>
+              {homeExtras}
+            </div>
+          )}
         </div>
 
         <button type="button" className="ab-close" data-show={canClose || undefined} onClick={back} aria-label="Close" tabIndex={canClose ? 0 : -1}>

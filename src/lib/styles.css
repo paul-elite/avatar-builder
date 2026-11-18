@@ -127,7 +127,9 @@
 .ab-page .ab-dock {
   position: absolute;
   /* Where it sat before (just under the middle) plus 200px; never lower than fits the screen */
-  top: min(calc(50% + 300px), calc(100% - 178px)); /* room for the item toggle and × too */
+  /* Anchored at its foot, so a bar stacked on top grows the dock upward and the bars below stay put
+     (same spot as before: top min(50% + 300px, 100% - 178px), ~154px tall) */
+  bottom: max(calc(50% - 454px), 24px);
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
@@ -212,19 +214,22 @@
 .ab-seg-btn:active { transform: scale(0.97); }
 .ab-seg-btn.on { color: var(--ab-ink); }
 
-.ab-stack { position: relative; max-width: calc(100vw - 32px); }
+.ab-stack { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: calc(100vw - 32px); }
+/* Copies of bars mid-move (folding into the stack, or leaving), drawn under the dock */
+.ab-ghosts { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; }
+.ab-ghosts > * { will-change: transform, opacity; }
+.ab-dock { position: relative; z-index: 1; }
 
 .ab-peek {
   position: absolute;
-  left: 50%;
+  left: calc(var(--depth) * 32px);
+  right: calc(var(--depth) * 32px);
   bottom: calc(var(--depth) * -9px);
-  width: calc(100% - var(--depth) * 64px);
-  min-width: 120px;
+  z-index: calc(-1 * var(--depth));
   height: 34px;
   border-radius: 10.8px;
   background: #fff;
   opacity: 0.5;
-  transform: translateX(-50%);
   box-shadow:
     0 0 0 0.3px rgba(0, 0, 0, 0.25),
     0 3px 3px rgba(75, 78, 88, 0.07),
@@ -516,17 +521,7 @@
 .ab-bar[data-phase="enter"] > * { animation: ab-fade-in 140ms ease-out both; }
 @keyframes ab-exit { to { opacity: 0; transform: translateY(10px) scale(0.96); } }
 @keyframes ab-fade-in { from { opacity: 0; } }
-/* Two bars, one over the other: the new bar lands on the old one (which stays put),
-   then the old one sinks into the tray behind. Never more than two layers. */
-.ab-bar[data-phase="over"] { animation: ab-over 200ms ease-out both; }
-@keyframes ab-over { from { opacity: 0; transform: translateY(-12px) scale(0.97); } 40% { opacity: 1; } }
-.ab-bar[data-phase="lift"] { animation: ab-lift 130ms ease-in both; } /* the top bar leaves the way it came, in one piece */
-@keyframes ab-lift { to { opacity: 0; transform: translateY(-12px) scale(0.97); } }
-.ab-layer { position: absolute; inset: auto 0 0; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
-.ab-layer > .ab-bar { flex: none; }
-.ab-layer-over { z-index: 3; }
-.ab-peek { transition: opacity 150ms ease-out; }
-.ab-peek[data-hidden] { opacity: 0 !important; transition: none; }
+
 @keyframes ab-fade-out { to { opacity: 0; } }
 
 .ab-root button:focus-visible { outline: 2px solid #1084fe; outline-offset: 2px; }
