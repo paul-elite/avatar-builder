@@ -30,7 +30,7 @@
   padding: 88px 16px 40px;
   overflow: hidden;
   border-radius: 24px;
-  background: var(--ab-bg, #f2f2f2);
+  background: var(--ab-bg, #fcfcfc); /* HSB brightness 99% */
   color: var(--ab-ink);
   font-family: inherit;
   text-align: center;
