@@ -118,12 +118,13 @@ type AvatarConfig = {
   hat: 'cap' | 'side' | 'beanie'; // which headwear, when cap isn't null
   eyes: 'open' | 'round' | 'wide' | 'big' | 'side' | 'up' | 'sleepy' | 'peek' | 'angry'
       | 'skeptical' | 'bored' | 'happy' | 'sad' | 'closed' | 'wink' | 'flat' | 'squeeze' | 'dead' | 'dots';
+  gaze: 'left' | 'center' | 'right'; // where the pupils look (eye styles with pupils)
   glasses: string | null;
   tears: string | null;
   brows: 'none' | 'raised' | 'flat' | 'worried';
-  mouth: 'tongue' | 'smile' | 'open' | 'frown' | 'none';
+  mouth: 'tongue' | 'smile' | 'smirk' | 'open' | 'o' | 'frown' | 'wobble' | 'none';
   tongue: string;
-  nose: 'hook' | 'dot' | 'none';
+  nose: 'hook' | 'dot' | 'tick' | 'none';
   blush: string | null;
   torso: boolean;              // false = head only
   body: 'slim' | 'regular' | 'broad';

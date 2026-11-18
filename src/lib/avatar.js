@@ -31,8 +31,11 @@ export const EARS = ['none', 'small', 'regular', 'big'];
 export const TILT = ['straight', 'left', 'right'];
 const TILT_DEG = { straight: 0, left: -10, right: 10 };
 export const BROWS = ['none', 'raised', 'flat', 'worried'];
-export const NOSE = ['hook', 'dot', 'none'];
-export const MOUTH = ['tongue', 'smile', 'open', 'frown', 'none'];
+export const NOSE = ['hook', 'dot', 'tick', 'none'];
+export const GAZE = ['left', 'center', 'right'];
+// Eye styles whose pupils can look around
+const GAZE_EYES = ['round', 'wide', 'big', 'up', 'sleepy', 'peek', 'angry', 'bored'];
+export const MOUTH = ['tongue', 'smile', 'smirk', 'open', 'o', 'frown', 'wobble', 'none'];
 export const HAIR = ['none', 'short', 'bangs', 'sidebob', 'curly', 'long', 'bun', 'underhat'];
 export const BODY = ['slim', 'regular', 'broad'];
 export const OUTFIT = ['tee', 'hoodie', 'shirt'];
@@ -51,6 +54,7 @@ export const defaultAvatar = {
   hair: 'none',
   hairColor: '#1a1a1a',
   eyes: 'open',
+  gaze: 'center',
   brows: 'none',
   nose: 'hook',
   mouth: 'tongue',
@@ -93,6 +97,7 @@ export const ITEMS = {
   tongue: { label: 'Tongue', kind: 'color', presets: TONGUE, when: (c) => c.mouth === 'tongue' || c.mouth === 'open' },
   brows: { label: 'Brows', kind: 'shape', options: BROWS },
   eyes: { label: 'Shape', kind: 'shape', options: EYES },
+  gaze: { label: 'Look', kind: 'shape', options: GAZE, when: (c) => GAZE_EYES.includes(c.eyes) },
   glasses: { label: 'Glasses', kind: 'color', presets: GLASSES, optional: true },
   tears: { label: 'Tears', kind: 'color', presets: TEARS, optional: true },
   nose: { label: 'Nose', kind: 'shape', options: NOSE },
@@ -111,7 +116,7 @@ export const PRIMARY = [
   { key: 'head', label: 'Head', items: ['head', 'ears', 'tilt'] },
   { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap', 'hat'] },
   { key: 'face', label: 'Face', items: ['mouth', 'tongue', 'brows'] },
-  { key: 'eyes', label: 'Eyes', items: ['eyes', 'glasses', 'tears'] },
+  { key: 'eyes', label: 'Eyes', items: ['eyes', 'gaze', 'glasses', 'tears'] },
   { key: 'features', label: 'Features', items: ['nose', 'blush'] },
   { key: 'torso', label: 'Torso', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
   // Reached by tapping the background, not shown in the category bar
@@ -144,6 +149,7 @@ export const ITEM_VIEWS = {
   hat: '30 -24 160 160',
   glasses: '35 20 140 140',
   eyes: '58 46 94 94',
+  gaze: '58 46 94 94',
   head: '20 -2 165 165',
   ears: '10 70 68 68',
   tilt: '2 -18 206 206',
@@ -233,7 +239,8 @@ export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
     case 'cap':
     case 'hat': return c.cap ? (P.hats[c.hat] || P.hats.cap)(c, tint(c.cap)) : '';
     case 'glasses': return c.glasses ? P.glasses(c) : '';
-    case 'eyes': return (P.eyes[c.eyes] || P.eyes.open)(c);
+    case 'eyes':
+    case 'gaze': return (P.eyes[c.eyes] || P.eyes.open)(c);
     case 'brows': return (P.brows[c.brows] || P.brows.none)(c);
     case 'nose': return (P.nose[c.nose] || P.nose.none)(c);
     case 'mouth': return (P.mouth[c.mouth] || P.mouth.none)(c);

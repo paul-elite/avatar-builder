@@ -82,33 +82,35 @@ const INK = (w = 4.5) => `fill="none" stroke="#000" stroke-width="${w}" stroke-l
 const half = (x, y, r, up) => `M${x - r} ${y}A${r} ${r} 0 0 ${up ? 1 : 0} ${x + r} ${y}Z`; // a half disc, dome up or down
 // Drawn at a base size, then enlarged a quarter about each eye's centre (big, readable eyes like the reference)
 const grow = (x, y, svg) => `<g transform="translate(${x} ${y}) scale(1.25) translate(${-x} ${-y})">${svg}</g>`;
-const both = (f) => () => grow(...EL, f(...EL, -1)) + grow(...ER, f(...ER, 1));
+// `g` is the gaze: how far the pupils move sideways (left / center / right)
+export const GAZE_X = { left: -3.5, center: 0, right: 3.5 };
+const both = (f) => (c) => { const g = GAZE_X[c && c.gaze] || 0; return grow(...EL, f(...EL, -1, g)) + grow(...ER, f(...ER, 1, g)); };
 const EYE_SET = {
-  round: both((x, y) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x}" cy="${y}" r="5" fill="#000"/>`),
-  wide: both((x, y) => `<circle cx="${x}" cy="${y}" r="12" ${WHITE}/><circle cx="${x}" cy="${y}" r="3.6" fill="#000"/>`),
-  big: both((x, y) => `<circle cx="${x}" cy="${y}" r="11" ${WHITE}/><circle cx="${x}" cy="${y + 0.5}" r="7" fill="#000"/>`),
-  side: both((x, y) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x - 4.5}" cy="${y + 1}" r="5" fill="#000"/>`),
-  up: both((x, y) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x - 2.5}" cy="${y - 4}" r="5" fill="#000"/>`),
+  round: both((x, y, d, g) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x + g}" cy="${y}" r="5" fill="#000"/>`),
+  wide: both((x, y, d, g) => `<circle cx="${x}" cy="${y}" r="12" ${WHITE}/><circle cx="${x + g}" cy="${y}" r="3.6" fill="#000"/>`),
+  big: both((x, y, d, g) => `<circle cx="${x}" cy="${y}" r="11" ${WHITE}/><circle cx="${x + g * 0.6}" cy="${y + 0.5}" r="7" fill="#000"/>`),
+  side: both((x, y, d, g) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x - 4.5}" cy="${y + 1}" r="5" fill="#000"/>`),
+  up: both((x, y, d, g) => `<circle cx="${x}" cy="${y}" r="10.5" ${WHITE}/><circle cx="${x - 2.5 + g * 0.8}" cy="${y - 4}" r="5" fill="#000"/>`),
   // Heavy lids: the lower half, pupils pressed up under the lid
-  sleepy: both((x, y) => `<path d="${half(x, y - 2, 11, false)}" ${WHITE}/><path d="${half(x, y - 2, 5, false)}" fill="#000"/>`),
+  sleepy: both((x, y, d, g) => `<path d="${half(x, y - 2, 11, false)}" ${WHITE}/><path d="${half(x + g, y - 2, 5, false)}" fill="#000"/>`),
   // Peeking: the upper half, pupils resting on the lower edge
-  peek: both((x, y, d) => `<path d="${half(x, y + 3, 11, true)}" ${WHITE}/><path d="${half(x + d * 3, y + 3, 5, true)}" fill="#000"/>`),
+  peek: both((x, y, d, g) => `<path d="${half(x, y + 3, 11, true)}" ${WHITE}/><path d="${half(x + (g || d * 3), y + 3, 5, true)}" fill="#000"/>`),
   // Cross: the lid slopes down toward the nose
-  angry: both((x, y, d) => {
+  angry: both((x, y, d, g) => {
     const r = 10.5, a1 = d < 0 ? -150 : -30, a2 = d < 0 ? 10 : 170;
     const P = (a) => [x + r * Math.cos((a * Math.PI) / 180), y + r * Math.sin((a * Math.PI) / 180)].map((v) => v.toFixed(2)).join(' ');
-    return `<path d="M${P(a1)}A${r} ${r} 0 1 ${d < 0 ? 0 : 1} ${P(a2)}Z" ${WHITE}/><circle cx="${x - d * 2}" cy="${y + 4}" r="4.5" fill="#000"/>`;
+    return `<path d="M${P(a1)}A${r} ${r} 0 1 ${d < 0 ? 0 : 1} ${P(a2)}Z" ${WHITE}/><circle cx="${x - d * 2 + g * 0.6}" cy="${y + 4}" r="4.5" fill="#000"/>`;
   }),
   // One lid down, the other eye glancing over
   skeptical: () =>
     grow(...EL, `<path d="${half(EL[0], EL[1] - 2, 11, false)}" ${WHITE}/><path d="${half(EL[0] - 2, EL[1] - 2, 5, false)}" fill="#000"/>`) +
     grow(...ER, `<circle cx="${ER[0]}" cy="${ER[1] - 2}" r="11" ${WHITE}/><circle cx="${ER[0] - 4}" cy="${ER[1] + 1}" r="5" fill="#000"/>`),
-  bored: both((x, y) => `<rect x="${x - 12}" y="${y - 5}" width="24" height="10" rx="2.5" ${WHITE}/><circle cx="${x}" cy="${y}" r="3.6" fill="#000"/>`),
-  happy: both((x, y) => `<path d="M${x - 9} ${y - 3}Q${x} ${y + 9} ${x + 9} ${y - 3}" ${INK()}/>`),
-  sad: both((x, y) => `<path d="M${x - 9} ${y + 4}Q${x} ${y - 8} ${x + 9} ${y + 4}" ${INK()}/>`),
-  flat: both((x, y) => `<path d="M${x - 10} ${y}H${x + 10}" ${INK()}/>`),
-  squeeze: both((x, y, d) => `<path d="M${x + d * 8} ${y - 7}L${x - d * 7} ${y}L${x + d * 8} ${y + 7}" ${INK()}/>`),
-  dead: both((x, y) => `<path d="M${x - 7} ${y - 7}L${x + 7} ${y + 7}M${x + 7} ${y - 7}L${x - 7} ${y + 7}" ${INK()}/>`),
+  bored: both((x, y, d, g) => `<rect x="${x - 12}" y="${y - 5}" width="24" height="10" rx="2.5" ${WHITE}/><circle cx="${x + g}" cy="${y}" r="3.6" fill="#000"/>`),
+  happy: both((x, y, d, g) => `<path d="M${x - 9} ${y - 3}Q${x} ${y + 9} ${x + 9} ${y - 3}" ${INK()}/>`),
+  sad: both((x, y, d, g) => `<path d="M${x - 9} ${y + 4}Q${x} ${y - 8} ${x + 9} ${y + 4}" ${INK()}/>`),
+  flat: both((x, y, d, g) => `<path d="M${x - 10} ${y}H${x + 10}" ${INK()}/>`),
+  squeeze: both((x, y, d, g) => `<path d="M${x + d * 8} ${y - 7}L${x - d * 7} ${y}L${x + d * 8} ${y + 7}" ${INK()}/>`),
+  dead: both((x, y, d, g) => `<path d="M${x - 7} ${y - 7}L${x + 7} ${y + 7}M${x + 7} ${y - 7}L${x - 7} ${y + 7}" ${INK()}/>`),
 };
 
 export const eyes = {
@@ -146,6 +148,8 @@ export const nose = {
     '<path d="M105.183 106.31C105.217 106.132 105.208 105.942 105.136 105.772C105.064 105.603 104.936 105.468 104.775 105.394C104.614 105.321 104.428 105.314 104.253 105.371C104.078 105.429 103.929 105.547 103.817 105.69C103.676 105.865 103.529 106.052 103.385 106.235C102.371 107.523 101.379 108.875 100.612 110.481C100.233 111.294 99.8972 112.153 99.7412 113.224C99.6006 114.226 99.617 115.791 100.782 117.051C102.175 118.444 103.775 118.223 104.798 117.724C105.066 117.592 105.302 117.433 105.553 117.248C105.685 117.136 105.811 117.018 105.901 116.884C105.99 116.749 106.035 116.606 106.025 116.462C106.015 116.319 105.95 116.184 105.842 116.063C105.734 115.943 105.593 115.844 105.446 115.752C105.207 115.602 105.006 115.458 104.811 115.324C104.003 114.806 103.614 114.294 103.703 114.318C103.71 114.322 103.691 114.334 103.65 114.208C103.612 114.088 103.583 113.863 103.587 113.594C103.594 113.043 103.711 112.351 103.87 111.635C104.188 110.195 104.655 108.646 105.031 107.017C105.084 106.784 105.138 106.543 105.183 106.31Z" fill="#000"/>',
   // Drawn
   dot: () => '<ellipse cx="104" cy="113" rx="3.5" ry="2.8" fill="#000"/>',
+  // Drawn: a short upright tick
+  tick: () => '<path d="M104 104.5V114" stroke="#000" stroke-width="4" stroke-linecap="round"/>',
 };
 
 /* ---- Mouth ---- */
@@ -157,6 +161,12 @@ export const mouth = {
     `<path d="M110.452 137.23C107.452 145.03 100.852 143.23 98.4518 140.23C96.5318 137.83 96.6517 133.83 97.2517 131.83C99.2317 125.23 103.252 128.83 103.252 131.83L103.252 134.23C103.732 137.59 105.052 137.23 105.652 134.83L106.252 131.83C108.052 126.43 111.652 130.03 111.052 134.83L110.452 137.23Z" fill="${c.tongue}"/>`,
   // Figma: Vector 14
   frown: () => '<path d="M111 134C109.778 132.491 105.867 130.378 100 134" stroke="#000" stroke-width="6" stroke-linecap="round" fill="none"/>',
+  // Drawn: a wobbly, about-to-cry mouth
+  wobble: () => '<path d="M93 135Q97.5 127.5 101.5 131.5Q105.5 135.5 109.5 130.5Q113.5 126.5 117 134" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+  // Drawn: a tiny "o"
+  o: () => '<ellipse cx="104.5" cy="131" rx="4.5" ry="5.5" stroke="#000" stroke-width="4" fill="none"/>',
+  // Drawn: a one-sided smirk
+  smirk: () => '<path d="M96 131.5C104 134.5 111.5 132.5 116.5 125.5" stroke="#000" stroke-width="5" stroke-linecap="round" fill="none"/>',
   // Drawn
   smile: () => '<path d="M94 128C99 134.5 109 134.5 115 127.5" stroke="#000" stroke-width="5" stroke-linecap="round" fill="none"/>',
   // Drawn
