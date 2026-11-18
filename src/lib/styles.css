@@ -295,7 +295,7 @@
   gap: 2px;
 }
 .ab-cat-art { display: grid; place-items: center; height: 32px; }
-.ab-cat-label { color: var(--ab-muted); font-size: 10.5px; line-height: 1.2; transition: color 140ms ease; }
+.ab-cat-label { color: var(--ab-muted); font-size: 9.5px; line-height: 1.2; transition: color 140ms ease; }
 .ab-cat:hover .ab-cat-label { color: var(--ab-ink); }
 
 .ab-chip {
