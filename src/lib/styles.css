@@ -506,10 +506,8 @@
   background: #141415;
   box-shadow: inset -0.5px 0 0.5px rgba(205, 210, 215, 0.25), inset 0 0 0.2px rgba(166, 172, 179, 0.66);
 }
-.ab-bar[data-level="default"] .ab-tiles { gap: 24px; }
-.ab-bar[data-level="default"] .ab-cat { width: 60px; height: 56px; border-radius: 16px; }
-.ab-bar[data-level="default"] .ab-cat[aria-label="Face"],
-.ab-bar[data-level="default"] .ab-cat[aria-label="Hair"] { width: 56px; }
+.ab-bar[data-level="default"] .ab-tiles { gap: 4px; }
+.ab-bar[data-level="default"] .ab-cat { width: 56px; height: 56px; border-radius: 12px; }
 .ab-bar[data-level="default"] .ab-cat:hover { background: rgba(255, 255, 255, 0.05); }
 .ab-bar[data-level="default"] .ab-cat-label { color: #93939c; }
 .ab-bar[data-level="default"] .ab-cat:hover .ab-cat-label { color: #d3d3e1; }
@@ -531,12 +529,12 @@
 @media (max-width: 480px) {
   .ab-bar[data-level="default"] { gap: 6px; padding: 4px; }
   .ab-bar[data-level="default"] .ab-history { gap: 2px; padding: 3px; border-radius: 14px; }
-  .ab-bar[data-level="default"] .ab-tiles { gap: 0; }
+  .ab-bar[data-level="default"] .ab-tiles { gap: 4px; }
   .ab-bar[data-level="default"] .ab-hist-btn,
   .ab-raised { width: 36px; height: 36px; border-radius: 10px; }
-  .ab-bar[data-level="default"] .ab-cat { width: 50px; }
+  /* 56px tiles don't fit four across at phone width with undo/redo and download */
   .ab-bar[data-level="default"] .ab-cat,
-  .ab-bar[data-level="default"] .ab-cat.on { width: 50px; height: 50px; }
+  .ab-bar[data-level="default"] .ab-cat.on { width: 48px; height: 48px; }
   .ab-root .ab-raised { width: 44px; height: 44px; border-radius: 13px; }
 }
 
