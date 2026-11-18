@@ -101,7 +101,7 @@
 .ab-page .ab-dock {
   position: absolute;
   /* Where it sat before (just under the middle) plus 200px; never lower than fits the screen */
-  top: min(calc(50% + 300px), calc(100% - 158px));
+  top: min(calc(50% + 300px), calc(100% - 178px)); /* room for the item toggle and × too */
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
