@@ -104,3 +104,75 @@ export const glasses = (c) =>
 export const cap = (c, brim) =>
   `<path fill-rule="evenodd" clip-rule="evenodd" d="M37.8985 73.0222C37.7223 67.0156 37.879 59.3212 38.7803 49.948C41.2803 23.948 65.7803 10.948 85.2803 5.94799C86.0799 5.74294 86.8819 5.55459 87.6851 5.38189C94.8566 3.777 110.2 2.01943 124.708 5.73937C144.208 10.7394 168.708 23.7394 171.208 49.7394C172.135 59.3816 172.275 67.2472 172.074 73.3266C166.168 61.7592 154.341 52.1351 141.202 45.6973C128.254 39.3525 116.312 37.9172 104.708 37.5308L104.708 37.5492C93.1042 37.9356 81.1625 39.371 68.214 45.7158C55.2314 52.0773 42.5613 60.9031 37.8985 73.0222Z" fill="${c.cap}" stroke="#000" stroke-width="4" stroke-linejoin="round"/>` +
   `<path fill-rule="evenodd" clip-rule="evenodd" d="M104.708 37.5308L104.708 37.5492C93.1042 37.9356 81.1625 39.371 68.214 45.7158C55.2314 52.0773 42.5613 60.9031 37.8985 73.0222C37.8335 73.1911 37.7701 73.3606 37.7083 73.5308C40.8948 81.4379 54.2959 87.7537 66.1893 76.3816C75.6511 65.769 85.8085 57.8667 104.708 57.7089L104.708 57.6905C123.608 57.8483 133.765 65.7506 143.227 76.3631C155.121 87.7353 168.922 81.3007 172.108 73.3935C172.097 73.3712 172.085 73.3489 172.074 73.3266C166.168 61.7592 154.341 52.1351 141.202 45.6974C128.254 39.3526 116.312 37.9172 104.708 37.5308Z" fill="${brim}" stroke="#000" stroke-width="4" stroke-linejoin="round"/>`;
+
+/* =========================================================================
+   Drawn to match (placeholders for Figma art): hair, torso, outfits.
+   Same space and style: black 4px outlines, flat fills.
+   ========================================================================= */
+
+const OUT = 'stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"';
+
+/* ---- Hair ---- */
+// The fringe shape shared by the short, long and bun styles
+const FRINGE = 'M37.5 73C35 40 60 6.5 105 5C150 6.5 175 40 172.5 73C166 58 151 47 134 50.5C123 40.5 112 44 105 52C96 43 84 43 76 52.5C61 47.5 46 57 37.5 73Z';
+
+// Curly: a crown of curls, outlines drawn first and fills on top so only the outer edge shows
+const CURLS = (() => {
+  const out = [];
+  for (let i = 0; i <= 10; i++) {
+    const a = Math.PI * (1.02 + (i / 10) * 0.96);
+    out.push([105 + 66 * Math.cos(a), 64 + 56 * Math.sin(a), i === 0 || i === 10 ? 13 : 17]);
+  }
+  out.push([105, 30, 22], [80, 36, 18], [130, 36, 18]);
+  return out;
+})();
+
+export const hairBack = {
+  long: (c) =>
+    `<path d="M34 72C30 32 60 4 105 4C150 4 180 32 176 72L183 148C174 160 154 160 147 150L63 150C56 160 36 160 27 148Z" fill="${c.hairColor}" ${OUT}/>`,
+  bun: (c) => `<circle cx="105" cy="-4" r="17" fill="${c.hairColor}" ${OUT}/>`,
+};
+
+export const hairFront = {
+  none: () => '',
+  short: (c) => `<path d="${FRINGE}" fill="${c.hairColor}" ${OUT}/>`,
+  long: (c) => `<path d="${FRINGE}" fill="${c.hairColor}" ${OUT}/>`,
+  bun: (c) => `<path d="${FRINGE}" fill="${c.hairColor}" ${OUT}/>`,
+  curly: (c) =>
+    CURLS.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="none" ${OUT}/>`).join('') +
+    CURLS.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r - 2}" fill="${c.hairColor}"/>`).join(''),
+};
+
+/* ---- Torso (drawn behind the head) ---- */
+const WIDTH = { slim: 0.84, regular: 1, broad: 1.16 };
+// Shoulders from the neck down past the bottom of the bust view
+const BODY_D = 'M16 262C16 214 40 192 80 183C90 195 120 195 130 183C170 192 194 214 194 262Z';
+
+export function torso(c, id) {
+  const f = WIDTH[c.body] || 1;
+  const sx = `transform="translate(105 0) scale(${f} 1) translate(-105 0)"`;
+  const ns = 'vector-effect="non-scaling-stroke"';
+  let s = '';
+  // Hood sits behind the neck
+  if (c.outfit === 'hoodie') s += `<g ${sx}><path d="M58 184C54 150 156 150 152 184Z" fill="${c.outfitColor}" ${OUT} ${ns}/></g>`;
+  // Neck
+  s += `<path d="M88 138V186H122V138" fill="${c.skin}" ${OUT}/>`;
+  // Body / outfit
+  s += `<g ${sx}>`;
+  s += `<clipPath id="${id}-body"><path d="${BODY_D}"/></clipPath>`;
+  s += `<path d="${BODY_D}" fill="${c.outfitColor}" ${OUT} ${ns}/>`;
+  if (c.detail === 'stripe') s += `<g clip-path="url(#${id}-body)"><rect x="0" y="216" width="210" height="12" fill="#fff" fill-opacity="0.85"/></g>`;
+  if (c.detail === 'pocket') s += `<rect x="132" y="210" width="20" height="18" rx="3" fill="none" stroke="#000" stroke-width="3" ${ns}/>`;
+  s += '</g>';
+  // Neckline by outfit
+  if (c.outfit === 'tee') s += `<path d="M80 183C90 197 120 197 130 183" fill="none" ${OUT}/>`;
+  if (c.outfit === 'hoodie') {
+    s += `<path d="M80 183C90 197 120 197 130 183" fill="none" ${OUT}/>`;
+    s += `<path d="M96 196V216M114 196V216" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  if (c.outfit === 'shirt') {
+    s += `<path d="M80 183L96 202L105 189L114 202L130 183" fill="${c.outfitColor}" ${OUT}/>`;
+    s += `<circle cx="105" cy="214" r="2.6" fill="#000"/><circle cx="105" cy="232" r="2.6" fill="#000"/>`;
+  }
+  return s;
+}

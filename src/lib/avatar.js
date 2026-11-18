@@ -2,33 +2,46 @@ import * as P from './parts.js';
 
 /* =========================================================================
    Headless avatar model + renderer — no React, no DOM. The <AvatarBuilder>
-   UI and avatarToSvg() both draw from here, so the preview and any saved or
-   exported avatar always match.
+   editor and avatarToSvg() both draw from here, so the preview and any saved
+   or exported avatar always match.
 
    The look comes from the Avatars Figma file: one outlined head with a soft
    offset shadow, and parts layered on it in a shared 176.8 × 160.1 space.
+   Hair, the torso and outfits are drawn to match until there is Figma art.
    ========================================================================= */
 
 /* ---- Palettes ---------------------------------------------------------- */
 export const BG = ['#f2f2f2', '#ffffff', '#ffe4f1', '#e3f1ff', '#e9f9d9', '#fff3cf', '#ece6ff', '#1a1a1a'];
 // The first four are the Figma toolbar's head fills
 export const SKIN = ['#d9d9d7', '#ffffff', '#ececea', '#444755', '#f3d2b9', '#d9a47e', '#a8693f', '#6b3f22'];
+export const HAIR_COLOR = ['#1a1a1a', '#5a3620', '#a8693f', '#e8b04b', '#f2e3c6', '#f70492', '#1084fe', '#8b5cf6'];
 export const CAP = ['#f70492', '#50c810', '#1084fe', '#ff7a00', '#8b5cf6', '#1a1a1a'];
 export const GLASSES = ['#000000', '#f70492', '#1084fe', '#c8a24a'];
 export const BLUSH = ['#fc5cb9', '#ff8a65', '#f70410'];
 export const TEARS = ['#b2ebff', '#8fd3ff', '#c7f0d8'];
-export const TONGUE = ['#f70410', '#ff6fa5'];
+export const TONGUE = ['#f70410', '#ff6fa5', '#ff8a65'];
+export const OUTFIT_COLOR = ['#1084fe', '#f70492', '#50c810', '#ff7a00', '#ffe401', '#8b5cf6', '#ffffff', '#1a1a1a'];
 
+export const CATEGORIES = ['person'];
+export const STYLES = ['outline'];
 export const EYES = ['open', 'closed', 'wink', 'dots'];
 export const BROWS = ['none', 'raised', 'flat', 'worried'];
 export const NOSE = ['hook', 'dot', 'none'];
 export const MOUTH = ['tongue', 'smile', 'open', 'frown', 'none'];
+export const HAIR = ['none', 'short', 'curly', 'long', 'bun'];
+export const BODY = ['slim', 'regular', 'broad'];
+export const OUTFIT = ['tee', 'hoodie', 'shirt'];
+export const DETAIL = ['none', 'pocket', 'stripe'];
 
 /* The avatar in the Figma (Frame 4): pink cap, round glasses, tongue out. */
 export const defaultAvatar = {
+  category: 'person',
+  style: 'outline',
   bg: '#f2f2f2',
   shadow: true,
   skin: '#ffffff',
+  hair: 'none',
+  hairColor: '#1a1a1a',
   eyes: 'open',
   brows: 'none',
   nose: 'hook',
@@ -38,46 +51,93 @@ export const defaultAvatar = {
   tears: null,
   cap: '#f70492',
   glasses: '#000000',
+  torso: false,
+  body: 'regular',
+  outfit: 'tee',
+  outfitColor: '#1084fe',
+  detail: 'none',
 };
 
-/* ---- The builder's structure: groups → parts → options ----------------
-   kind 'color': presets are colors (null = off when `optional`), plus a
-   custom color. kind 'shape': named variants. `view` is the square crop of
-   the avatar a tile shows for that part. */
-export const GROUPS = [
-  { key: 'background', label: 'Background', parts: ['bg', 'shadow'], view: 'full' },
-  { key: 'face', label: 'Face', parts: ['skin', 'eyes', 'brows', 'nose', 'mouth', 'blush', 'tears'], view: 'face' },
-  { key: 'outfit', label: 'Outfit', parts: ['cap', 'glasses'], view: 'top' },
+/* ---- The editor's tree: broad → detailed -------------------------------
+   SETUP is the foundation (category, style). PRIMARY is the default stage.
+   Each primary category holds items; a category with one item opens it
+   directly. `when` hides an item until the look makes it relevant.
+   Item kinds: 'shape' (named variants), 'color' (a color row + grid),
+   'toggle' (two choices shown inline). `optional` color items have a "none". */
+export const SETUP = [
+  { key: 'category', label: 'Category', options: CATEGORIES, names: { person: 'Person' } },
+  { key: 'style', label: 'Style', options: STYLES, names: { outline: 'Outline' } },
 ];
 
-export const PARTS = {
-  bg: { label: 'Color', kind: 'color', presets: BG, view: 'full' },
-  shadow: { label: 'Shadow', kind: 'shape', options: [true, false], view: 'full' },
-  skin: { label: 'Skin', kind: 'color', presets: SKIN, view: 'face', swatch: 'head' },
-  eyes: { label: 'Eyes', kind: 'shape', options: EYES, view: 'eyes' },
-  brows: { label: 'Brows', kind: 'shape', options: BROWS, view: 'brows' },
-  nose: { label: 'Nose', kind: 'shape', options: NOSE, view: 'nose' },
-  mouth: { label: 'Mouth', kind: 'shape', options: MOUTH, view: 'mouth' },
-  blush: { label: 'Blush', kind: 'color', presets: BLUSH, optional: true, view: 'face' },
-  tears: { label: 'Tears', kind: 'color', presets: TEARS, optional: true, view: 'face' },
-  cap: { label: 'Cap', kind: 'color', presets: CAP, optional: true, view: 'top' },
-  glasses: { label: 'Glasses', kind: 'color', presets: GLASSES, optional: true, view: 'eyes' },
+export const ITEMS = {
+  skin: { label: 'Skin colour', kind: 'color', presets: SKIN },
+  hair: { label: 'Style', kind: 'shape', options: HAIR },
+  hairColor: { label: 'Colour', kind: 'color', presets: HAIR_COLOR, when: (c) => c.hair !== 'none' },
+  cap: { label: 'Headwear', kind: 'color', presets: CAP, optional: true },
+  mouth: { label: 'Mouth', kind: 'shape', options: MOUTH },
+  tongue: { label: 'Tongue', kind: 'color', presets: TONGUE, when: (c) => c.mouth === 'tongue' || c.mouth === 'open' },
+  brows: { label: 'Brows', kind: 'shape', options: BROWS },
+  eyes: { label: 'Shape', kind: 'shape', options: EYES },
+  glasses: { label: 'Glasses', kind: 'color', presets: GLASSES, optional: true },
+  tears: { label: 'Tears', kind: 'color', presets: TEARS, optional: true },
+  nose: { label: 'Nose', kind: 'shape', options: NOSE },
+  blush: { label: 'Blush', kind: 'color', presets: BLUSH, optional: true },
+  torso: { label: 'Torso', kind: 'toggle', options: [false, true], names: { false: 'Head only', true: 'With torso' } },
+  body: { label: 'Body', kind: 'shape', options: BODY, when: (c) => c.torso },
+  outfit: { label: 'Outfit', kind: 'shape', options: OUTFIT, when: (c) => c.torso },
+  outfitColor: { label: 'Outfit colour', kind: 'color', presets: OUTFIT_COLOR, when: (c) => c.torso },
+  detail: { label: 'Details', kind: 'shape', options: DETAIL, when: (c) => c.torso },
+  bg: { label: 'Colour', kind: 'color', presets: BG },
+  shadow: { label: 'Shadow', kind: 'shape', options: [true, false] },
 };
 
-/* Every field's choices, for a host building its own UI. */
-export const AVATAR_OPTIONS = Object.fromEntries(
-  Object.entries(PARTS).map(([k, p]) => [k, p.kind === 'color' ? (p.optional ? [null, ...p.presets] : p.presets) : p.options]),
-);
+export const PRIMARY = [
+  { key: 'skin', label: 'Skin', items: ['skin'] },
+  { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap'] },
+  { key: 'face', label: 'Face', items: ['mouth', 'tongue', 'brows'] },
+  { key: 'eyes', label: 'Eyes', items: ['eyes', 'glasses', 'tears'] },
+  { key: 'features', label: 'Features', items: ['nose', 'blush'] },
+  { key: 'torso', label: 'Torso', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
+  { key: 'background', label: 'Background', items: ['bg', 'shadow'] },
+];
 
-/* Square crops of the avatar space, for the full avatar and for tiles. */
+export const visibleItems = (group, c) => group.items.filter((k) => !ITEMS[k].when || ITEMS[k].when(c));
+
+/* Every field's choices, for a host building its own UI. */
+export const AVATAR_OPTIONS = {
+  category: CATEGORIES,
+  style: STYLES,
+  ...Object.fromEntries(
+    Object.entries(ITEMS).map(([k, p]) => [k, p.kind === 'color' ? (p.optional ? [null, ...p.presets] : p.presets) : p.options]),
+  ),
+};
+
+/* ---- Views ------------------------------------------------------------- */
 export const VIEWS = {
-  full: '-6 -10 189 189',
+  full: '-6 -16 189 189',
+  bust: '-40 -16 257 257',
   face: '20 -2 165 165',
   top: '26 -8 158 158',
-  eyes: '52 46 108 108',
-  brows: '56 30 96 96',
-  nose: '79 89 52 52',
-  mouth: '80 110 50 50',
+};
+export const viewFor = (c) => (c && c.torso ? VIEWS.bust : VIEWS.full);
+
+/* Crops for one item on its own, centered on where it sits */
+export const ITEM_VIEWS = {
+  cap: '33 -27 144 144',
+  glasses: '35 20 140 140',
+  eyes: '63 49 84 84',
+  brows: '62 25 84 84',
+  nose: '87 95 32 32',
+  mouth: '83 112 44 44',
+  tongue: '83 112 44 44',
+  tears: '57 75 100 100',
+  hair: '15 -30 180 180',
+  torso: '10 140 190 190',
+  body: '10 140 190 190',
+  outfit: '10 140 190 190',
+  outfitColor: '10 140 190 190',
+  detail: '10 140 190 190',
+  shadow: '-6 -10 189 189',
 };
 
 /* ---- Rendering --------------------------------------------------------- */
@@ -93,12 +153,14 @@ function tint(hex, amount = 0.38) {
 
 let uid = 0;
 
-/* The avatar's layers (no wrapping <svg>), as a string. `id` keeps the tears
-   mask unique when several avatars share a page. */
+/* The avatar's layers (no wrapping <svg>), as a string. `id` keeps masks and
+   clip paths unique when several avatars share a page. */
 export function innerSvg(config, { id = 'ab' + (++uid) } = {}) {
   const c = { ...defaultAvatar, ...config };
   let s = '';
   if (c.shadow) s += P.shadow();
+  if (c.torso) s += P.torso(c, id);
+  if (P.hairBack[c.hair]) s += P.hairBack[c.hair](c);
   s += P.head(c);
   if (c.tears) s += P.tears(c, id);
   if (c.blush) s += P.blush(c);
@@ -107,24 +169,13 @@ export function innerSvg(config, { id = 'ab' + (++uid) } = {}) {
   if (c.glasses) s += P.glasses(c);
   s += (P.nose[c.nose] || P.nose.none)(c);
   s += (P.mouth[c.mouth] || P.mouth.none)(c);
+  // Hair sits over the head; a cap, when worn, covers its top
+  s += (P.hairFront[c.hair] || P.hairFront.none)(c);
   if (c.cap) s += P.cap(c, tint(c.cap));
   return s;
 }
 
-/* ---- One item on its own, for option tiles ----------------------------
-   A tile shows the item (or its variation), not the avatar wearing it. Each
-   crop is centered on where that item sits in the shared space. */
-export const ITEM_VIEWS = {
-  cap: '33 -27 144 144',
-  glasses: '35 20 140 140',
-  eyes: '63 49 84 84',
-  brows: '62 25 84 84',
-  nose: '87 95 32 32',
-  mouth: '83 112 44 44',
-  tears: '57 75 100 100',
-  shadow: '-6 -10 189 189',
-};
-
+/* One item on its own, for option tiles: the item, not the avatar wearing it. */
 export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
   const c = { ...defaultAvatar, ...config };
   switch (part) {
@@ -134,7 +185,16 @@ export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
     case 'brows': return (P.brows[c.brows] || P.brows.none)(c);
     case 'nose': return (P.nose[c.nose] || P.nose.none)(c);
     case 'mouth': return (P.mouth[c.mouth] || P.mouth.none)(c);
+    case 'tongue': return P.mouth.tongue(c);
     case 'tears': return c.tears ? P.tears(c, id) : '';
+    case 'hair':
+      if (c.hair === 'none') return '';
+      return (P.hairBack[c.hair] ? P.hairBack[c.hair](c) : '') + `<path d="${P.headPath}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>` + P.hairFront[c.hair](c);
+    case 'body':
+    case 'outfit':
+    case 'outfitColor':
+    case 'detail':
+      return P.torso({ ...c, torso: true }, id);
     case 'shadow': return (c.shadow ? P.shadow() : '') + `<path d="${P.headPath}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>`;
     default: return '';
   }
@@ -155,9 +215,10 @@ export function headSwatchSvg(color) {
    fills the square unless bg is 'transparent'. */
 export function avatarToSvg(config, { size = 512 } = {}) {
   const c = { ...defaultAvatar, ...config };
-  const [x, y, w, h] = VIEWS.full.split(' ').map(Number);
+  const view = viewFor(c);
+  const [x, y, w, h] = view.split(' ').map(Number);
   const bg = c.bg && c.bg !== 'transparent' ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c.bg}"/>` : '';
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VIEWS.full}" width="${size}" height="${size}" role="img" aria-label="Avatar">${bg}${innerSvg(c, { id: 'export' })}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" width="${size}" height="${size}" role="img" aria-label="Avatar">${bg}${innerSvg(c, { id: 'export' })}</svg>`;
 }
 
 /* A base64 data URI, handy for <img src={avatarToDataUri(config)} />. */
@@ -169,14 +230,14 @@ export function avatarToDataUri(config, opts) {
   return `data:image/svg+xml;base64,${encoded}`;
 }
 
-/* Pick a random look (used by the shuffle button). */
-export function randomAvatar() {
+/* Pick a random look (used by the shuffle button); keeps category and style. */
+export function randomAvatar(base = defaultAvatar) {
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  const c = {};
-  for (const [k, p] of Object.entries(PARTS)) {
-    if (p.kind === 'shape') c[k] = pick(p.options);
+  const c = { ...base };
+  for (const [k, p] of Object.entries(ITEMS)) {
+    if (k === 'torso') c.torso = Math.random() < 0.5;
+    else if (p.kind === 'shape') c[k] = pick(p.options);
     else c[k] = p.optional && Math.random() < 0.45 ? null : pick(p.presets);
   }
-  c.tongue = pick(TONGUE);
-  return { ...defaultAvatar, ...c };
+  return c;
 }

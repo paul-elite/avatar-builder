@@ -1,7 +1,7 @@
 {
   "name": "avatar-builder",
   "private": false,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A tiny, drop-in React avatar builder. Pick a look, get the config and a ready-to-use SVG.",
   "type": "module",
   "license": "MIT",

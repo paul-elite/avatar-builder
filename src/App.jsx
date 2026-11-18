@@ -1,9 +1,8 @@
-import Frame from './Frame.jsx';
-import './frame.css';
+import { AvatarBuilder } from './lib/index.js';
+import './lib/styles.css';
+import './page.css';
 
-/* The live page is the Avatars Figma "Frame 4", exactly, for now.
-   The full <AvatarBuilder> (src/lib) is still the package's export. */
-
+/* The live site is the package's editor, full page, remembering the look in this browser. */
 export default function App() {
-  return <Frame />;
+  return <AvatarBuilder className="ab-page" persist="avatars.paulelite.com" />;
 }
