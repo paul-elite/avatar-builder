@@ -3,7 +3,7 @@
 A tiny, drop-in **React avatar builder**. Pick a look — your app receives the
 chosen config and a ready-to-use SVG. No dependencies beyond React.
 
-**Live demo:** https://avatar-builder-phi.vercel.app
+**Live:** https://avatars.paulelite.com
 
 ## Install
 
