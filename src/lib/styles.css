@@ -116,6 +116,11 @@
   transition: transform 240ms ease-in-out;
 }
 .ab-page { --ab-circle: min(340px, 82vw); }
+/* Phones: the avatar and its circle at 0.67× (circle 320 → 214px, avatar 240 → 161px) */
+@media (max-width: 480px) {
+  .ab-page { --ab-circle: calc(min(340px, 82vw) * 0.67); }
+  .ab-page .ab-avatar { width: calc(240px * 0.67); height: auto; }
+}
 .ab-root[data-backdrop="circle"] .ab-stage { border-radius: 50%; background: var(--ab-fill, #ffffff); transition: background-color 240ms ease, transform 240ms ease-in-out; }
 .ab-stage[data-tappable] { cursor: pointer; }
 /* Frame: the backdrop's shape */
