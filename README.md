@@ -115,6 +115,7 @@ type AvatarConfig = {
   hair: 'none' | 'short' | 'bangs' | 'sidebob' | 'curly' | 'long' | 'bun' | 'underhat';
   hairColor: string;
   cap: string | null;          // headwear colour; null = none
+  hat: 'cap' | 'side' | 'beanie'; // which headwear, when cap isn't null
   eyes: 'open' | 'round' | 'wide' | 'big' | 'side' | 'up' | 'sleepy' | 'peek' | 'angry'
       | 'skeptical' | 'bored' | 'happy' | 'sad' | 'closed' | 'wink' | 'flat' | 'squeeze' | 'dead' | 'dots';
   glasses: string | null;

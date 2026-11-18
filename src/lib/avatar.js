@@ -15,7 +15,8 @@ export const BG = ['#ffffff', '#f2f2f2', '#ffe4f1', '#e3f1ff', '#e9f9d9', '#fff3
 // The first four are the Figma toolbar's head fills
 export const SKIN = ['#d9d9d7', '#ffffff', '#ececea', '#444755', '#f3d2b9', '#d9a47e', '#a8693f', '#6b3f22'];
 export const HAIR_COLOR = ['#1a1a1a', '#5a3620', '#a8693f', '#e8b04b', '#f2e3c6', '#f70492', '#1084fe', '#8b5cf6'];
-export const CAP = ['#f70492', '#50c810', '#1084fe', '#ff7a00', '#8b5cf6', '#1a1a1a'];
+export const CAP = ['#f70492', '#50c810', '#1084fe', '#ff7a00', '#8b5cf6', '#ffffff', '#1a1a1a'];
+export const HAT = ['cap', 'side', 'beanie'];
 export const GLASSES = ['#000000', '#f70492', '#1084fe', '#c8a24a'];
 export const BLUSH = ['#fc5cb9', '#ff8a65', '#f70410'];
 export const TEARS = ['#b2ebff', '#8fd3ff', '#c7f0d8'];
@@ -57,6 +58,7 @@ export const defaultAvatar = {
   blush: null,
   tears: null,
   cap: '#f70492',
+  hat: 'cap',
   glasses: '#000000',
   torso: false,
   body: 'regular',
@@ -85,6 +87,8 @@ export const ITEMS = {
   hair: { label: 'Style', kind: 'shape', options: HAIR },
   hairColor: { label: 'Colour', kind: 'color', presets: HAIR_COLOR, when: (c) => c.hair !== 'none' },
   cap: { label: 'Headwear', kind: 'color', presets: CAP, optional: true },
+  // Which hat; the colour item above also turns headwear off
+  hat: { label: 'Hat', kind: 'shape', options: HAT, when: (c) => !!c.cap },
   mouth: { label: 'Mouth', kind: 'shape', options: MOUTH },
   tongue: { label: 'Tongue', kind: 'color', presets: TONGUE, when: (c) => c.mouth === 'tongue' || c.mouth === 'open' },
   brows: { label: 'Brows', kind: 'shape', options: BROWS },
@@ -105,7 +109,7 @@ export const ITEMS = {
 export const PRIMARY = [
   { key: 'skin', label: 'Skin', items: ['skin'] },
   { key: 'head', label: 'Head', items: ['head', 'ears', 'tilt'] },
-  { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap'] },
+  { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap', 'hat'] },
   { key: 'face', label: 'Face', items: ['mouth', 'tongue', 'brows'] },
   { key: 'eyes', label: 'Eyes', items: ['eyes', 'glasses', 'tears'] },
   { key: 'features', label: 'Features', items: ['nose', 'blush'] },
@@ -136,7 +140,8 @@ export const viewFor = (c) => (c && c.torso ? VIEWS.bust : VIEWS.full);
 
 /* Crops for one item on its own, centered on where it sits */
 export const ITEM_VIEWS = {
-  cap: '33 -27 144 144',
+  cap: '30 -24 160 160',
+  hat: '30 -24 160 160',
   glasses: '35 20 140 140',
   eyes: '58 46 94 94',
   head: '20 -2 165 165',
@@ -199,7 +204,7 @@ function headLayers(c, id, L, s) {
   s += L('mouth', (P.mouth[c.mouth] || P.mouth.none)(c));
   // Hair sits over the head; a cap, when worn, covers its top
   s += L('hair', (P.hairFront[c.hair] || P.hairFront.none)(c));
-  if (c.cap) s += L('cap', P.cap(c, tint(c.cap)));
+  if (c.cap) s += L('cap', (P.hats[c.hat] || P.hats.cap)(c, tint(c.cap)));
   return s;
 }
 
@@ -225,7 +230,8 @@ export const PART_TARGETS = {
 export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
   const c = { ...defaultAvatar, ...config };
   switch (part) {
-    case 'cap': return c.cap ? P.cap(c, tint(c.cap)) : '';
+    case 'cap':
+    case 'hat': return c.cap ? (P.hats[c.hat] || P.hats.cap)(c, tint(c.cap)) : '';
     case 'glasses': return c.glasses ? P.glasses(c) : '';
     case 'eyes': return (P.eyes[c.eyes] || P.eyes.open)(c);
     case 'brows': return (P.brows[c.brows] || P.brows.none)(c);

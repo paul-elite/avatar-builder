@@ -180,6 +180,28 @@ export const cap = (c, brim) =>
   `<path fill-rule="evenodd" clip-rule="evenodd" d="M37.8985 73.0222C37.7223 67.0156 37.879 59.3212 38.7803 49.948C41.2803 23.948 65.7803 10.948 85.2803 5.94799C86.0799 5.74294 86.8819 5.55459 87.6851 5.38189C94.8566 3.777 110.2 2.01943 124.708 5.73937C144.208 10.7394 168.708 23.7394 171.208 49.7394C172.135 59.3816 172.275 67.2472 172.074 73.3266C166.168 61.7592 154.341 52.1351 141.202 45.6973C128.254 39.3525 116.312 37.9172 104.708 37.5308L104.708 37.5492C93.1042 37.9356 81.1625 39.371 68.214 45.7158C55.2314 52.0773 42.5613 60.9031 37.8985 73.0222Z" fill="${c.cap}" stroke="#000" stroke-width="4" stroke-linejoin="round"/>` +
   `<path fill-rule="evenodd" clip-rule="evenodd" d="M104.708 37.5308L104.708 37.5492C93.1042 37.9356 81.1625 39.371 68.214 45.7158C55.2314 52.0773 42.5613 60.9031 37.8985 73.0222C37.8335 73.1911 37.7701 73.3606 37.7083 73.5308C40.8948 81.4379 54.2959 87.7537 66.1893 76.3816C75.6511 65.769 85.8085 57.8667 104.708 57.7089L104.708 57.6905C123.608 57.8483 133.765 65.7506 143.227 76.3631C155.121 87.7353 168.922 81.3007 172.108 73.3935C172.097 73.3712 172.085 73.3489 172.074 73.3266C166.168 61.7592 154.341 52.1351 141.202 45.6974C128.254 39.3526 116.312 37.9172 104.708 37.5308Z" fill="${brim}" stroke="#000" stroke-width="4" stroke-linejoin="round"/>`;
 
+/* ---- More headwear (drawn to match the cap) ----
+   All in the cap's colour, with the lighter tint for the brim or cuff. */
+const HAT_OUT = 'stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"';
+// The cap turned to the side: the crown on top, the brim sticking out to the right
+const SIDE_CROWN = 'M38 74C35 30 62 4 105 4C148 4 175 30 172 74C150 63 128 58 105 58C82 58 60 63 38 74Z';
+const SIDE_BRIM = 'M152 63C164 53 180 51 186 56C190 62 184 70 171 75C162 78 155 77 150 73Z';
+// A knit beanie: a dome and a folded cuff with ribs
+const BEANIE_DOME = 'M40 62C36 24 64 1 105 1C146 1 174 24 170 62Z';
+const BEANIE_CUFF = 'M34 54C34 49 38 46 44 46H166C172 46 176 49 176 54V67C176 72 172 75 166 75H44C38 75 34 72 34 67Z';
+export const hats = {
+  cap: (c, brim) => cap(c, brim),
+  side: (c, brim) =>
+    `<path d="${SIDE_CROWN}" fill="${c.cap}" ${HAT_OUT}/>` +
+    `<path d="${SIDE_BRIM}" fill="${brim}" ${HAT_OUT}/>` +
+    `<path d="M106 5C98 20 95 38 97 58" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>` +
+    `<circle cx="105" cy="6" r="4" fill="${c.cap}" stroke="#000" stroke-width="3"/>`,
+  beanie: (c, brim) =>
+    `<path d="${BEANIE_DOME}" fill="${c.cap}" ${HAT_OUT}/>` +
+    `<path d="${BEANIE_CUFF}" fill="${brim}" ${HAT_OUT}/>` +
+    Array.from({ length: 11 }, (_, i) => `<path d="M${50 + i * 11} 52V69" stroke="#000" stroke-opacity="0.22" stroke-width="2.5" stroke-linecap="round"/>`).join(''),
+};
+
 /* =========================================================================
    Drawn to match (placeholders for Figma art): hair, torso, outfits.
    Same space and style: black 4px outlines, flat fills.
