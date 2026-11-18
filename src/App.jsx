@@ -4,5 +4,5 @@ import './page.css';
 
 /* The live site is the package's editor, full page, remembering the look in this browser. */
 export default function App() {
-  return <AvatarBuilder className="ab-page" persist="avatars.paulelite.com" />;
+  return <AvatarBuilder className="ab-page" backdrop="circle" persist="avatars.paulelite.com" />;
 }

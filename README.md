@@ -47,6 +47,7 @@ import { avatarToDataUri } from 'avatar-builder';
 | `defaultValue`| `AvatarConfig`                       | —       | Initial config when uncontrolled.             |
 | `onChange`    | `(config, { svg }) => void`          | —       | Fires on every edit.                          |
 | `size`        | `number`                             | `240`   | Preview size in px.                           |
+| `backdrop`    | `'plain' \| 'circle'`                 | `'plain'` | `'circle'` puts the preview on a white circle and drops its shadow (exports keep it). |
 | `persist`     | `string`                             | —       | Storage key: remember the look in this browser. |
 | `exportSize`  | `number`                             | `512`   | Exported PNG size in px.                      |
 | `showActions` | `boolean`                            | `true`  | Show shuffle / download in the toolbar.       |

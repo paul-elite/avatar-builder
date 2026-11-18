@@ -150,6 +150,7 @@ export default function AvatarBuilder({
   showActions = true,
   persist,
   className = '',
+  backdrop = 'plain', // 'plain' | 'circle': a white circle behind the preview (and no drop shadow on it)
 }) {
   const saved = useRef(typeof window !== 'undefined' ? load(persist) : null).current;
   const isControlled = value != null;
@@ -371,10 +372,12 @@ export default function AvatarBuilder({
   // Something always sits under the default bar (the categories) and under the categories (the default)
   const depth = inSetup ? (setupDone ? 1 : 0) : isDefault ? 1 : inPalette ? 2 : path.length;
   const canClose = depth > 0 && phase !== 'exit';
-  const view = viewFor(config);
+  // The preview centres the head itself (its silhouette spans x 33–177, y 3.5–160), not head + shadow;
+  // with a torso it stays centred left–right and keeps the body in frame. Exports keep the full views.
+  const view = config.torso ? '-23.5 -16 257 257' : '10.5 -12.85 189 189';
 
   return (
-    <div className={('ab-root ' + className).trim()} style={{ '--ab-bg': config.bg }} data-grid={grid || undefined}>
+    <div className={('ab-root ' + className).trim()} style={{ '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop}>
       {setupDone && !inSetup && (
         <button type="button" className="ab-setup-chip" onClick={() => go(['setup'], 'down')} aria-label="Change category and style">
           {SETUP.map((s) => s.names[config[s.key]] || config[s.key]).join(' · ')}
@@ -389,7 +392,7 @@ export default function AvatarBuilder({
           role="img"
           aria-label="Avatar preview"
           className="ab-avatar"
-          dangerouslySetInnerHTML={{ __html: innerSvg(config, { id: 'preview' }) }}
+          dangerouslySetInnerHTML={{ __html: innerSvg(backdrop === 'circle' ? { ...config, shadow: false } : config, { id: 'preview' }) }}
         />
       </div>
 
