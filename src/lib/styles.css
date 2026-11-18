@@ -71,6 +71,12 @@
 }
 /* With the colour grid open, the avatar moves up to stay in view above it */
 .ab-root[data-grid] .ab-avatar { transform: translateY(-150px); }
+/* Tap a part to edit it */
+.ab-avatar[data-tappable] [data-part] { cursor: pointer; }
+@media (hover: hover) {
+  .ab-avatar[data-tappable] [data-part] { transition: opacity 150ms ease; }
+  .ab-avatar[data-tappable] [data-part]:not([data-part="skin"]):hover { opacity: 0.8; }
+}
 
 /* Full page: the avatar sits dead centre on a circle, the toolbar 200px lower than it used to */
 .ab-page .ab-stage {

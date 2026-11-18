@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
-  SETUP, PRIMARY, ITEMS, ITEM_VIEWS, VIEWS, visibleItems, viewFor,
+  SETUP, PRIMARY, ITEMS, PART_TARGETS, ITEM_VIEWS, VIEWS, visibleItems, viewFor,
   defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg, randomAvatar,
 } from './avatar.js';
 import { downloadPng } from './export.js';
@@ -195,6 +195,24 @@ export default function AvatarBuilder({
     emit(history.future[0]);
   };
 
+  // Small features (eyes, nose, brows…) get an invisible padded hit area, so they're easy to tap
+  useLayoutEffect(() => {
+    const svg = avatarRef.current;
+    if (!svg) return;
+    svg.querySelectorAll('[data-part]:not([data-part="skin"]):not([data-part="torso"]):not([data-part="hair"]):not([data-part="cap"])').forEach((g) => {
+      if (g.querySelector(':scope > [data-hit]')) return; // already padded
+      const b = g.getBBox();
+      if (!b.width && !b.height) return;
+      const pad = 5;
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('x', b.x - pad); r.setAttribute('y', b.y - pad);
+      r.setAttribute('width', b.width + pad * 2); r.setAttribute('height', b.height + pad * 2);
+      r.setAttribute('fill', 'transparent');
+      r.dataset.hit = '';
+      g.insertBefore(r, g.firstChild);
+    });
+  });
+
   /* ---- Moving between levels ---- */
   const go = (next, dir) => {
     if (phase !== 'idle') return;
@@ -220,6 +238,17 @@ export default function AvatarBuilder({
     if (path[0] === 'setup' || path[0] === 'palette') return go([], 'up');
     go(path.slice(0, -1), 'up');
   };
+  // Tap a part of the avatar to jump straight to its editor (the cap → Hair · Headwear)
+  const jump = (part) => {
+    const target = PART_TARGETS[part];
+    if (!target || path[0] === 'setup') return;
+    const next = ['all', ...target];
+    if (next.join('/') === path.join('/')) return setGrid(false);
+    go(next, path.length ? 'swap' : 'down');
+  };
+  const avatarRef = useRef(null);
+  const onAvatarClick = (e) => { const g = e.target.closest && e.target.closest('[data-part]'); if (g) jump(g.dataset.part); };
+
   const finishSetup = () => {
     setSetupDone(true);
     go([], setupDone ? 'up' : 'swap');
@@ -392,7 +421,10 @@ export default function AvatarBuilder({
           role="img"
           aria-label="Avatar preview"
           className="ab-avatar"
-          dangerouslySetInnerHTML={{ __html: innerSvg(backdrop === 'circle' ? { ...config, shadow: false } : config, { id: 'preview' }) }}
+          ref={avatarRef}
+          onClick={onAvatarClick}
+          data-tappable={!inSetup || undefined}
+          dangerouslySetInnerHTML={{ __html: innerSvg(backdrop === 'circle' ? { ...config, shadow: false } : config, { id: 'preview', parts: true }) }}
         />
       </div>
 

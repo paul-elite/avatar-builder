@@ -154,26 +154,43 @@ function tint(hex, amount = 0.38) {
 let uid = 0;
 
 /* The avatar's layers (no wrapping <svg>), as a string. `id` keeps masks and
-   clip paths unique when several avatars share a page. */
-export function innerSvg(config, { id = 'ab' + (++uid) } = {}) {
+   clip paths unique when several avatars share a page. With `parts`, each layer
+   is wrapped in <g data-part="…"> so a tap on the preview can tell what was hit. */
+export function innerSvg(config, { id = 'ab' + (++uid), parts = false } = {}) {
   const c = { ...defaultAvatar, ...config };
+  const L = (part, svg) => (!svg ? '' : parts ? `<g data-part="${part}">${svg}</g>` : svg);
   let s = '';
   if (c.shadow) s += P.shadow();
-  if (c.torso) s += P.torso(c, id);
-  if (P.hairBack[c.hair]) s += P.hairBack[c.hair](c);
-  s += P.head(c);
-  if (c.tears) s += P.tears(c, id);
-  if (c.blush) s += P.blush(c);
-  s += (P.brows[c.brows] || P.brows.none)(c);
-  s += (P.eyes[c.eyes] || P.eyes.open)(c);
-  if (c.glasses) s += P.glasses(c);
-  s += (P.nose[c.nose] || P.nose.none)(c);
-  s += (P.mouth[c.mouth] || P.mouth.none)(c);
+  if (c.torso) s += L('torso', P.torso(c, id));
+  if (P.hairBack[c.hair]) s += L('hair', P.hairBack[c.hair](c));
+  s += L('skin', P.head(c));
+  if (c.tears) s += L('tears', P.tears(c, id));
+  if (c.blush) s += L('blush', P.blush(c));
+  s += L('brows', (P.brows[c.brows] || P.brows.none)(c));
+  s += L('eyes', (P.eyes[c.eyes] || P.eyes.open)(c));
+  if (c.glasses) s += L('glasses', P.glasses(c));
+  s += L('nose', (P.nose[c.nose] || P.nose.none)(c));
+  s += L('mouth', (P.mouth[c.mouth] || P.mouth.none)(c));
   // Hair sits over the head; a cap, when worn, covers its top
-  s += (P.hairFront[c.hair] || P.hairFront.none)(c);
-  if (c.cap) s += P.cap(c, tint(c.cap));
+  s += L('hair', (P.hairFront[c.hair] || P.hairFront.none)(c));
+  if (c.cap) s += L('cap', P.cap(c, tint(c.cap)));
   return s;
 }
+
+/* Where a tap on each part of the preview leads: [category, item] */
+export const PART_TARGETS = {
+  torso: ['torso'],
+  hair: ['hair', 'hair'],
+  skin: ['skin'],
+  tears: ['eyes', 'tears'],
+  blush: ['features', 'blush'],
+  brows: ['face', 'brows'],
+  eyes: ['eyes', 'eyes'],
+  glasses: ['eyes', 'glasses'],
+  nose: ['features', 'nose'],
+  mouth: ['face', 'mouth'],
+  cap: ['hair', 'cap'],
+};
 
 /* One item on its own, for option tiles: the item, not the avatar wearing it. */
 export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {

@@ -71,6 +71,9 @@ One editor that starts broad and reveals detail only when it's relevant:
 4. **An item:** its options, each drawn as the item itself; colours as a row,
    with an "all colours" grid behind it.
 
+Tap any part of the avatar to jump straight to its editor: the cap opens
+Hair · Headwear, the glasses Eyes · Glasses, the face Skin, and so on.
+
 One floating toolbar shows the current level and a breadcrumb says where you
 are. Going deeper sinks it into the stack behind; × or Escape closes the level
 and the one below rises back. Selections persist across every move (and, with
