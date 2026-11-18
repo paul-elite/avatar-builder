@@ -67,3 +67,60 @@ export function NavIcon({ name, group, size = 26 }) {
   if (!art) return null;
   return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{art}</svg>;
 }
+
+/* =========================================================================
+   Default-toolbar heads (Figma "Avatar builder UI" › 2 · Default toolbar).
+   Each tile draws a small head and lights up the part it edits: the face,
+   the hair, the hoodie, or the frame (filled with the current background).
+   Selected tiles sit on a light tile, so the head turns dark there.
+   ========================================================================= */
+const HEAD_D = 'M3.058 11.188c-.117 1.219-.138 2.219-.115 3 .027.915.113 1.529.173 1.84l-.253.101c-.975.585-.39 1.95.065 2.991.223.51.462.629.701.748.249.124.497.249.73.812.364.884 1.192 2.016 1.56 2.471 1.328 1.328 2.96 2.032 4.596 2.265 2.321.27 4.942-.333 6.902-2.292.369-.456 1.196-1.587 1.56-2.471.232-.563.481-.688.73-.812.239-.119.478-.238.701-.749.455-1.04 1.04-2.405.065-2.99l-.253-.101c.058-.303.142-.895.17-1.773.027-.79.009-1.813-.112-3.067-.325-3.381-3.511-5.071-6.046-5.721-1.887-.484-3.882-.256-4.814-.047a9 9 0 0 0-.313.074C6.569 6.117 3.383 7.807 3.058 11.188Z';
+const HAIR_D = 'M2.973 14.701C2.024 7.743 6.582 4.58 11.01 4.58c2.53-2.214 6.326-2.214 8.54-.632-1.265.316-1.582.949-.633 1.898 2.214 1.898 2.394 5.663 1.445 8.825-.949-3.162-2.394-4.397-4.292-5.03-3.795 1.266-7.59.633-10.121-.632-1.265 1.898-2.343 3.796-2.976 5.692Z';
+
+export function BarIcon({ name, on, fill = '#ffffff' }) {
+  const ink = on ? '#1e2132' : '#494950'; // the head
+  const lit = on ? 'url(#ab-bar-lit)' : '#a1acaf'; // the part this tile edits
+  const dim = on ? '#1e2132' : '#37373b'; // everything else
+  const grad = (
+    <defs>
+      <linearGradient id="ab-bar-lit" x1="0" y1="0" x2="0" y2="1">
+        <stop stopColor="#444e63" />
+        <stop offset="1" stopColor="#b5b5ca" />
+      </linearGradient>
+    </defs>
+  );
+  if (name === 'outfit') {
+    // The Figma bust, as exported (its head pokes above the 32px box, like the tile)
+    return (
+      <svg width="30" height="32" viewBox="0 -5 34 37" aria-hidden="true">
+        {grad}
+        <path fillRule="evenodd" d="M9.393 2.955c-.097 1.015-.114 1.848-.095 2.498.022.761.094 1.272.143 1.531l-.21.084c-.812.487-.325 1.623.054 2.489.186.425.384.524.583.623.207.104.414.207.607.676.303.736.992 1.677 1.299 2.056.523.523 1.103.931 1.714 1.235.678.338 1.394.548 2.111.65 1.474.171 3.094-.08 4.504-.934.437-.265.854-.588 1.241-.974.306-.379.995-1.32 1.298-2.056.193-.469.401-.572.607-.675.199-.1.398-.199.584-.623.379-.866.866-2.002.054-2.489l-.21-.084c.048-.252.117-.745.141-1.476.022-.658.007-1.509-.093-2.553-.271-2.813-2.922-4.22-5.033-4.761-1.57-.403-3.23-.213-4.007-.039a7 7 0 0 0-.26.061C12.315-1.265 9.664.142 9.393 2.955Z" fill={dim} />
+        <path d="M9.431 5.88C8.641.088 12.327-2.544 16.012-2.544c2.106-1.843 5.265-1.843 7.108-.527-1.053.264-1.317.79-.527 1.58 1.843 1.58 1.843 4.738 1.053 7.37-.79-2.632-1.843-3.685-3.422-4.211-3.159 1.053-6.318.526-8.424-.527-1.053 1.58-1.842 3.159-2.369 4.739Z" fill={dim} />
+        <path fillRule="evenodd" d="M20.103 13.863c-.111.702-.161 1.61.082 2.253-1.546 2.76-5.308 2.806-6.927.136.214-.584.265-1.413.23-2.106.679.338 1.395.549 2.112.65 1.474.172 3.094-.08 4.503-.933Z" fill={on ? '#141726' : '#313135'} />
+        <path d="M3.667 32C1.457 32-.396 30.186.073 28.028 1.53 21.33 6.727 17.6 12.983 15.724c.083.187.175.363.275.528 1.62 2.67 5.381 2.625 6.927-.136.07-.125.136-.256.196-.392 6.256 1.877 11.454 5.605 12.91 12.304.469 2.159-1.384 3.972-3.593 3.972H3.667Z" fill={lit} />
+        <path d="M9.284 16.834c-.74 4.809 15.536 4.809 14.796 0-1.48-1.85-3.699-1.85-3.699-1.11-1.48 3.699-5.919 3.699-7.398 0 0-.74-2.22-.74-3.699 1.11Z" fill="#d6dadc" stroke="#151313" strokeWidth="1.295" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M18.902 21.163l.37 3.439M14.463 21.163l-.37 3.439M10.763 28.301l1.48-2.959h8.878l1.479 2.959" fill="none" stroke="#151313" strokeWidth="1.295" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  if (name === 'frame') {
+    return (
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="16" fill={fill} />
+        <rect width="32" height="32" rx="16" fill="none" stroke="#000" strokeOpacity=".12" />
+        <g transform="translate(6.3 6.3) scale(.8)">
+          <path d={HEAD_D} fill="#494950" />
+          <path d={HAIR_D} fill="#37373b" />
+        </g>
+      </svg>
+    );
+  }
+  // face and hair: one head, lit where the tile points
+  return (
+    <svg width="26" height="30" viewBox="0 0 23 27" aria-hidden="true">
+      {grad}
+      <path d={HEAD_D} fill={name === 'face' && !on ? '#a1acaf' : ink} />
+      <path d={HAIR_D} fill={name === 'hair' || on ? lit : dim} />
+    </svg>
+  );
+}

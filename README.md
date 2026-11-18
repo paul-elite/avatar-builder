@@ -50,7 +50,7 @@ import { avatarToDataUri } from 'avatar-builder';
 | `backdrop`    | `'plain' \| 'circle'`                 | `'plain'` | `'circle'` puts the preview on a white circle and drops its shadow (exports keep it). |
 | `persist`     | `string`                             | —       | Storage key: remember the look in this browser. |
 | `exportSize`  | `number`                             | `512`   | Exported PNG size in px.                      |
-| `showActions` | `boolean`                            | `true`  | Show shuffle / download in the toolbar.       |
+| `showActions` | `boolean`                            | `true`  | Show the download button in the toolbar.      |
 | `className`   | `string`                             | `''`    | Extra class on the root element.              |
 
 ## How the editor works
@@ -59,16 +59,16 @@ One editor that starts broad and reveals detail only when it's relevant:
 
 1. **Setup:** the foundation, category and style (one option each for now).
    Shown on the first visit, then reachable from the chip at the top.
-2. **The default toolbar:** Face · Features · Hair · Outfit · Background · Frame, plus
-   shuffle and download. It's the floor: there's no × on it, and closing
-   anything always comes back here.
-   - Face: skin, head shape, ears, tilt
-   - Features, organ by organ: Eyes (shape, look, brows, glasses, tears) ·
+2. **The default toolbar** (dark, from the Figma "2 · Default toolbar"): undo/redo
+   in a recessed well, Face · Hair · Outfit · Frame as small heads (the category
+   you last opened sits on a light tile), and download. It's the floor: there's no
+   × on it, and closing anything always comes back here.
+   - Face: skin, head shape, ears, tilt, and Features
+   - Features (inside Face), organ by organ: Eyes (shape, look, brows, glasses, tears) ·
      Mouth (shape, tongue) · Nose · Cheeks (blush) · Hands
    - Hair: style, colour, headwear, hat
    - Outfit: head only / with torso, then body, outfit, colour, details
-   - Background: its colour
-   - Frame: the backdrop's shape (circle, rounded, square, or full: no frame,
+   - Frame: the backdrop's colour and shape (circle, rounded, square, or full: no frame,
      the colour fills the page and the shadow shows)
 3. **Inside a category:** its items, e.g. Hair → Style, Colour, Headwear.
    Items that don't apply stay hidden: hair colour until there is hair, tongue

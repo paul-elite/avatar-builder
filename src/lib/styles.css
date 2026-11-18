@@ -450,6 +450,87 @@
   /* Wider rows scroll; a soft fade at the edge says there's more */
 }
 
+/* ---- The default toolbar: dark (Figma "Avatar builder UI" › 2 · Default toolbar) ----
+   A dark pill; undo/redo sit in a recessed well, and the button you can press is
+   raised out of it. The category you last opened sits on a light tile. */
+.ab-bar[data-level="default"] {
+  gap: 16px;
+  padding: 4px;
+  border-radius: 20px;
+  background: #151313;
+}
+.ab-bar[data-level="default"] .ab-history {
+  gap: 4px;
+  width: auto;
+  height: auto;
+  padding: 4px;
+  border-radius: 16px;
+  background: #050505;
+  box-shadow: inset 0 -0.5px 0.5px rgba(169, 174, 180, 0.5), 0 0 0 0.5px rgba(102, 115, 126, 0.15);
+}
+.ab-bar[data-level="default"] .ab-hist-btn,
+.ab-raised {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  color: #cccccc;
+  opacity: 1;
+  cursor: pointer;
+  transition: background-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 120ms ease-out;
+}
+.ab-bar[data-level="default"] .ab-hist-btn:not(:disabled),
+.ab-raised {
+  background: linear-gradient(#252528, #0f0f10 50%, #1d1d20);
+  box-shadow: 0 0 0 0.5px rgba(203, 207, 211, 0.18), inset 0 0.5px 0.5px rgba(251, 239, 213, 0.4);
+}
+.ab-root .ab-raised { color: rgba(255, 255, 255, 0.8); }
+.ab-bar[data-level="default"] .ab-hist-btn:hover:not(:disabled),
+.ab-root .ab-raised:hover { color: #fff; }
+.ab-bar[data-level="default"] .ab-hist-btn:active:not(:disabled),
+.ab-raised:active { transform: scale(0.96); }
+.ab-bar[data-level="default"] .ab-hist-btn:disabled { background: transparent; color: rgba(247, 247, 247, 0.33); opacity: 0.35; }
+.ab-bar[data-level="default"] .ab-sep {
+  width: 2px;
+  margin: 0;
+  border-radius: 100px;
+  background: #070707;
+  box-shadow: inset -0.5px 0 0.5px rgba(205, 210, 215, 0.25), inset 0 0 0.2px rgba(166, 172, 179, 0.66);
+}
+.ab-bar[data-level="default"] .ab-tiles { gap: 24px; }
+.ab-bar[data-level="default"] .ab-cat { width: 60px; border-radius: 12px; }
+.ab-bar[data-level="default"] .ab-cat:hover { background: rgba(255, 255, 255, 0.05); }
+.ab-bar[data-level="default"] .ab-cat-label { color: #93939c; }
+.ab-bar[data-level="default"] .ab-cat:hover .ab-cat-label { color: #d3d3e1; }
+.ab-bar[data-level="default"] .ab-cat.on {
+  width: 48px;
+  height: 48px;
+  grid-template-rows: 28px auto;
+  gap: 0;
+  margin: 0 6px;
+  background: linear-gradient(#f2f3f4, #d3d3e1);
+  box-shadow: inset 0 1px 2px #fff;
+}
+.ab-bar[data-level="default"] .ab-cat.on .ab-cat-art { height: 28px; }
+.ab-bar[data-level="default"] .ab-cat.on .ab-cat-art svg { width: 23px; height: 28px; }
+.ab-bar[data-level="default"] .ab-cat.on[aria-label="Outfit"] .ab-cat-art svg,
+.ab-bar[data-level="default"] .ab-cat.on[aria-label="Frame"] .ab-cat-art svg { width: 26px; height: 26px; }
+.ab-bar[data-level="default"] .ab-cat.on .ab-cat-label { color: #000; }
+.ab-bar[data-level="default"] .ab-cat svg { width: auto; height: auto; }
+.ab-peek[data-dark] { background: #151313; opacity: 0.6; }
+@media (max-width: 480px) {
+  .ab-bar[data-level="default"] { gap: 6px; padding: 4px; }
+  .ab-bar[data-level="default"] .ab-history { gap: 2px; padding: 3px; border-radius: 14px; }
+  .ab-bar[data-level="default"] .ab-tiles { gap: 0; }
+  .ab-bar[data-level="default"] .ab-hist-btn,
+  .ab-raised { width: 36px; height: 36px; border-radius: 10px; }
+  .ab-bar[data-level="default"] .ab-cat { width: 50px; }
+  .ab-bar[data-level="default"] .ab-cat.on { width: 46px; height: 46px; margin: 0 2px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ab-root, .ab-root * { transition-duration: 1ms !important; }
   .ab-bar[data-phase], .ab-bar[data-phase] > * { animation: none !important; }

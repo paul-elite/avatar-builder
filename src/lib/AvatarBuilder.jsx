@@ -1,10 +1,10 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
   SETUP, PRIMARY, ITEMS, PART_TARGETS, ITEM_VIEWS, VIEWS, visibleItems, viewFor,
-  defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg, randomAvatar,
+  defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg,
 } from './avatar.js';
 import { downloadPng } from './export.js';
-import { NavIcon } from './icons.jsx';
+import { NavIcon, BarIcon } from './icons.jsx';
 
 /* =========================================================================
    <AvatarBuilder /> — one editor, broad → detailed, with progressive disclosure.
@@ -31,7 +31,7 @@ import { NavIcon } from './icons.jsx';
      onChange?     (config, { svg }) => void   — fires on every change
      size?         preview size in px (default 240)
      exportSize?   downloaded PNG size in px (default 512)
-     showActions?  show shuffle / download (default true)
+     showActions?  show the download button (default true)
      persist?      a storage key: remember the look and setup in this browser
      className?    extra class on the root
 
@@ -64,7 +64,6 @@ function HistoryIcon({ mirrored }) {
 }
 const LINE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' };
 const CloseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" {...LINE} /></svg>;
-const ShuffleIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22M18 2l4 4-4 4M2 6h1.9c1.5 0 2.9.9 3.6 2.2M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8M18 14l4 4-4 4" {...LINE} /></svg>;
 const DownloadIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" {...LINE} /></svg>;
 const ExpandIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4H20v5.5M9.5 20H4v-5.5M20 4l-6.5 6.5M4 20l6.5-6.5" {...LINE} /></svg>;
 // Shape rows longer than this scroll and get an expand button
@@ -156,6 +155,8 @@ export default function AvatarBuilder({
   const [instance, setInstance] = useState(0);
   const [grid, setGrid] = useState(false);
   const [history, setHistory] = useState({ past: [], future: [] });
+  // The category you last opened stays lit on the default toolbar
+  const [lastTop, setLastTop] = useState('face');
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const after = (ms, fn) => timers.current.push(setTimeout(fn, reducedMotion() ? 0 : ms));
@@ -212,6 +213,7 @@ export default function AvatarBuilder({
     setPhase(first);
     after(dir === 'down' ? MS.demote : MS.exit, () => {
       setPath(next);
+      if (next[0] === 'all' && next[1]) setLastTop(next[1] === 'features' ? 'face' : next[1]);
       setInstance((n) => n + 1);
       setPhase(second);
       after(second === 'promote' ? MS.promote : MS.enter, () => setPhase('idle'));
@@ -225,6 +227,7 @@ export default function AvatarBuilder({
     if (grid) return setGrid(false);
     if (path[0] === 'setup' && !setupDone) return;
     if (!path.length) return; // the default toolbar is where closing stops
+    if (path.join('/') === 'all/features') return go(['all', 'face'], 'up'); // Features lives inside Face
     if (path[0] === 'setup' || path.length <= 2) return go([], 'up');
     go(path.slice(0, -1), 'up');
   };
@@ -316,9 +319,10 @@ export default function AvatarBuilder({
       </button>
     );
   } else if (isDefault) {
-    tiles = PRIMARY.map((g) => (
-      <button key={g.key} type="button" className="ab-tile ab-cat" onClick={() => go(['all', g.key], 'down')} aria-label={g.label}>
-        <span className="ab-cat-art"><NavIcon name={g.key} /></span>
+    // The dark default bar (Figma: 2 · Default toolbar): Face · Hair · Outfit · Frame, then download
+    tiles = PRIMARY.filter((g) => g.bar).map((g) => (
+      <button key={g.key} type="button" className={'ab-tile ab-cat' + (lastTop === g.key ? ' on' : '')} onClick={() => go(['all', g.key], 'down')} aria-label={g.label}>
+        <span className="ab-cat-art"><BarIcon name={g.key} on={lastTop === g.key} fill={config.bg} /></span>
         <span className="ab-cat-label">{g.label}</span>
       </button>
     ));
@@ -326,8 +330,7 @@ export default function AvatarBuilder({
       extras = (
         <>
           <span className="ab-sep" aria-hidden="true" />
-          <button type="button" className="ab-icon" onClick={() => commit(randomAvatar(config))} aria-label="Shuffle" title="Shuffle"><ShuffleIcon /></button>
-          <button type="button" className="ab-icon" onClick={() => downloadPng(config, { size: exportSize })} aria-label="Download PNG" title="Download PNG"><DownloadIcon /></button>
+          <button type="button" className="ab-raised" onClick={() => downloadPng(config, { size: exportSize })} aria-label="Download PNG" title="Download PNG"><DownloadIcon /></button>
         </>
       );
     }
@@ -365,6 +368,15 @@ export default function AvatarBuilder({
         </button>
       );
     });
+    // Features (eyes, mouth, nose…) opens from inside Face
+    if (group.key === 'face') {
+      tiles.push(
+        <button key="features" type="button" className="ab-tile ab-cat" onClick={() => go(['all', 'features'], 'down')} aria-label="Features">
+          <span className="ab-cat-art"><NavIcon name="features" /></span>
+          <span className="ab-cat-label">Features</span>
+        </button>,
+      );
+    }
   } else {
     const opts = item.kind === 'color' ? (item.optional ? [null, ...item.presets] : item.presets) : item.options;
     // Colour chips and skin heads take the dark selected tile; items (mostly black) a light one with a ring
@@ -471,7 +483,7 @@ export default function AvatarBuilder({
         <div className="ab-stack">
           {/* At most two trays show: the toolbar and one behind it, however deep you are */}
           {Array.from({ length: Math.min(depth, 1) }, (_, i) => (
-            <span key={i} className="ab-peek" style={{ '--depth': 1 }} aria-hidden="true" />
+            <span key={i} className="ab-peek" data-dark={depth === 1 && !inSetup ? '' : undefined} style={{ '--depth': 1 }} aria-hidden="true" />
           ))}
 
           {shapeGrid && (
@@ -503,8 +515,8 @@ export default function AvatarBuilder({
 
           <div className="ab-bar" key={instance} data-phase={phase} data-level={inSetup ? 'setup' : isDefault ? 'default' : item ? 'item' : 'category'} role="toolbar" aria-label={crumbs.join(' · ')}>
             {!inSetup && <div className="ab-history">
-              <button type="button" className="ab-icon" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
-              <button type="button" className="ab-icon" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
+              <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
+              <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
             </div>}
             <div className="ab-tiles" ref={tilesRef} data-long={shapeGrid ? '' : undefined}>
               {tiles}

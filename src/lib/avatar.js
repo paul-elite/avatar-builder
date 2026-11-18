@@ -118,8 +118,11 @@ export const ITEMS = {
   shadow: { label: 'Shadow', kind: 'shape', options: [true, false] },
 };
 
+/* The default toolbar shows the categories with `bar` (Face · Hair · Outfit · Frame).
+   Features opens from inside Face (and by tapping an eye, mouth…); the background
+   colour lives under Frame, next to the frame shape. */
 export const PRIMARY = [
-  { key: 'face', label: 'Face', items: ['skin', 'head', 'ears', 'tilt'] },
+  { key: 'face', label: 'Face', bar: true, items: ['skin', 'head', 'ears', 'tilt'] },
   // Features is organ by organ: pick an organ, then its items (tears live under Eyes, and so on)
   {
     key: 'features',
@@ -132,10 +135,9 @@ export const PRIMARY = [
       { key: 'hands', label: 'Hands', items: ['gesture'] },
     ],
   },
-  { key: 'hair', label: 'Hair', items: ['hair', 'hairColor', 'cap', 'hat'] },
-  { key: 'outfit', label: 'Outfit', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
-  { key: 'background', label: 'Background', items: ['bg'] },
-  { key: 'frame', label: 'Frame', items: ['frame'] },
+  { key: 'hair', label: 'Hair', bar: true, items: ['hair', 'hairColor', 'cap', 'hat'] },
+  { key: 'outfit', label: 'Outfit', bar: true, items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
+  { key: 'frame', label: 'Frame', bar: true, items: ['frame', 'bg'] },
 ];
 
 export const visibleItems = (group, c) => group.items.filter((k) => !ITEMS[k].when || ITEMS[k].when(c));
@@ -247,7 +249,7 @@ export const PART_TARGETS = {
   hair: ['hair', 'hair'],
   cap: ['hair', 'cap'],
   torso: ['outfit'],
-  background: ['background'],
+  background: ['frame', 'bg'],
 };
 
 /* One item on its own, for option tiles: the item, not the avatar wearing it. */
