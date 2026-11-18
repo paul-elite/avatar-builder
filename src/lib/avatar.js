@@ -207,7 +207,8 @@ function headLayers(c, id, L, s) {
 export const PART_TARGETS = {
   torso: ['torso'],
   hair: ['hair', 'hair'],
-  skin: ['skin'],
+  // The face itself opens every category (skin colour is already on the default bar)
+  skin: [],
   tears: ['eyes', 'tears'],
   blush: ['features', 'blush'],
   brows: ['face', 'brows'],

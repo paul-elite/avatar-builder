@@ -61,9 +61,9 @@ One editor that starts broad and reveals detail only when it's relevant:
    Shown on the first visit, then reachable from the chip at the top.
 2. **The default toolbar:** the Figma Frame 4 skin bar: undo/redo, the four
    head fills and the colour wheel (which opens the skin colour row and grid).
-   Under it in the stack sit **all the categories:** Skin · Hair · Face · Eyes ·
-   Features · Torso (Head: shape, ears, tilt), plus shuffle and download. × on the default toolbar brings
-   them up; × on the categories returns to the default.
+   It's the floor: there's no × on it, and closing anything always comes back
+   here. Tap the face to open **all the categories:** Skin · Head · Hair · Face ·
+   Eyes · Features · Torso, plus shuffle and download.
 3. **Inside a category:** its items, e.g. Hair → Style, Colour, Headwear.
    Items that don't apply stay hidden: hair colour until there is hair, tongue
    colour until the mouth shows one, and Body, Outfit, Outfit colour and Details
@@ -72,7 +72,7 @@ One editor that starts broad and reveals detail only when it's relevant:
    with an "all colours" grid behind it.
 
 Tap any part of the avatar to jump straight to its editor: the cap opens
-Hair · Headwear, the glasses Eyes · Glasses, the face Skin, and so on. Tap
+Hair · Headwear, the glasses Eyes · Glasses, the face opens all the categories, and so on. Tap
 the background (the circle on the live page) to change its colour.
 
 One floating toolbar shows the current level and a breadcrumb says where you

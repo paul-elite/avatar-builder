@@ -235,11 +235,11 @@ export default function AvatarBuilder({
   };
   const open = (key) => go([...path, key], 'down');
   /* Paths: ['setup'] · [] the default (skin) bar · ['palette'] its colour row ·
-     ['all'] every category (in the stack under the default) · ['all', group] · ['all', group, item] */
+     ['all'] every category (opened by tapping the face) · ['all', group] · ['all', group, item] */
   const back = () => {
     if (grid) return setGrid(false);
     if (path[0] === 'setup' && !setupDone) return;
-    if (!path.length) return go(['all'], 'up'); // close the default: the categories rise from the stack
+    if (!path.length) return; // the default toolbar is where closing stops
     if (path[0] === 'all' && path.length === 1) return go([], 'up'); // and close back to the default
     if (path[0] === 'setup' || path[0] === 'palette') return go([], 'up');
     go(path.slice(0, -1), 'up');
@@ -405,8 +405,8 @@ export default function AvatarBuilder({
   }
 
   // Levels below the current one, shown as the stack behind the toolbar
-  // Something always sits under the default bar (the categories) and under the categories (the default)
-  const depth = inSetup ? (setupDone ? 1 : 0) : isDefault ? 1 : inPalette ? 2 : path.length;
+  // The default bar is the floor: nothing under it, no ×. Everything else stacks on top of it.
+  const depth = inSetup ? (setupDone ? 1 : 0) : isDefault ? 0 : inPalette ? 1 : path.length;
   const canClose = depth > 0 && phase !== 'exit';
   // The preview centres the head itself (its silhouette spans x 33–177, y 3.5–160), not head + shadow;
   // with a torso it stays centred left–right and keeps the body in frame. Exports keep the full views.
