@@ -206,6 +206,14 @@
 }
 .ab-tiles::-webkit-scrollbar { display: none; }
 .ab-tiles > * { flex: none; }
+/* A long row of options scrolls inside a fixed width (about seven tiles), fading at the edge;
+   the expand button beside it opens every option as a grid */
+.ab-tiles[data-long] { max-width: 400px; }
+.ab-tiles[data-overflow] {
+  padding-right: 24px;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+}
 
 .ab-icon {
   display: grid;
@@ -355,6 +363,16 @@
 }
 .ab-grid[data-open] { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
 .ab-grid-row { display: flex; gap: 4px; }
+/* Every option of a long shape row, six to a line */
+.ab-grid-items {
+  display: grid;
+  grid-template-columns: repeat(6, 48px);
+  gap: 6px;
+  max-width: calc(100vw - 32px);
+  max-height: min(340px, 50vh);
+  overflow-y: auto;
+}
+@media (max-width: 480px) { .ab-grid-items { grid-template-columns: repeat(5, 48px); } }
 .ab-cell {
   width: 22px;
   height: 22px;
@@ -422,9 +440,9 @@
   .ab-cell { width: 18px; height: 18px; }
   .ab-set-label { display: none; }
   .ab-set + .ab-set { padding-left: 8px; }
+  /* The default bar's four heads fit without scrolling */
+  .ab-bar[data-level="default"] .ab-tiles { gap: 4px; }
   /* Wider rows scroll; a soft fade at the edge says there's more */
-  .ab-tiles { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); padding-right: 20px; }
-  .ab-bar[data-level="setup"] .ab-tiles { -webkit-mask-image: none; mask-image: none; padding-right: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

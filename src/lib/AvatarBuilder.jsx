@@ -66,6 +66,9 @@ const LINE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLin
 const CloseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" {...LINE} /></svg>;
 const ShuffleIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22M18 2l4 4-4 4M2 6h1.9c1.5 0 2.9.9 3.6 2.2M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8M18 14l4 4-4 4" {...LINE} /></svg>;
 const DownloadIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" {...LINE} /></svg>;
+const ExpandIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4H20v5.5M9.5 20H4v-5.5M20 4l-6.5 6.5M4 20l6.5-6.5" {...LINE} /></svg>;
+// Shape rows longer than this scroll and get an expand button
+const SHAPE_ROW = 7;
 const ArrowIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" {...LINE} strokeWidth={2} /></svg>;
 
 /* ---- Tile faces: the item itself (or the colour), never the whole avatar ---- */
@@ -240,6 +243,17 @@ export default function AvatarBuilder({
     go(next, path.length ? 'swap' : 'down');
   };
   const avatarRef = useRef(null);
+  // Mark the option row when it overflows, so only rows that actually scroll fade at the edge
+  const tilesRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = tilesRef.current;
+    if (!el) return undefined;
+    // Measure without the fade's own end padding, or it would keep itself switched on
+    const check = () => { el.removeAttribute('data-overflow'); if (el.scrollWidth > el.clientWidth + 1) el.setAttribute('data-overflow', ''); };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  });
   // A tap on a part edits that part; anywhere else on the stage edits the background
   const onStageClick = (e) => { const g = e.target.closest && e.target.closest('[data-part]'); jump(g ? g.dataset.part : 'background'); };
 
@@ -285,6 +299,7 @@ export default function AvatarBuilder({
 
   let tiles = null;
   let extras = null;
+  let shapeGrid = null;
 
   if (inSetup) {
     tiles = SETUP.map((s) => (
@@ -362,7 +377,7 @@ export default function AvatarBuilder({
     const opts = item.kind === 'color' ? (item.optional ? [null, ...item.presets] : item.presets) : item.options;
     // Colour chips and skin heads take the dark selected tile; items (mostly black) a light one with a ring
     const isSwatch = ['skin', 'bg', 'blush', 'tears'].includes(itemKey) || (itemKey === 'hairColor' && config.hair === 'none');
-    tiles = opts.map((opt) => {
+    const optionTile = (opt, { inGrid = false } = {}) => {
       const on = eq(config[itemKey], opt);
       const label = opt === null ? 'None' : opt === true ? 'On' : opt === false ? 'Off' : String(opt);
       return (
@@ -374,12 +389,23 @@ export default function AvatarBuilder({
           aria-pressed={on}
           aria-label={label}
           title={label}
-          onClick={() => set(itemKey, opt)}
+          tabIndex={inGrid && !grid ? -1 : undefined}
+          onClick={() => { set(itemKey, opt); if (inGrid) setGrid(false); }}
         >
           <Face item={itemKey} config={{ ...config, [itemKey]: opt }} />
         </button>
       );
-    });
+    };
+    tiles = opts.map((opt) => optionTile(opt));
+    // A long row of shapes scrolls, and can expand into a grid of every option
+    if (item.kind === 'shape' && opts.length > SHAPE_ROW) {
+      extras = (
+        <button type="button" className="ab-tile ab-grid-btn" onClick={() => setGrid((g) => !g)} aria-label={`All ${item.label.toLowerCase()} options`} aria-expanded={grid} data-open={grid || undefined}>
+          <ExpandIcon />
+        </button>
+      );
+      shapeGrid = opts.map((opt) => optionTile(opt, { inGrid: true }));
+    }
     if (item.kind === 'color') {
       extras = (
         <button type="button" className="ab-tile ab-grid-btn" onClick={() => setGrid((g) => !g)} aria-label="All colours" aria-expanded={grid} data-open={grid || undefined}>
@@ -454,6 +480,12 @@ export default function AvatarBuilder({
             <span key={i} className="ab-peek" style={{ '--depth': 1 }} aria-hidden="true" />
           ))}
 
+          {shapeGrid && (
+            <div className="ab-grid ab-grid-items" data-open={grid || undefined} role="dialog" aria-label={`All ${item.label.toLowerCase()} options`} aria-hidden={!grid}>
+              {shapeGrid}
+            </div>
+          )}
+
           {item && item.kind === 'color' && (
             <div className="ab-grid" data-open={grid || undefined} role="dialog" aria-label="Colour grid" aria-hidden={!grid}>
               {GRID.map((row, r) => (
@@ -480,10 +512,10 @@ export default function AvatarBuilder({
               <button type="button" className="ab-icon" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
               <button type="button" className="ab-icon" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
             </div>}
-            <div className="ab-tiles">
+            <div className="ab-tiles" ref={tilesRef} data-long={shapeGrid ? '' : undefined}>
               {tiles}
-              {extras}
             </div>
+            {extras}
           </div>
         </div>
 

@@ -72,7 +72,9 @@ One editor that starts broad and reveals detail only when it's relevant:
    crown for Headwear, a lollipop for Tongue, a flower for Nose…), faded when
    that item is off.
 4. **An item:** its options, each drawn as the item itself; colours as a row,
-   with an "all colours" grid behind it.
+   with an "all colours" grid behind it. Long rows of shapes (eyes, mouths,
+   hair…) scroll in about seven tiles' width and have an expand button that
+   opens every option as a grid.
 
 Tap any part of the avatar to jump straight to its editor: the cap opens
 Hair · Headwear, the glasses Eyes · Glasses, the face opens all the categories, and so on. Tap
