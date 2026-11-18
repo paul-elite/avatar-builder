@@ -72,7 +72,8 @@ One editor that starts broad and reveals detail only when it's relevant:
    with an "all colours" grid behind it.
 
 Tap any part of the avatar to jump straight to its editor: the cap opens
-Hair · Headwear, the glasses Eyes · Glasses, the face Skin, and so on.
+Hair · Headwear, the glasses Eyes · Glasses, the face Skin, and so on. Tap
+the background (the circle on the live page) to change its colour.
 
 One floating toolbar shows the current level and a breadcrumb says where you
 are. Going deeper sinks it into the stack behind; × or Escape closes the level
@@ -104,7 +105,7 @@ import {
 type AvatarConfig = {
   category: 'person';          // setup (more to come)
   style: 'outline';            // setup (more to come)
-  bg: string;                  // background colour, or 'transparent' (no control in the editor for now)
+  bg: string;                  // background colour, or 'transparent' (tap the background to change it)
   shadow: boolean;
   skin: string;
   hair: 'none' | 'short' | 'curly' | 'long' | 'bun';

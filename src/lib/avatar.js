@@ -11,7 +11,7 @@ import * as P from './parts.js';
    ========================================================================= */
 
 /* ---- Palettes ---------------------------------------------------------- */
-export const BG = ['#f2f2f2', '#ffffff', '#ffe4f1', '#e3f1ff', '#e9f9d9', '#fff3cf', '#ece6ff', '#1a1a1a'];
+export const BG = ['#ffffff', '#f2f2f2', '#ffe4f1', '#e3f1ff', '#e9f9d9', '#fff3cf', '#ece6ff', '#1a1a1a'];
 // The first four are the Figma toolbar's head fills
 export const SKIN = ['#d9d9d7', '#ffffff', '#ececea', '#444755', '#f3d2b9', '#d9a47e', '#a8693f', '#6b3f22'];
 export const HAIR_COLOR = ['#1a1a1a', '#5a3620', '#a8693f', '#e8b04b', '#f2e3c6', '#f70492', '#1084fe', '#8b5cf6'];
@@ -37,7 +37,7 @@ export const DETAIL = ['none', 'pocket', 'stripe'];
 export const defaultAvatar = {
   category: 'person',
   style: 'outline',
-  bg: '#f2f2f2',
+  bg: '#ffffff',
   shadow: true,
   skin: '#ffffff',
   hair: 'none',
@@ -98,7 +98,8 @@ export const PRIMARY = [
   { key: 'eyes', label: 'Eyes', items: ['eyes', 'glasses', 'tears'] },
   { key: 'features', label: 'Features', items: ['nose', 'blush'] },
   { key: 'torso', label: 'Torso', items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
-  // No background controls for now: the page stays #f2f2f2 and the shadow stays on
+  // Reached by tapping the background, not shown in the category bar
+  { key: 'background', label: 'Background', items: ['bg'], tapOnly: true },
 ];
 
 export const visibleItems = (group, c) => group.items.filter((k) => !ITEMS[k].when || ITEMS[k].when(c));
@@ -190,6 +191,7 @@ export const PART_TARGETS = {
   nose: ['features', 'nose'],
   mouth: ['face', 'mouth'],
   cap: ['hair', 'cap'],
+  background: ['background'],
 };
 
 /* One item on its own, for option tiles: the item, not the avatar wearing it. */

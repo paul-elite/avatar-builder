@@ -134,7 +134,12 @@ const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.
 
 function load(key) {
   if (!key) return null;
-  try { return JSON.parse(window.localStorage.getItem(key) || 'null'); } catch { return null; }
+  try {
+    const d = JSON.parse(window.localStorage.getItem(key) || 'null');
+    // Saved before the background could be changed: the old fixed grey becomes the new white default
+    if (d && d.config && d.config.bg === '#f2f2f2' && !d.bgEdited) d.config.bg = '#ffffff';
+    return d;
+  } catch { return null; }
 }
 function save(key, data) {
   if (!key) return;
@@ -170,7 +175,7 @@ export default function AvatarBuilder({
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const after = (ms, fn) => timers.current.push(setTimeout(fn, reducedMotion() ? 0 : ms));
 
-  useEffect(() => { save(persist, { config, setupDone }); }, [persist, setupDone, JSON.stringify(config)]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { save(persist, { config, setupDone, bgEdited: true }); }, [persist, setupDone, JSON.stringify(config)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---- Changes and history: an action is a change to how the avatar looks ---- */
   const emit = useCallback((next) => {
@@ -247,7 +252,8 @@ export default function AvatarBuilder({
     go(next, path.length ? 'swap' : 'down');
   };
   const avatarRef = useRef(null);
-  const onAvatarClick = (e) => { const g = e.target.closest && e.target.closest('[data-part]'); if (g) jump(g.dataset.part); };
+  // A tap on a part edits that part; anywhere else on the stage edits the background
+  const onStageClick = (e) => { const g = e.target.closest && e.target.closest('[data-part]'); jump(g ? g.dataset.part : 'background'); };
 
   const finishSetup = () => {
     setSetupDone(true);
@@ -320,7 +326,7 @@ export default function AvatarBuilder({
     });
     extras = <button type="button" className="ab-wheel" onClick={() => go(['palette'], 'down')} aria-label="More colours"><span aria-hidden="true" /></button>;
   } else if (!group && !item) {
-    tiles = PRIMARY.map((g) => (
+    tiles = PRIMARY.filter((g) => !g.tapOnly).map((g) => (
       <button key={g.key} type="button" className="ab-tile ab-cat" onClick={() => go(['all', g.key], 'down')} aria-label={g.label}>
         <span className="ab-cat-art"><CategoryArt group={g.key} config={config} /></span>
         <span className="ab-cat-label">{g.label}</span>
@@ -406,14 +412,14 @@ export default function AvatarBuilder({
   const view = config.torso ? '-23.5 -16 257 257' : '10.5 -12.85 189 189';
 
   return (
-    <div className={('ab-root ' + className).trim()} style={{ '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop}>
+    <div className={('ab-root ' + className).trim()} style={backdrop === 'circle' ? { '--ab-fill': config.bg } : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop}>
       {setupDone && !inSetup && (
         <button type="button" className="ab-setup-chip" onClick={() => go(['setup'], 'down')} aria-label="Change category and style">
           {SETUP.map((s) => s.names[config[s.key]] || config[s.key]).join(' · ')}
         </button>
       )}
 
-      <div className="ab-stage">
+      <div className="ab-stage" onClick={onStageClick} data-tappable={!inSetup || undefined}>
         <svg
           viewBox={view}
           width={size}
@@ -422,7 +428,6 @@ export default function AvatarBuilder({
           aria-label="Avatar preview"
           className="ab-avatar"
           ref={avatarRef}
-          onClick={onAvatarClick}
           data-tappable={!inSetup || undefined}
           dangerouslySetInnerHTML={{ __html: innerSvg(backdrop === 'circle' ? { ...config, shadow: false } : config, { id: 'preview', parts: true }) }}
         />
