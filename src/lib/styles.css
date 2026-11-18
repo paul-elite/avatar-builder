@@ -224,6 +224,10 @@
 .ab-ghosts { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; }
 .ab-ghosts > * { will-change: transform, opacity; }
 .ab-dock { position: relative; z-index: 1; }
+.ab-ghosts-top { z-index: 2; }
+/* A tab stretching into its bar: a plain white surface with the bar's shadow */
+.ab-morph { position: absolute; overflow: hidden; background: #fff; box-shadow: var(--ab-bar-shadow); will-change: left, top, width, height; }
+.ab-morph-inner { position: absolute; left: 50%; top: 50%; margin: 0; transform: translate(-50%, -50%); background: transparent !important; box-shadow: none !important; }
 
 .ab-peek {
   position: absolute;

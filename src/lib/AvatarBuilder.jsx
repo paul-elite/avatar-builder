@@ -40,7 +40,7 @@ import { NavIcon, BarIcon } from './icons.jsx';
 
 // demote overlaps enter: the new bar starts as the old one is still settling into the tray,
 // so there's never a frame with an empty slab. 'tab' (switching sibling items) keeps the bar.
-const MS = { tab: 180, flip: 260 };
+const MS = { tab: 180, morph: 180, fold: 160, flip: 360 };
 
 /* ---- Colours: a row first, the full grid behind a button ---- */
 const hsl = (h, s, l) => {
@@ -165,6 +165,7 @@ export default function AvatarBuilder({
   const pressRef = useRef(null); // the last control pressed, so a new bar can grow out of it
   const stackRef = useRef(null);
   const ghostsRef = useRef(null);
+  const topRef = useRef(null); // copies that move over the bars (a tab stretching, a bar shrinking home)
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const after = (ms, fn) => timers.current.push(setTimeout(fn, reducedMotion() ? 0 : ms));
@@ -238,10 +239,14 @@ export default function AvatarBuilder({
       const pressed = pressRef.current && performance.now() - pressRef.current.t < 1500 ? pressRef.current.el : document.activeElement;
       const from = pressed && pressed !== document.body && rootRef.current && rootRef.current.contains(pressed) ? pressed.getBoundingClientRect() : null;
       pressRef.current = null;
+      // Every tab that opens a level, so a new bar can stretch out of exactly that tab
+      const opens = {};
+      stackRef.current.querySelectorAll('[data-opens]').forEach((t) => { opens[t.dataset.opens] = { rect: t.getBoundingClientRect(), radius: getComputedStyle(t).borderRadius }; });
       flip.current = {
         from,
+        opens,
         layers: [...stackRef.current.querySelectorAll('[data-layer]')].map((el) => ({
-          key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect(), clone: el.cloneNode(true),
+          key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect(), radius: getComputedStyle(el).borderRadius, clone: el.cloneNode(true),
         })),
       };
     }
@@ -312,81 +317,113 @@ export default function AvatarBuilder({
     bar.animate([{ width: from + 'px' }, { width: to + 'px' }], { duration: MS.tab, easing: 'cubic-bezier(0.45, 0, 0.1, 1)' });
   });
   /* ---- Levels as layers ----------------------------------------------------
-     Bars and trays carry data-layer (the level they show) and data-kind (bar | tray).
-     After a move, each layer animates from where its level was:
-     · same level, same kind  → it slides to its new place
-     · bar → tray             → a copy of the bar folds into the tray (the tray waits)
-     · tray → bar             → the bar unfolds out of the tray
-     · new                    → a bar rises in, a tray fades in
-     · gone                   → a copy fades away where it was */
+     Bars and trays carry data-layer (the level they show) and data-kind (bar | tray); a tab
+     that opens a level carries data-opens (that level). Moves are snappy (no overshoot):
+     · opening  1 · the pressed tab stretches into the new bar (a white surface morphing
+                    from the tab's box to the bar's), its contents fade in as it lands
+                2 · then the bars below fold into the stack (or slide to their new place)
+     · closing  1 · the stack unfolds back into bars
+                2 · then the closing bar shrinks back into the tab that opened it
+     · anything else (a jump from the avatar, setup) plays in one step */
   useLayoutEffect(() => {
     const snap = flip.current;
-    const layer = ghostsRef.current;
-    if (!snap || !layer || !stackRef.current) return;
+    const under = ghostsRef.current;
+    const over = topRef.current;
+    if (!snap || !under || !over || !stackRef.current) return;
     flip.current = null;
-    layer.replaceChildren();
-    const home = layer.getBoundingClientRect();
-    const ease = 'cubic-bezier(0.45, 0, 0.1, 1)';
-    const T = MS.flip - 20;
+    under.replaceChildren();
+    over.replaceChildren();
+    const base = under.getBoundingClientRect();
+    const ease = 'cubic-bezier(0.2, 0, 0, 1)';
+    const { morph: M, fold: F } = MS;
+    const box = (r) => ({ left: r.left - base.left + 'px', top: r.top - base.top + 'px', width: r.width + 'px', height: r.height + 'px' });
     const toward = (a, b) => `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
-    const ghost = (old) => {
+    const ghost = (old, layer) => {
       const g = old.clone;
       g.removeAttribute('data-layer');
       g.inert = true;
-      Object.assign(g.style, { position: 'absolute', margin: 0, left: old.rect.left - home.left + 'px', top: old.rect.top - home.top + 'px', width: old.rect.width + 'px', height: old.rect.height + 'px', right: 'auto', bottom: 'auto', transformOrigin: '0 0', transform: 'none' });
+      Object.assign(g.style, { position: 'absolute', margin: 0, right: 'auto', bottom: 'auto', transformOrigin: '0 0', transform: 'none', ...box(old.rect) });
       layer.appendChild(g);
       return g;
     };
+    const done = (a, g) => a.finished.then(() => g.remove(), () => {});
     const fadeKids = (el, keyframes, opts) => [...el.children].forEach((c) => c.animate(keyframes, opts));
     const before = new Map(snap.layers.map((o) => [o.key, o]));
-    const now = [...stackRef.current.querySelectorAll('[data-layer]')];
-    // A bar that sits on the default bar slides out from behind it, and back in when it closes
-    const homeEl = stackRef.current.querySelector('[data-layer="home"][data-kind="bar"]');
-    const homeTop = homeEl ? homeEl.getBoundingClientRect().top : null;
-    for (const el of now) {
-      const old = before.get(el.dataset.layer);
-      before.delete(el.dataset.layer);
-      const r = el.getBoundingClientRect();
-      const bar = el.dataset.kind === 'bar';
+    const now = [...stackRef.current.querySelectorAll('[data-layer]')].map((el) => ({ el, key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect(), radius: getComputedStyle(el).borderRadius }));
+    const nowKeys = new Set(now.map((n) => n.key));
+    const opening = now.some((n) => n.kind === 'bar' && !before.has(n.key));
+    const closing = !opening && [...before.values()].some((o) => o.kind === 'bar' && !nowKeys.has(o.key));
+    // Step timing: what lands/leaves first, and what the stack does around it
+    const stackAt = opening ? M : 0; // the stack moves after a new bar lands, or first when closing
+    const leaveAt = closing ? F : 0; // a closing bar shrinks into its tab after the stack unfolds
+    const tabFor = (key) => { const t = stackRef.current.querySelector(`[data-opens="${key}"]`); return t ? { rect: t.getBoundingClientRect(), radius: getComputedStyle(t).borderRadius } : null; };
+    const closingTabs = new Map([...before.values()].filter((o) => o.kind === 'bar' && !nowKeys.has(o.key)).map((o) => [o.key, tabFor(o.key)]));
+
+    for (const n of now) {
+      const { el, key, kind, rect: r } = n;
+      const old = before.get(key);
+      before.delete(key);
       if (!old) {
-        if (bar) {
-          // A new bar grows out of the tab that opened it: it starts centred on that tab at half
-          // size (never from nothing) and opens to its place. Solid surface; only the contents fade in.
-          const o = snap.from;
-          const from = o
-            ? `translate(${o.left + o.width / 2 - (r.left + r.width / 2)}px, ${o.top + o.height / 2 - (r.top + r.height / 2)}px) scale(0.5)`
-            : 'translateY(10px) scale(0.97)';
-          el.animate([{ transformOrigin: '50% 50%', transform: from }, { transformOrigin: '50% 50%', transform: 'none' }], { duration: o ? T : 200, easing: o ? 'cubic-bezier(0.2, 0.8, 0.2, 1)' : 'ease-out' });
-          fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'ease-out' }); // contents arrive with the surface
+        if (kind === 'bar') {
+          const from = snap.opens[key] || snap.from;
+          if (from) {
+            // The tab stretches into the bar: a plain surface morphs from the tab's box to the bar's
+            const blob = document.createElement('div');
+            blob.className = 'ab-morph';
+            // The bar's own contents ride inside, centred at full size, so they show as the tab widens
+            const inner = el.cloneNode(true);
+            inner.removeAttribute('data-layer');
+            inner.inert = true;
+            inner.className += ' ab-morph-inner';
+            Object.assign(inner.style, { width: r.width + 'px', height: r.height + 'px' });
+            blob.appendChild(inner);
+            over.appendChild(blob);
+            inner.animate([{ opacity: 0 }, { opacity: 0, offset: 0.25 }, { opacity: 1 }], { duration: M, easing: 'ease-out', fill: 'both' });
+            const fr = from.rect || from;
+            done(blob.animate([
+              { ...box(fr), borderRadius: from.radius || '12px' },
+              { ...box(r), borderRadius: n.radius },
+            ], { duration: M, easing: ease, fill: 'forwards' }), blob);
+            el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: M });
+          } else {
+            el.animate([{ transform: 'translateY(8px) scale(0.97)' }, { transform: 'none' }], { duration: M, easing: ease });
+            fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 110, easing: 'ease-out' });
+          }
+        } else {
+          el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: 120, delay: stackAt + F - 60, easing: 'ease-out', fill: 'backwards' });
         }
-        else el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: 150, delay: 120, easing: 'ease-out', fill: 'backwards' });
-      } else if (old.kind === el.dataset.kind) {
+      } else if (old.kind === kind) {
         if (Math.abs(old.rect.top - r.top) + Math.abs(old.rect.left - r.left) + Math.abs(old.rect.width - r.width) < 1) continue;
-        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: T, easing: ease });
-      } else if (bar) {
-        // out of the stack: the bar unfolds from its tray, its contents arriving as it opens
-        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r), opacity: 0.6 }, { transformOrigin: '0 0', transform: 'none', opacity: 1 }], { duration: T, easing: ease });
-        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 140, delay: T - 120, easing: 'ease-out', fill: 'backwards' });
+        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, delay: stackAt, easing: ease, fill: 'backwards' });
+      } else if (kind === 'bar') {
+        // Out of the stack: the bar unfolds from its tray, contents arriving as it opens
+        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, delay: stackAt, easing: ease, fill: 'backwards' });
+        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: F * 0.65, delay: stackAt + F * 0.35, easing: 'ease-out', fill: 'backwards' });
       } else {
-        // into the stack: a copy of the bar folds into the tray, then the tray takes over
-        const g = ghost(old);
+        // Into the stack: a copy of the bar waits, then folds into its tray, which takes over
+        const g = ghost(old, under);
         const end = getComputedStyle(el).opacity;
-        el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: T });
-        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 90, easing: 'ease-out', fill: 'forwards' });
-        g.animate([{ transform: 'none', opacity: 1 }, { transform: toward(r, old.rect), opacity: end }], { duration: T, easing: ease, fill: 'forwards' })
-          .finished.then(() => g.remove(), () => {});
+        el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: stackAt + F });
+        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 70, delay: stackAt, easing: 'ease-out', fill: 'both' });
+        done(g.animate([{ transform: 'none', opacity: 1 }, { transform: toward(r, old.rect), opacity: end }], { duration: F, delay: stackAt, easing: ease, fill: 'both' }), g);
       }
     }
     for (const old of before.values()) {
-      const g = ghost(old);
-      if (homeEl && old.kind === 'bar') {
-        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 90, easing: 'ease-out', fill: 'forwards' });
-        g.animate([{ transform: 'none', opacity: 1 }, { opacity: 1, offset: 0.7 }, { transform: `translateY(${homeTop - old.rect.top}px)`, opacity: 0 }], { duration: T, easing: ease, fill: 'forwards' })
-          .finished.then(() => g.remove(), () => {});
+      const tab = old.kind === 'bar' && closingTabs.get(old.key);
+      if (tab) {
+        // Back into its tab: the bar waits for the stack, drops its contents, then shrinks into the tab
+        const g = ghost(old, over);
+        g.style.overflow = 'hidden';
+        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 70, delay: leaveAt, easing: 'ease-out', fill: 'both' });
+        done(g.animate([
+          { ...box(old.rect), borderRadius: old.radius, opacity: 1 },
+          { opacity: 1, offset: 0.75 },
+          { ...box(tab.rect), borderRadius: tab.radius, opacity: 0 },
+        ], { duration: M, delay: leaveAt, easing: ease, fill: 'both' }), g);
         continue;
       }
-      g.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(8px) scale(0.97)' }], { duration: 140, easing: 'ease-in', fill: 'forwards' })
-        .finished.then(() => g.remove(), () => {});
+      const g = ghost(old, under);
+      done(g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: 'ease-out', fill: 'forwards' }), g);
     }
   });
 
@@ -442,7 +479,7 @@ export default function AvatarBuilder({
     go(['all', key], inAll && path.length === 2 && path[1] !== 'features' ? 'tab' : 'down');
   };
   const homeTiles = PRIMARY.filter((g) => g.bar).map((g) => (
-    <button key={g.key} type="button" className={'ab-tile ab-cat' + (lastTop === g.key ? ' on' : '')} onClick={() => openTop(g.key)} aria-label={g.label} aria-pressed={!isDefault && lastTop === g.key}>
+    <button key={g.key} type="button" className={'ab-tile ab-cat' + (lastTop === g.key ? ' on' : '')} onClick={() => openTop(g.key)} data-opens={'all/' + g.key} aria-label={g.label} aria-pressed={!isDefault && lastTop === g.key}>
       <span className="ab-cat-art"><BarIcon name={g.key} on={lastTop === g.key} fill={config.bg} /></span>
       <span className="ab-cat-label">{g.label}</span>
     </button>
@@ -481,7 +518,7 @@ export default function AvatarBuilder({
   } else if (top && top.organs && !organ) {
     // Features: the organs, each a metaphor
     tiles = top.organs.map((o) => (
-      <button key={o.key} type="button" className="ab-tile ab-cat" onClick={() => open(o.key)} aria-label={o.label}>
+      <button key={o.key} type="button" className="ab-tile ab-cat" onClick={() => open(o.key)} data-opens={[...path, o.key].join('/')} aria-label={o.label}>
         <span className="ab-cat-art"><NavIcon name={o.key} group={top.key} /></span>
         <span className="ab-cat-label">{o.label}</span>
       </button>
@@ -504,7 +541,7 @@ export default function AvatarBuilder({
       // An item that's currently off (no glasses, no blush…) shows its icon faded
       const off = config[k] === null || config[k] === 'none';
       return (
-        <button key={k} type="button" className="ab-tile ab-cat" onClick={() => open(k)} aria-label={it.label}>
+        <button key={k} type="button" className="ab-tile ab-cat" onClick={() => open(k)} data-opens={[...path, k].join('/')} aria-label={it.label}>
           <span className="ab-cat-art" style={off ? { opacity: 0.4 } : undefined}>
             <NavIcon name={k} group={group.key} />
           </span>
@@ -515,7 +552,7 @@ export default function AvatarBuilder({
     // Features (eyes, mouth, nose…) opens from inside Face
     if (group.key === 'face') {
       tiles.push(
-        <button key="features" type="button" className="ab-tile ab-cat" onClick={() => go(['all', 'features'], 'down')} aria-label="Features">
+        <button key="features" type="button" className="ab-tile ab-cat" onClick={() => go(['all', 'features'], 'down')} data-opens="all/features" aria-label="Features">
           <span className="ab-cat-art"><NavIcon name="features" /></span>
           <span className="ab-cat-label">Features</span>
         </button>,
@@ -593,6 +630,7 @@ export default function AvatarBuilder({
       onPointerDownCapture={(e) => { const t = e.target.closest && e.target.closest('button, [data-part]'); pressRef.current = t ? { el: t, t: performance.now() } : null; }}
       className={('ab-root ' + className).trim()} style={framed ? { '--ab-fill': config.bg } : backdrop === 'circle' ? undefined : { '--ab-bg': config.bg }} data-grid={grid || undefined} data-backdrop={backdrop} data-frame={backdrop === 'circle' ? 'circle' : undefined}>
       <div className="ab-ghosts" ref={ghostsRef} aria-hidden="true" />
+      <div className="ab-ghosts ab-ghosts-top" ref={topRef} aria-hidden="true" />
       {setupDone && !inSetup && (
         <button type="button" className="ab-setup-chip" onClick={() => go(['setup'], 'down')} aria-label="Change category and style">
           {SETUP.map((s) => s.names[config[s.key]] || config[s.key]).join(' · ')}
