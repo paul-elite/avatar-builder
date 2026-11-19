@@ -1,11 +1,12 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
-  SETUP, PRIMARY, ITEMS, PART_TARGETS, ITEM_VIEWS, VIEWS, visibleItems, viewFor,
+  SETUP, PRIMARY, ITEMS, ITEM_VIEWS, VIEWS,
   defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg,
 } from './avatar.js';
 import { downloadPng } from './export.js';
 import { readAvatar, loadAvatar, toAvatarDocument, encodeAvatar } from './document.js';
 import { NavIcon, BarIcon, ColourDot } from './icons.jsx';
+import { visibleSections, visibleMore, optionsFor, TARGETS, TAB_TINT, parentOf } from './sections.js';
 
 /* =========================================================================
    <AvatarBuilder /> — one editor, broad → detailed, with progressive disclosure.
@@ -46,7 +47,9 @@ import { NavIcon, BarIcon, ColourDot } from './icons.jsx';
 
 // demote overlaps enter: the new bar starts as the old one is still settling into the tray,
 // so there's never a frame with an empty slab. 'tab' (switching sibling items) keeps the bar.
-const MS = { tab: 150, morph: 150, fold: 130, flip: 300 };
+// rise: a new bar coming up from behind the one under it · fold: the stack moving around it ·
+// sink: a closing bar dropping back behind its parent
+const MS = { tab: 150, rise: 260, fold: 220, sink: 170, flip: 320 };
 
 /* ---- Colours: a row first, the full grid behind a button ---- */
 const hsl = (h, s, l) => {
@@ -180,10 +183,10 @@ export default function AvatarBuilder({
   const [grid, setGrid] = useState(false);
   const [menu, setMenu] = useState(false); // the ⋮ menu on the default bar
   const [copied, setCopied] = useState(false);
-  // Brightness over the open colour: the colour it started from (base), how far it's moved (b),
-  // and the colour that produced (so an undo or a new pick resets it)
-  const [bright, setBright] = useState(null);
-  const brightStart = useRef(null); // the look when a slide began: one undo step per slide
+  // The tab chosen in each category bar (Hair: Style or Wear), kept while you move around
+  const [sec, setSec] = useState({ face: 'head', hair: 'hair', outfit: 'outfit', features: 'eyes', frame: 'bg' });
+  // A colour bar showing shades of one colour instead of its presets: { key, base }
+  const [shades, setShades] = useState(null);
   const menuRef = useRef(null);
   const [history, setHistory] = useState({ past: [], future: [] });
   // The category you last opened stays lit on the default toolbar
@@ -302,45 +305,56 @@ export default function AvatarBuilder({
     if (grid) return setGrid(false);
     if (path[0] === 'setup' && !setupDone) return;
     if (!path.length) return; // the default toolbar is where closing stops
-    if (path.join('/') === 'all/features') return go(['all', 'face'], 'up'); // Features lives inside Face
-    if (path[0] === 'setup' || path.length <= 2) return go([], 'up');
-    go(path.slice(0, -1), 'up');
+    if (path[0] === 'setup') return go([], 'up');
+    go(parentOf(path), 'up');
   };
-  // Tap a part of the avatar to jump straight to its editor (the cap → Hair · Headwear)
+  // A tab in a category bar: on the top bar it swaps the options in place; on a bar under the
+  // top one it closes what's above and shows that tab
+  const switchTab = (cat, key) => {
+    if (phase !== 'idle') return;
+    if (path.length === 2 && path[1] === cat) {
+      if (sec[cat] === key) return;
+      barWidth.current = barRef.current ? barRef.current.getBoundingClientRect().width : null;
+      setSec((x) => ({ ...x, [cat]: key }));
+      setPhase('tab');
+      after(MS.tab, () => setPhase('idle'));
+      return;
+    }
+    setSec((x) => ({ ...x, [cat]: key }));
+    go(['all', cat], 'up');
+  };
+  // Tap a part of the avatar to open its bar (the cap → Hair, on Wear)
   const jump = (part) => {
-    const target = PART_TARGETS[part];
-    if (!target || path[0] === 'setup') return;
-    const next = ['all', ...target];
+    const t = TARGETS[part];
+    if (!t || path[0] === 'setup') return;
+    const [cat, tab, k] = t;
+    setSec((x) => ({ ...x, [cat]: tab }));
+    const next = ['all', cat, ...(k ? [k] : [])];
     if (next.join('/') === path.join('/')) return setGrid(false);
     go(next, path.length ? 'swap' : 'down');
   };
   const avatarRef = useRef(null);
-  // Mark the option row when it overflows, so only rows that actually scroll fade at the edge
-  const tilesRef = useRef(null);
+  // Mark rows that overflow, so only rows that actually scroll fade at the edge
   useLayoutEffect(() => {
-    const el = tilesRef.current;
-    if (!el) return undefined;
+    const root = stackRef.current;
+    if (!root) return undefined;
     // Measure without the fade's own end padding, or it would keep itself switched on
-    const check = () => { el.removeAttribute('data-overflow'); if (el.scrollWidth > el.clientWidth + 1) el.setAttribute('data-overflow', ''); };
+    const check = () => root.querySelectorAll('.ab-tiles, .ab-opts').forEach((el) => { el.removeAttribute('data-overflow'); if (el.scrollWidth > el.clientWidth + 1) el.setAttribute('data-overflow', ''); });
     check();
+    // A row that scrolls opens scrolled to what's chosen (the lit tile on a bar under the top one)
+    root.querySelectorAll('.ab-tiles[data-overflow], .ab-opts[data-overflow]').forEach((el) => {
+      const bar = el.closest('.ab-bar');
+      const mark = bar && bar.dataset.layer + (bar.hasAttribute('data-muted') ? ':m' : '');
+      if (!bar || el.dataset.placed === mark) return;
+      el.dataset.placed = mark;
+      const on = el.querySelector(bar.hasAttribute('data-muted') ? '.ab-cat.on' : '[aria-pressed="true"], .ab-tab.on') || el.querySelector('[aria-pressed="true"]');
+      if (!on) return;
+      const a = on.getBoundingClientRect(), r = el.getBoundingClientRect();
+      if (a.left >= r.left && a.right <= r.right - 24) return;
+      el.scrollLeft += a.left - r.left - (r.width - a.width) / 2;
+    });
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
-  });
-  // The item toggle's pill: measured onto the chosen tab, sliding when it changes
-  const segRef = useRef(null);
-  const segPlaced = useRef(false);
-  useLayoutEffect(() => {
-    const seg = segRef.current;
-    if (!seg) { segPlaced.current = false; return; }
-    const on = seg.querySelector('.ab-seg-btn.on');
-    const ind = seg.querySelector('.ab-seg-ind');
-    if (!on || !ind) return;
-    if (!segPlaced.current) ind.style.transition = 'none'; // the first placement doesn't slide in from nowhere
-    ind.style.width = on.offsetWidth + 'px';
-    ind.style.transform = `translateX(${on.offsetLeft - 3}px)`;
-    const ghost = ind.firstChild;
-    if (ghost) { ghost.style.transition = ind.style.transition; ghost.style.transform = `translateX(${3 - on.offsetLeft}px)`; }
-    if (!segPlaced.current) { void ind.offsetWidth; ind.style.transition = ''; if (ghost) ghost.style.transition = ''; segPlaced.current = true; }
   });
   // Switching items keeps the bar: its width eases from the old to the new instead of jumping
   const barRef = useRef(null);
@@ -371,16 +385,15 @@ export default function AvatarBuilder({
     if (Math.abs(to - from) < 1 || reducedMotion()) return;
     bar.animate([{ width: from + 'px' }, { width: to + 'px' }], { duration: MS.tab, easing: 'cubic-bezier(0.45, 0, 0.1, 1)' });
   });
-  /* ---- Levels as layers ----------------------------------------------------
-     Bars and trays carry data-layer (the level they show) and data-kind (bar | tray); a tab
-     that opens a level carries data-opens (that level). Moves are snappy (no overshoot):
-     · opening  1 · the new bar grows out of the pressed tab: full height first while narrow,
-                    then it widens to its centred place, its unscaled contents pinned left
-                    and revealed rightward (fade in, a 2px blur clearing)
-                2 · then the bars below fold into the stack (or slide to their new place)
-     · closing  the bar fades out at once, slipping a few px toward its parent (ease-out, 2px blur),
-                while the stack unfolds back into bars over it
-     · anything else (a jump from the avatar, setup) plays in one step */
+  /* ---- Levels as layers (Figma 113:9122) ------------------------------------
+     Bars and trays carry data-layer (the level they show) and data-kind (bar | tray).
+     · opening  the new bar rises from behind the bar under it, sliding its options in from
+                beneath (a touch of spring, a 2px blur clearing). At the same time the stack
+                makes room: the bar it came from slides down into the stack, drawn but muted,
+                and the one under that folds into the tray.
+     · closing  the bar sinks back behind the bar under it as it fades (ease-out, 2px blur),
+                while the stack rises back into place over it
+     · anything else (a jump from the avatar, setup) plays the same pieces at once */
   useLayoutEffect(() => {
     const snap = flip.current;
     const under = ghostsRef.current;
@@ -391,7 +404,8 @@ export default function AvatarBuilder({
     over.replaceChildren();
     const base = under.getBoundingClientRect();
     const ease = 'cubic-bezier(0.2, 0, 0, 1)';
-    const { morph: M, fold: F } = MS;
+    const spring = 'cubic-bezier(0.3, 1.2, 0.45, 1)';
+    const { rise: R, fold: F, sink: S } = MS;
     const box = (r) => ({ left: r.left - base.left + 'px', top: r.top - base.top + 'px', width: r.width + 'px', height: r.height + 'px' });
     const toward = (a, b) => `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
     const ghost = (old, layer) => {
@@ -405,18 +419,10 @@ export default function AvatarBuilder({
     const done = (a, g) => a.finished.then(() => g.remove(), () => {});
     const fadeKids = (el, keyframes, opts) => [...el.children].forEach((c) => c.animate(keyframes, opts));
     const before = new Map(snap.layers.map((o) => [o.key, o]));
-    const now = [...stackRef.current.querySelectorAll('[data-layer]')].map((el) => ({ el, key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect(), radius: getComputedStyle(el).borderRadius }));
-    const nowKeys = new Set(now.map((n) => n.key));
-    const opening = now.some((n) => n.kind === 'bar' && !before.has(n.key));
-    const closing = !opening && [...before.values()].some((o) => o.kind === 'bar' && !nowKeys.has(o.key));
-    // Step timing: what lands/leaves first, and what the stack does around it
-    // How long a new bar takes to grow (longer bars reveal for longer); the stack waits for it
-    const growFor = (w) => Math.round(Math.min(280, Math.max(M, M + (w - 360) * 0.25)));
-    const newBar = now.find((n) => n.kind === 'bar' && !before.has(n.key));
-    const stackAt = opening ? growFor(newBar.rect.width) : 0; // the stack moves after a new bar lands, or first when closing
-    const leaveAt = 0; // a closing bar just goes, at once, while the stack unfolds over it
-    const tabFor = (key) => { const t = stackRef.current.querySelector(`[data-opens="${key}"]`); return t ? { rect: t.getBoundingClientRect(), radius: getComputedStyle(t).borderRadius } : null; };
-    const closingTabs = new Map([...before.values()].filter((o) => o.kind === 'bar' && !nowKeys.has(o.key)).map((o) => [o.key, tabFor(o.key)]));
+    const now = [...stackRef.current.querySelectorAll('[data-layer]')].map((el) => ({ el, key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect() }));
+    const nowMap = new Map(now.map((n) => [n.key, n]));
+    // The level a bar sits on, by layer key ('all/hair/hairColor' → 'all/hair' → 'home')
+    const parentKey = (key) => { const p = parentOf(key.split('/')); return p.length ? p.join('/') : 'home'; };
 
     for (const n of now) {
       const { el, key, kind, rect: r } = n;
@@ -424,91 +430,55 @@ export default function AvatarBuilder({
       before.delete(key);
       if (!old) {
         if (kind === 'bar') {
-          const from = snap.opens[key] || snap.from;
-          if (from) {
-            // The bar grows out of its tab without stretching its contents. A plain surface
-            // (with the bar's real contents inside, unscaled and pinned to its left edge):
-            //   1 · gets its full height fast while still narrow, just above the tab
-            //   2 · then widens to its place, centred on the page, revealing more of
-            //       the row to the right as it goes
-            // Long bars take a little longer, so the reveal reads instead of whipping past.
-            const fr = from.rect || from;
-            const w0 = Math.min(r.width, Math.max(fr.width * 2.4, 140));
-            const h0 = r.height * 0.66;
-            const cx = fr.left + fr.width / 2;
-            const left0 = Math.min(Math.max(cx - w0 / 2, r.left), r.right - w0);
-            const at = (p) => ({ left: left0 + (r.left - left0) * p, width: w0 + (r.width - w0) * p });
-            const box2 = (x, y, w, h) => ({ left: x - base.left + 'px', top: y - base.top + 'px', width: w + 'px', height: h + 'px' });
-            const D = growFor(r.width);
-            // Like every level, it grows out of the top of its parent bar first. When its real place
-            // is lower (deeper levels take the bottom slot as the bars below fold away), it lands
-            // above the parent bar, then settles down into place with the fold.
-            const parent = snap.layers.find((o) => o.kind === 'bar' && fr.top >= o.rect.top - 1 && fr.bottom <= o.rect.bottom + 1);
-            const landTop = parent && r.top > parent.rect.top - 8 - r.height + 1 ? parent.rect.top - 8 - r.height : r.top;
-            const blob = document.createElement('div');
-            blob.className = 'ab-morph';
-            const inner = el.cloneNode(true);
-            inner.removeAttribute('data-layer');
-            inner.inert = true;
-            inner.className += ' ab-morph-inner';
-            Object.assign(inner.style, { width: r.width + 'px', height: r.height + 'px' });
-            blob.appendChild(inner);
-            over.appendChild(blob);
-            const a1 = at(0.12), a2 = at(0.5);
-            done(blob.animate([
-              { ...box2(left0, landTop + r.height - h0, w0, h0), borderRadius: n.radius, opacity: 0, filter: 'blur(2px)', easing: 'cubic-bezier(0.2, 0, 0, 1)' },
-              { ...box2(a1.left, landTop, a1.width, r.height), opacity: 1, filter: 'blur(0)', offset: 0.3, easing: 'cubic-bezier(0.3, 0, 0.2, 1)' },
-              { ...box2(a2.left, landTop, a2.width, r.height), offset: 0.62, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
-              { ...box2(r.left, landTop, r.width, r.height), borderRadius: n.radius, opacity: 1, filter: 'blur(0)' },
-            ], { duration: D, fill: 'forwards' }), blob);
-            // the real bar takes over once the surface has landed
-            el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: D });
-            // then it settles from where it landed into its place, with the fold
-            if (landTop !== r.top) el.animate([{ transform: `translateY(${landTop - r.top}px)` }, { transform: 'none' }], { duration: F, delay: D, easing: ease, fill: 'backwards' });
-          } else {
-            el.animate([{ transform: 'translateY(8px) scale(0.97)' }, { transform: 'none' }], { duration: M, easing: ease });
-            fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 110, easing: 'ease-out' });
-          }
+          // Rises from behind the bar it sits on: from that bar's old place (it paints over this one),
+          // a little smaller, its contents sliding up from beneath just after the surface
+          const pk = parentKey(key);
+          const from = (snap.layers.find((o) => o.key === pk) || nowMap.get(pk) || {}).rect;
+          const dy = from ? Math.max(16, from.top + 8 - r.top) : 16;
+          el.animate([
+            { transform: `translateY(${dy}px) scale(0.94)`, opacity: 0, filter: 'blur(2px)' },
+            { opacity: 1, filter: 'blur(0)', offset: 0.45 },
+            { transform: 'none', opacity: 1, filter: 'blur(0)' },
+          ], { duration: R, easing: spring, fill: 'backwards' });
+          [...el.querySelectorAll('.ab-tiles > *, .ab-bar-close, .ab-sep-close')].forEach((c, i) => c.animate(
+            [{ transform: 'translateY(10px)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+            { duration: 190, delay: 10 + Math.min(i, 10) * 12, easing: ease, fill: 'backwards' },
+          ));
         } else {
-          el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: 120, delay: stackAt + F - 60, easing: 'ease-out', fill: 'backwards' });
+          el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: 140, delay: F - 80, easing: 'ease-out', fill: 'backwards' });
         }
       } else if (old.kind === kind) {
         if (Math.abs(old.rect.top - r.top) + Math.abs(old.rect.left - r.left) + Math.abs(old.rect.width - r.width) < 1) continue;
-        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, delay: stackAt, easing: ease, fill: 'backwards' });
+        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, easing: ease, fill: 'backwards' });
       } else if (kind === 'bar') {
-        // Out of the stack: the bar unfolds from its tray, contents arriving as it opens
-        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, delay: stackAt, easing: ease, fill: 'backwards' });
-        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: F * 0.7, delay: stackAt + F * 0.1, easing: 'ease-out', fill: 'backwards' });
+        // Out of the stack: the bar unfolds from its tray, contents arriving as it opens; it stays
+        // behind the bar above until it has landed (it comes out from under it)
+        el.style.zIndex = '-1';
+        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, easing: ease, fill: 'backwards' })
+          .finished.then(() => { el.style.zIndex = ''; }, () => { el.style.zIndex = ''; });
+        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: F * 0.7, delay: F * 0.1, easing: 'ease-out', fill: 'backwards' });
       } else {
-        // Into the stack: a copy of the bar waits, then folds into its tray, which takes over
+        // Into the stack: a copy of the bar folds into its tray, which takes over
         const g = ghost(old, under);
         const end = getComputedStyle(el).opacity;
-        el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: stackAt + F });
-        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 70, delay: stackAt, easing: 'ease-out', fill: 'both' });
-        done(g.animate([{ transform: 'none', opacity: 1 }, { transform: toward(r, old.rect), opacity: end }], { duration: F, delay: stackAt, easing: ease, fill: 'both' }), g);
+        el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: F });
+        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 70, easing: 'ease-out', fill: 'both' });
+        done(g.animate([{ transform: 'none', opacity: 1 }, { transform: toward(r, old.rect), opacity: end }], { duration: F, easing: ease, fill: 'both' }), g);
       }
-    }
-    if (opening) {
-      const top = rootRef.current && rootRef.current.querySelector('.ab-dock > .ab-seg, .ab-dock > .ab-bright, .ab-dock > .ab-crumbs');
-      if (top) top.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 140, delay: stackAt + F * 0.5, easing: 'ease-out', fill: 'backwards' });
     }
     for (const old of before.values()) {
-      const tab = old.kind === 'bar' && closingTabs.get(old.key);
-      if (tab) {
-        // Closing: the bar just goes, slipping a little toward its parent (not all the way),
-        // easing out as it fades with a touch of motion blur; under the stack, so bars unfolding
-        // into its place draw over it
-        const g = ghost(old, under);
-        const drop = Math.min(10, Math.max(0, tab.rect.top - old.rect.bottom) + 6);
-        // a little spring: it slips slightly past where it stops, then eases back as it vanishes
+      const g = ghost(old, under);
+      if (old.kind === 'bar') {
+        // Closing: it sinks back behind the bar it sits on (under the stack, so that bar draws over it)
+        const p = nowMap.get(parentKey(old.key));
+        const dy = p ? Math.max(8, Math.min(40, p.rect.top + 8 - old.rect.top)) : 10;
         done(g.animate([
           { transform: 'none', opacity: 1, filter: 'blur(0)' },
-          { transform: `translateY(${drop * 1.25}px)`, opacity: 0.3, offset: 0.7 },
-          { transform: `translateY(${drop}px)`, opacity: 0, filter: 'blur(2px)' },
-        ], { duration: 120, delay: leaveAt, easing: 'ease-out', fill: 'both' }), g);
+          { transform: `translateY(${dy * 0.7}px) scale(0.97)`, opacity: 0.4, offset: 0.6 },
+          { transform: `translateY(${dy}px) scale(0.95)`, opacity: 0, filter: 'blur(2px)' },
+        ], { duration: S, easing: 'ease-out', fill: 'both' }), g);
         continue;
       }
-      const g = ghost(old, under);
       done(g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: 'ease-out', fill: 'forwards' }), g);
     }
   });
@@ -522,7 +492,14 @@ export default function AvatarBuilder({
   };
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') { if (menu) setMenu(false); else back(); } };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { if (menu) setMenu(false); else back(); return; }
+      // Undo / redo from anywhere, since deeper bars don't carry the buttons (⌘Z, ⇧⌘Z, Ctrl+Y)
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod || /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); } else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
@@ -538,42 +515,35 @@ export default function AvatarBuilder({
   const inSetup = path[0] === 'setup';
   const isDefault = !path.length;
   const inAll = path[0] === 'all';
-  const top = inAll && path[1] ? PRIMARY.find((g) => g.key === path[1]) : null;
-  // A category with organs (Features) shows them first; the organ then acts as the category
-  const organ = top && top.organs && path[2] ? top.organs.find((o) => o.key === path[2]) : null;
-  const group = top && top.organs ? organ : top;
-  const base = !group ? [] : organ ? ['all', top.key, organ.key] : ['all', top.key]; // the path to `group`
-  const at = base.length; // where the item sits in the path
-  const shown = group ? visibleItems(group, config) : [];
-  // A category with one visible item opens that item directly
-  // (a switch, like Torso's head only / with torso, always shows inline at the category level)
-  const itemKey = group ? path[at] || (shown.length === 1 && ITEMS[shown[0]].kind !== 'toggle' ? shown[0] : null) : null;
-  const item = itemKey ? ITEMS[itemKey] : null;
-  // If an open item stops applying (e.g. hair colour after choosing no hair), step back to its category
+  const levelKey = isDefault ? 'home' : path.join('/');
+  // A level: a category bar (its tabs, the tab's options, tiles to go further) or one item's bar
+  const describe = (p) => {
+    if (p[0] !== 'all' || !p[1]) return null;
+    const cat = p[1];
+    const sections = visibleSections(cat, config);
+    const s = sections.find((x) => x.key === sec[cat]) || sections[0];
+    if (p.length === 2) return { kind: 'cat', cat, sections, s };
+    return { kind: 'item', cat, s, k: p[2] };
+  };
+  const level = describe(path);
+  // If an open item stops applying (hair colour after choosing no hair), step back to its category
   useEffect(() => {
-    if (group && path[at] && !shown.includes(path[at]) && phase === 'idle') go(base, 'up');
+    if (!level || level.kind !== 'item' || phase !== 'idle') return;
+    if (!level.s || !visibleMore(level.s, config).includes(level.k)) go(['all', level.cat], 'up');
   });
-
-  const crumbs = inSetup
-    ? ['Setup']
-    : top && top.organs && !organ
-      ? [top.label]
-      : !group
-        ? ['Avatar']
-        : [...(organ ? [top.label] : []), group.label, ...(path[at] && item && shown.length > 1 ? [item.label] : [])];
-
-  // An open item's siblings in its category (switches like Torso's are shown inline, not opened)
-  const siblings = group && item ? shown.filter((k) => ITEMS[k].kind !== 'toggle') : [];
-  // The brightness slide on the open colour, while it still describes that colour
-  const brightNow = bright && bright.key === itemKey && eq(bright.value, config[itemKey]) ? bright : null;
+  // The colour the top bar edits (for its grid), if it's a colour bar
+  const colourKey = level ? (level.kind === 'item' ? (ITEMS[level.k] && ITEMS[level.k].kind === 'color' ? level.k : null) : (level.sections.length === 1 && ITEMS[level.s.item].kind === 'color' ? level.s.item : null)) : null;
+  const shapeKey = level && level.kind === 'item' && ITEMS[level.k] && ITEMS[level.k].kind === 'shape' ? level.k : null;
+  const crumbs = inSetup ? ['Setup'] : !level ? ['Avatar'] : [PRIMARY.find((g) => g.key === level.cat)?.label || 'Features', ...(level.kind === 'item' ? [ITEMS[level.k].label] : [level.s.label])];
 
   // The default bar (Figma 88:5720): Face · Hair · Outfit · Color, then the ⋮ menu.
-  // It stays as a full bar under a category (one over the other); deeper, it folds into the stack.
+  // It stays as a full bar under a category (one over the other); deeper, it folds into the tray.
   // A tab is selected only while its bar is open: nothing is selected on the bare default bar,
   // closing the bar above deselects it, and tapping the selected tab closes its bar (deselects it).
   const openTab = isDefault ? null : lastTop;
   const openTop = (key) => {
     if (inAll && path.length === 2 && path[1] === key) return back();
+    if (inAll && lastTop === key) return go(['all', key], 'up'); // its bar is open under something: back to it
     go(['all', key], inAll && path.length === 2 && path[1] !== 'features' ? 'tab' : 'down');
   };
   const homeTiles = PRIMARY.filter((g) => g.bar).map((g) => (
@@ -604,12 +574,151 @@ export default function AvatarBuilder({
     </>
   );
 
-  let tiles = null;
-  let extras = null;
-  let shapeGrid = null;
+  /* ---- Pieces of a bar ---- */
+  const live = (top) => (top ? undefined : -1); // controls on a muted bar stay clickable, but out of the tab order
+  // One option: the item itself, drawn for this config
+  const optionTile = (k, opt, { on, pick, inGrid = false, top = true, art }) => {
+    const label = opt === null ? 'None' : opt === true ? 'On' : opt === false ? 'Off' : String(opt);
+    return (
+      <button
+        key={String(opt)}
+        type="button"
+        className={'ab-tile' + (on ? ' on' : '')}
+        data-kind="item"
+        aria-pressed={on}
+        aria-label={label}
+        title={label}
+        tabIndex={inGrid && !grid ? -1 : live(top)}
+        onClick={() => { pick(opt); if (inGrid) setGrid(false); }}
+      >
+        {art || <Face item={k} config={{ ...config, [k]: opt }} />}
+      </button>
+    );
+  };
+  // One colour: a round patch; the chosen one wears the white hub
+  const swatch = (k, opt, top) => {
+    const on = eq(config[k], opt);
+    const label = opt === null ? 'None' : String(opt);
+    return (
+      <button key={String(opt)} type="button" className="ab-swatch" aria-pressed={on} aria-label={label} title={label} tabIndex={live(top)} onClick={() => set(k, opt)}>
+        <ColourDot color={opt} on={on} />
+      </button>
+    );
+  };
+  // Shades of one colour, darkest to lightest (the colour itself in the middle)
+  const shadesOf = (hex) => {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255);
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    const sat = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+    const h = !d ? 0 : mx === r ? 60 * (((g - b) / d) % 6) : mx === g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4);
+    const steps = [0.12, 0.22, 0.32, 0.42, 0.54, 0.66, 0.78, 0.9].map((L) => hsl((h + 360) % 360, Math.min(100, sat * 100), L));
+    // the colour itself takes the nearest step, so it's always in the row
+    let near = 0;
+    steps.forEach((_, i) => { if (Math.abs([0.12, 0.22, 0.32, 0.42, 0.54, 0.66, 0.78, 0.9][i] - l) < Math.abs([0.12, 0.22, 0.32, 0.42, 0.54, 0.66, 0.78, 0.9][near] - l)) near = i; });
+    steps[near] = hex.toLowerCase();
+    return steps;
+  };
+  const Cluster = ({ fills }) => (
+    <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+      {fills.slice(0, 7).map((f, i) => {
+        const a = (i / 7) * Math.PI * 2 - Math.PI / 2;
+        return <circle key={i} cx={14 + Math.cos(a) * 8.5} cy={14 + Math.sin(a) * 8.5} r="3.6" fill={f} />;
+      })}
+    </svg>
+  );
+  const RAINBOW = ['#ff4f4e', '#ffb900', '#00cc1a', '#14c8c8', '#1084fe', '#8b5cf6', '#f70492'];
+  // A colour bar: shades of the current colour and the full grid on the left, then the colours
+  const colourTiles = (k, top) => {
+    const it = ITEMS[k];
+    const cur = config[k];
+    const mode = shades && shades.key === k ? shades : null;
+    const list = mode ? shadesOf(mode.base) : [...(it.optional && k !== 'cap' ? [null] : []), ...it.presets];
+    const shadeBase = cur || it.presets[0];
+    return [
+      <button key="shades" type="button" className="ab-tile ab-tool" data-open={mode || undefined} aria-pressed={!!mode} aria-label="Shades of this colour" title="Shades of this colour" tabIndex={live(top)} onClick={() => setShades(mode ? null : { key: k, base: shadeBase })}>
+        <Cluster fills={shadesOf(shadeBase).slice(0, 7)} />
+      </button>,
+      <button key="all" type="button" className="ab-tile ab-tool" data-open={(top && grid) || undefined} aria-label="All colours" aria-expanded={top && grid} title="All colours" tabIndex={live(top)} onClick={() => { if (top) setGrid((g) => !g); }}>
+        <Cluster fills={RAINBOW} />
+      </button>,
+      <span key="sep" className="ab-sep ab-sep-close" aria-hidden="true" />,
+      ...list.map((o) => swatch(k, o, top)),
+    ];
+  };
+  // A row of shapes for an item
+  const shapeTiles = (k, top) => ITEMS[k].options.map((o) => optionTile(k, o, { on: eq(config[k], o), pick: (v) => set(k, v), top }));
+  // A tile that opens a bar above (a colour, the finer items, Features); lit while that bar is open
+  const moreTile = (cat, k, top) => {
+    const target = k === 'features' ? ['all', 'features'] : ['all', cat, k];
+    const on = path.join('/') === target.join('/') || (k === 'features' && path[1] === 'features');
+    const it = ITEMS[k];
+    const wheel = it && it.kind === 'color' && (!it.optional || k === 'cap');
+    const label = k === 'features' ? 'Features' : wheel ? 'Colour' : it.label;
+    const off = it && (config[k] === null || config[k] === 'none');
+    return (
+      <button key={k} type="button" className={'ab-tile ab-cat' + (on ? ' on' : '')} data-opens={target.join('/')} aria-label={k === 'features' ? 'Features' : it.label} aria-expanded={on} tabIndex={live(top)}
+        onClick={() => (on ? go(['all', cat], 'up') : go(target, path.length > 2 || path[1] === 'features' ? 'swap' : 'down'))}>
+        <span className="ab-cat-art" style={off ? { opacity: 0.4 } : undefined}>
+          <NavIcon name={k} group={cat} wheel={wheel} color={config[k]} />
+        </span>
+        <span className="ab-cat-label">{label}</span>
+      </button>
+    );
+  };
+  // A level's main row: what it sets, its options, which is on, and what picking one does
+  const mainRow = (d) => {
+    if (d.kind === 'item') {
+      const k = d.k;
+      return ITEMS[k].kind === 'color' ? { colour: k } : { k, options: ITEMS[k].options, isOn: (v) => eq(config[k], v), pick: (v) => set(k, v) };
+    }
+    const { sections, s } = d;
+    if (sections.length === 1 && ITEMS[s.item].kind === 'color') return { colour: s.item }; // Frame: just its colour
+    const o = optionsFor(s, config);
+    if (o.colour) return { swatches: s.item, options: o.options };
+    return {
+      k: s.item,
+      options: o.options,
+      isOn: (v) => eq(o.value, v),
+      pick: (v) => commit({ ...config, ...o.pick(v) }),
+      art: (v) => (v === null ? <None /> : s.key === 'wear' ? <Face item="hat" config={{ ...config, cap: config.cap || '#1a1a1a', hat: v }} /> : s.key === 'outfit' ? <Face item="outfit" config={{ ...config, torso: true, outfit: v }} /> : undefined),
+    };
+  };
+  // A level's bar, left of its ×: tabs, then the main row (scrolling on its own when long), then tiles
+  const levelParts = (d, top) => {
+    const m = mainRow(d);
+    if (m.colour) return { row: colourTiles(m.colour, top), swatches: true };
+    const row = m.swatches
+      ? m.options.map((v) => swatch(m.swatches, v, top))
+      : m.options.map((v) => optionTile(m.k, v, { on: m.isOn(v), pick: m.pick, top, art: m.art && m.art(v) }));
+    if (d.kind === 'item') return { row, swatches: !!m.swatches, long: m.options.length > SHAPE_ROW };
+    const { cat, sections, s } = d;
+    const tabs = sections.length > 1 && (
+      <div key="tabs" className="ab-tabs" role="tablist" aria-label={crumbs[0]}>
+        {sections.map((t) => {
+          const on = t.key === s.key;
+          return (
+            <button key={t.key} type="button" role="tab" aria-selected={on} className={'ab-tab' + (on ? ' on' : '')} tabIndex={live(top)} onClick={() => switchTab(cat, t.key)}>
+              <span className="ab-cat-art"><NavIcon name={t.key === 'wear' ? 'cap' : t.key} group={cat} tint={on && TAB_TINT[t.key] ? config[TAB_TINT[t.key]] || undefined : undefined} /></span>
+              <span className="ab-cat-label">{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+    return { tabs, row, swatches: !!m.swatches, long: m.options.length > SHAPE_ROW, more: visibleMore(s, config).map((k) => moreTile(cat, k, top)) };
+  };
+  const closeX = (top) => (
+    <>
+      <span className="ab-sep ab-sep-close" aria-hidden="true" />
+      <button type="button" className="ab-bar-close" onClick={top ? back : () => go(parentOf(path).length ? parentOf(parentOf(path)) : [], 'up')} aria-label="Close" title="Close" tabIndex={live(top)}><CloseIcon /></button>
+    </>
+  );
 
+  // Setup has its own bar: category and style, then Customize
+  let setupTiles = null;
   if (inSetup) {
-    tiles = SETUP.map((s) => (
+    setupTiles = SETUP.map((s) => (
       <div key={s.key} className="ab-set">
         <span className="ab-set-label">{s.label}</span>
         <div className="ab-set-options">
@@ -621,126 +730,22 @@ export default function AvatarBuilder({
         </div>
       </div>
     ));
-    extras = (
-      <button type="button" className="ab-continue" onClick={finishSetup}>
-        {setupDone ? 'Done' : 'Customize'} <ArrowIcon />
-      </button>
-    );
-  } else if (isDefault) {
-    // The default bar is drawn on its own (homeBar, below); nothing stacks on it here
-  } else if (top && top.organs && !organ) {
-    // Features: the organs, each a metaphor
-    tiles = top.organs.map((o) => (
-      <button key={o.key} type="button" className="ab-tile ab-cat" onClick={() => open(o.key)} data-opens={[...path, o.key].join('/')} aria-label={o.label}>
-        <span className="ab-cat-art"><NavIcon name={o.key} group={top.key} /></span>
-        <span className="ab-cat-label">{o.label}</span>
-      </button>
-    ));
-  } else if (!item) {
-    // The category's items; a toggle (Torso) shows its two choices inline, and what it unlocks follows
-    tiles = shown.map((k) => {
-      const it = ITEMS[k];
-      if (it.kind === 'toggle') {
-        return (
-          <div key={k} className="ab-toggle" role="radiogroup" aria-label={it.label}>
-            {it.options.map((opt) => (
-              <button key={String(opt)} type="button" role="radio" aria-checked={eq(config[k], opt)} className={'ab-pill' + (eq(config[k], opt) ? ' on' : '')} onClick={() => set(k, opt)}>
-                {it.names[String(opt)]}
-              </button>
-            ))}
-          </div>
-        );
-      }
-      // An item that's currently off (no glasses, no blush…) shows its icon faded
-      const off = config[k] === null || config[k] === 'none';
-      return (
-        <button key={k} type="button" className="ab-tile ab-cat" onClick={() => open(k)} data-opens={[...path, k].join('/')} aria-label={it.label}>
-          <span className="ab-cat-art" style={off ? { opacity: 0.4 } : undefined}>
-            <NavIcon name={k} group={group.key} wheel={it.kind === 'color' && !it.optional} color={config[k]} />
-          </span>
-          <span className="ab-cat-label">{it.label}</span>
-        </button>
-      );
-    });
-    // Features (eyes, mouth, nose…) opens from inside Face
-    if (group.key === 'face') {
-      tiles.push(
-        <button key="features" type="button" className="ab-tile ab-cat" onClick={() => go(['all', 'features'], 'down')} data-opens="all/features" aria-label="Features">
-          <span className="ab-cat-art"><NavIcon name="features" /></span>
-          <span className="ab-cat-label">Features</span>
-        </button>,
-      );
-    }
-  } else {
-    const opts = item.kind === 'color' ? (item.optional ? [null, ...item.presets] : item.presets) : item.options;
-    // Colour chips and skin heads take the dark selected tile; items (mostly black) a light one with a ring
-    const isSwatch = ['skin', 'bg', 'blush', 'tears'].includes(itemKey) || (itemKey === 'hairColor' && config.hair === 'none');
-    const optionTile = (opt, { inGrid = false } = {}) => {
-      // A brightened colour keeps its swatch marked
-      const on = eq(config[itemKey], opt) || (!!brightNow && brightNow.b !== 0 && eq(brightNow.base, opt));
-      const label = opt === null ? 'None' : opt === true ? 'On' : opt === false ? 'Off' : String(opt);
-      if (item.kind === 'color' && !inGrid) {
-        // the brightened swatch shows its colour as it is now
-        const shown = on && brightNow && eq(brightNow.base, opt) ? config[itemKey] : opt;
-        return (
-          <button key={String(opt)} type="button" className="ab-swatch" aria-pressed={on} aria-label={label} title={label} onClick={() => set(itemKey, opt)}>
-            <ColourDot color={shown} on={on} />
-          </button>
-        );
-      }
-      return (
-        <button
-          key={String(opt)}
-          type="button"
-          className={'ab-tile' + (on ? ' on' : '')}
-          data-kind={isSwatch ? 'swatch' : 'item'}
-          aria-pressed={on}
-          aria-label={label}
-          title={label}
-          tabIndex={inGrid && !grid ? -1 : undefined}
-          onClick={() => { set(itemKey, opt); if (inGrid) setGrid(false); }}
-        >
-          {/* the brightened swatch shows its colour as it is now */}
-          <Face item={itemKey} config={{ ...config, [itemKey]: on && brightNow && eq(brightNow.base, opt) ? config[itemKey] : opt }} />
-        </button>
-      );
-    };
-    tiles = opts.map((opt) => optionTile(opt));
-    // A long row of shapes scrolls, and can expand into a grid of every option
-    if (item.kind === 'shape' && opts.length > SHAPE_ROW) {
-      extras = (
-        <button type="button" className="ab-tile ab-grid-btn" onClick={() => setGrid((g) => !g)} aria-label={`All ${item.label.toLowerCase()} options`} aria-expanded={grid} data-open={grid || undefined}>
-          <ExpandIcon />
-        </button>
-      );
-      shapeGrid = opts.map((opt) => optionTile(opt, { inGrid: true }));
-    }
-    if (item.kind === 'color') {
-      extras = (
-        <button type="button" className="ab-tile ab-grid-btn" onClick={() => setGrid((g) => !g)} aria-label="All colours" aria-expanded={grid} data-open={grid || undefined}>
-          <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true">
-            {['#ff4f4e', '#ffb900', '#00cc1a', '#1084fe', '#8b5cf6', '#f70492', '#d9d9d7', '#444755', '#1a1a1a'].map((f, i) => (
-              <rect key={i} x={14 + (i % 3) * 7} y={14 + Math.floor(i / 3) * 7} width="6" height="6" rx="2" fill={f} />
-            ))}
-          </svg>
-        </button>
-      );
-    }
   }
+  // A long shape row on the top bar opens into a grid of every option
+  const topRow = level ? mainRow(level) : null;
+  const gridRow = topRow && topRow.k && topRow.options.length > SHAPE_ROW ? topRow : null;
 
-  // Levels below the current one, shown as the stack behind the toolbar
-  // The default bar is the floor: nothing under it, no ×. Everything else stacks on top of it.
-  const depth = inSetup ? (setupDone ? 1 : 0) : isDefault ? 0 : path.length - 1;
-  const canClose = depth > 0;
-  // The levels under this one, nearest first, ending at the default bar ('home'), as back() walks them.
-  // One level under: it stays a full bar, one over the other. Two or more: they fold into trays (two show).
-  const parentOf = (p) => (p.join('/') === 'all/features' ? ['all', 'face'] : p.length <= 2 ? [] : p.slice(0, -1));
-  const below = [];
-  if (inAll) for (let p = parentOf(path); ; p = parentOf(p)) { below.push(p.length ? p.join('/') : 'home'); if (!p.length) break; }
-  const homeShown = isDefault || below.length === 1;
-  // Just the level you came from, in its own colour (the main bar only shows when it is that level)
-  const trays = below.length >= 2 ? below.slice(0, 1) : [];
-  const levelKey = isDefault ? 'home' : path.join('/');
+  // The stack, top to bottom: the current bar; the level under it as a full bar (muted, unless it's
+  // the default bar); the level under that as the tray. The default bar is the floor: nothing under it.
+  const chain = [];
+  if (inAll) for (let p = parentOf(path); ; p = parentOf(p)) { chain.push(p); if (!p.length) break; }
+  const underPath = chain[0] || null;
+  const trayPath = chain[1] || null;
+  const homeShown = isDefault || (underPath && !underPath.length);
+  const underLevel = underPath && underPath.length ? describe(underPath) : null;
+  const trayKey = trayPath ? (trayPath.length ? trayPath.join('/') : 'home') : null;
+  const canClose = inSetup ? setupDone : !isDefault;
+
   // The preview centres the head itself (its silhouette spans x 33–177, y 3.5–160), not head + shadow;
   // with a torso it stays centred left–right and keeps the body in frame. Exports keep the full views.
   // On the framed backdrop the avatar sits in a shape (no shadow); 'full' drops the shape (shadow on).
@@ -748,6 +753,41 @@ export default function AvatarBuilder({
   // Always the round background on the circle backdrop, whatever frame an older saved look has
   const framed = backdrop === 'circle';
   const view = config.torso ? '-23.5 -16 257 257' : '10.5 -12.85 189 189';
+
+  const levelBar = (d, top) => {
+    const key = ['all', d.cat, ...(d.kind === 'item' ? [d.k] : [])].join('/');
+    return (
+      <div
+        className="ab-bar"
+        key={key}
+        ref={top ? barRef : undefined}
+        data-layer={key}
+        data-kind="bar"
+        data-phase={top ? phase : undefined}
+        data-level={d.kind === 'item' ? 'item' : 'category'}
+        data-muted={top ? undefined : ''}
+        role="toolbar"
+        aria-label={top ? crumbs.join(' · ') : 'Under: ' + (d.kind === 'item' ? ITEMS[d.k].label : d.s.label)}
+      >
+        {(() => {
+          const parts = levelParts(d, top);
+          return (
+            <div className="ab-tiles">
+              {parts.tabs}
+              <div className="ab-opts" data-swatches={parts.swatches ? '' : undefined} data-long={parts.long ? '' : undefined}>{parts.row}</div>
+              {top && parts.long && gridRow && (
+                <button type="button" className="ab-tile ab-grid-btn" onClick={() => setGrid((g) => !g)} aria-label={`All ${(ITEMS[gridRow.k] || {}).label?.toLowerCase() || ''} options`} aria-expanded={grid} data-open={grid || undefined}>
+                  <ExpandIcon />
+                </button>
+              )}
+              {parts.more}
+            </div>
+          );
+        })()}
+        {closeX(top)}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -783,91 +823,15 @@ export default function AvatarBuilder({
       </div>
 
       <div className="ab-dock">
-        {item && item.kind === 'color' ? (
-          // Colours: a brightness slider over the chosen colour, in place of the item switcher
-          (() => {
-            const cur = config[itemKey];
-            const base = brightNow ? brightNow.base : cur;
-            const b = brightNow ? brightNow.b : 0;
-            const slide = (v) => {
-              if (!base) return;
-              const nb = Math.max(-1, Math.min(1, v));
-              const next = { ...config, [itemKey]: brighten(base, nb) };
-              if (brightStart.current && !brightStart.current.recorded) {
-                const from = brightStart.current.config;
-                brightStart.current.recorded = true;
-                setHistory((h) => ({ past: [...h.past.slice(-99), from], future: [] }));
-              }
-              setBright({ key: itemKey, base, b: nb, value: next[itemKey] });
-              emit(next);
-            };
-            const begin = () => { brightStart.current = { config, recorded: false }; };
-            return (
-              <div className="ab-bright" role="group" aria-label="Brightness" data-off={!base || undefined}>
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
-                <input
-                  type="range"
-                  min="-100"
-                  max="100"
-                  step="1"
-                  value={Math.round(b * 100)}
-                  disabled={!base}
-                  aria-label="Brightness"
-                  aria-valuetext={b === 0 ? 'Original' : `${b > 0 ? 'Lighter' : 'Darker'} ${Math.abs(Math.round(b * 100))}%`}
-                  style={base ? { '--lo': brighten(base, -1), '--mid': base, '--hi': brighten(base, 1) } : undefined}
-                  onPointerDown={begin}
-                  onFocus={begin}
-                  onChange={(e) => slide(Number(e.target.value) / 100)}
-                  onDoubleClick={() => { begin(); slide(0); }}
-                />
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-              </div>
-            );
-          })()
-        ) : siblings.length > 1 ? (
-          // Inside an item: a toggle of the category's items, to switch straight between them
-          <div className="ab-seg" role="tablist" aria-label={group.label} ref={segRef}>
-            {/* One dark pill that slides to the chosen item, rather than two crossfading */}
-            <span className="ab-seg-ind" aria-hidden="true">
-              {/* White copies of the labels ride inside the pill, so text is legible at every frame of the slide */}
-              <span className="ab-seg-ghost">
-                {siblings.map((k) => <span key={k} className="ab-seg-btn">{ITEMS[k].label}</span>)}
-              </span>
-            </span>
-            {siblings.map((k) => (
-              <button
-                key={k}
-                type="button"
-                role="tab"
-                aria-selected={k === itemKey}
-                className={'ab-seg-btn' + (k === itemKey ? ' on' : '')}
-                onClick={() => k !== itemKey && go([...base, k], 'tab')}
-              >
-                {ITEMS[k].label}
-              </button>
-            ))}
-          </div>
-        ) : crumbs.length > 1 && (
-          // Only when there's a trail to show (Features · Eyes); a lone label would read as a switch with nothing to switch
-          <div className="ab-crumbs" aria-live="polite">
-            {crumbs.map((c, i) => (
-              <span key={i} className={i === crumbs.length - 1 ? 'ab-crumb-now' : undefined}>{c}</span>
-            ))}
-          </div>
-        )}
-
         <div className="ab-stack" ref={stackRef}>
-          {trays.map((k, i) => (
-            <span key={k} className="ab-peek" data-layer={k} data-kind="tray" data-dark={k === 'home' ? '' : undefined} style={{ '--depth': i + 1 }} aria-hidden="true" />
-          ))}
 
-          {shapeGrid && (
-            <div className="ab-grid ab-grid-items" data-open={grid || undefined} role="dialog" aria-label={`All ${item.label.toLowerCase()} options`} aria-hidden={!grid}>
-              {shapeGrid}
+          {gridRow && (
+            <div className="ab-grid ab-grid-items" data-open={grid || undefined} role="dialog" aria-label="All options" aria-hidden={!grid}>
+              {gridRow.options.map((o) => optionTile(gridRow.k, o, { on: gridRow.isOn(o), pick: gridRow.pick, inGrid: true, art: gridRow.art && gridRow.art(o) }))}
             </div>
           )}
 
-          {item && item.kind === 'color' && (
+          {colourKey && (
             <div className="ab-grid" data-open={grid || undefined} role="dialog" aria-label="Colour grid" aria-hidden={!grid}>
               {GRID.map((row, r) => (
                 <div key={r} className="ab-grid-row">
@@ -877,10 +841,10 @@ export default function AvatarBuilder({
                       type="button"
                       className="ab-cell"
                       style={{ background: fill }}
-                      data-on={eq(config[itemKey], fill) || undefined}
+                      data-on={eq(config[colourKey], fill) || undefined}
                       aria-label={fill}
                       tabIndex={grid ? 0 : -1}
-                      onClick={() => { set(itemKey, fill); setGrid(false); }}
+                      onClick={() => { set(colourKey, fill); setGrid(false); }}
                     />
                   ))}
                 </div>
@@ -888,22 +852,23 @@ export default function AvatarBuilder({
             </div>
           )}
 
-          {!isDefault && <div className="ab-bar" ref={barRef} key={instance} data-layer={levelKey} data-kind="bar" data-phase={phase} data-level={inSetup ? 'setup' : isDefault ? 'default' : item ? 'item' : 'category'} role="toolbar" aria-label={crumbs.join(' · ')}>
-            {!inSetup && !homeShown && <div className="ab-history">
-              <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
-              <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
-            </div>}
-            <div className="ab-tiles" ref={tilesRef} data-long={shapeGrid ? '' : undefined} data-swatches={item && item.kind === 'color' ? '' : undefined}>
-              {tiles}
+          {inSetup && (
+            <div className="ab-bar" ref={barRef} key={'setup' + instance} data-layer="setup" data-kind="bar" data-phase={phase} data-level="setup" role="toolbar" aria-label="Setup">
+              <div className="ab-tiles">{setupTiles}</div>
+              <button type="button" className="ab-continue" onClick={finishSetup}>
+                {setupDone ? 'Done' : 'Customize'} <ArrowIcon />
+              </button>
+              {canClose && closeX(true)}
             </div>
-            {extras}
-            {canClose && (
-              <>
-                <span className="ab-sep ab-sep-close" aria-hidden="true" />
-                <button type="button" className="ab-bar-close" onClick={back} aria-label="Close" title="Close"><CloseIcon /></button>
-              </>
-            )}
-          </div>}
+          )}
+          {level && levelBar(level, true)}
+          {underLevel && (
+            // The tray hangs under the bar it belongs to, sized to it
+            <div className="ab-under">
+              {trayKey && <span key={trayKey} className="ab-peek" data-layer={trayKey} data-kind="tray" data-dark={trayKey === 'home' ? '' : undefined} style={{ '--depth': 1 }} aria-hidden="true" />}
+              {levelBar(underLevel, false)}
+            </div>
+          )}
           {homeShown && (
             <div className="ab-bar" data-layer="home" data-kind="bar" data-level="default" data-under={!isDefault || undefined} role="toolbar" aria-label="Avatar">
               <div className="ab-history">
@@ -916,7 +881,6 @@ export default function AvatarBuilder({
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

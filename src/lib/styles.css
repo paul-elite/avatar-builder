@@ -783,3 +783,96 @@
   .ab-menu { transform: none; }
   .ab-bar[data-phase], .ab-bar[data-phase] > * { animation: none !important; }
 }
+
+/* ---- Category bars (Figma 113:9122) ----
+   Tabs sit in a soft well on the left (the chosen one is a white tile), the tab's options follow
+   inline, then tiles that open a bar above. Every bar is 64px: 56px tiles in 4px of padding. */
+.ab-bar[data-level="category"], .ab-bar[data-level="item"] { min-height: 64px; padding: 4px 24px 4px 4px; gap: 12px; }
+.ab-bar[data-level="item"] { padding-left: 16px; }
+.ab-tabs {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 16px;
+  background: #eff0f1;
+}
+.ab-tab {
+  display: grid;
+  grid-template-rows: 28px auto;
+  place-items: center;
+  align-content: center;
+  gap: 2px;
+  width: 54px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 160ms ease, box-shadow 160ms ease, transform 120ms ease-out;
+}
+.ab-tab .ab-cat-art { height: 28px; }
+.ab-tab .ab-cat-label { color: var(--ab-muted); font-size: 10.5px; line-height: normal; }
+.ab-tab:hover .ab-cat-label { color: var(--ab-ink); }
+.ab-tab:active { transform: scale(0.97); }
+.ab-tab.on { background: #fff; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(75, 78, 88, 0.12); }
+.ab-tab.on .ab-cat-label { color: #0b0c0e; }
+/* A tile that opens a bar above, lit while that bar is open */
+.ab-bar[data-level="category"] .ab-cat.on { background: #eff0f1; }
+.ab-bar[data-level="category"] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
+/* Colour bars: shades of the colour, and the full grid, before the colours */
+.ab-tool { width: 40px; }
+.ab-tool[data-open] { background: var(--ab-field); }
+.ab-tiles > .ab-sep-close { align-self: center; margin: 0 6px; }
+
+/* The bar under the top one: drawn, but quiet, so the top bar keeps the focus. Colour drains out,
+   the art lightens and loses contrast, labels go pale and the shadow thins; the tile that leads
+   to the bar above stays lit. */
+.ab-bar[data-muted] { box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(75, 78, 88, 0.05); }
+.ab-bar .ab-opts > .ab-tile svg,
+.ab-bar .ab-tab svg,
+.ab-bar .ab-cat svg,
+.ab-bar .ab-swatch .ab-dot,
+.ab-bar .ab-cat-label { transition: filter 180ms ease-out, opacity 180ms ease-out, color 180ms ease-out; }
+.ab-bar[data-muted] .ab-opts > .ab-tile svg,
+.ab-bar[data-muted] .ab-tab:not(.on) svg,
+.ab-bar[data-muted] .ab-cat:not(.on) svg,
+.ab-bar[data-muted] .ab-swatch .ab-dot { filter: grayscale(1) brightness(1.2) contrast(0.6); opacity: 0.55; }
+.ab-bar[data-muted] .ab-tab.on svg { filter: grayscale(0.6); opacity: 0.8; }
+.ab-bar[data-muted] .ab-cat-label,
+.ab-bar[data-muted] .ab-tab .ab-cat-label { color: #b9bcc4; }
+.ab-bar[data-muted] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
+.ab-bar[data-muted] .ab-tab.on { box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
+.ab-bar[data-muted] .ab-tile.on[data-kind="item"] { box-shadow: inset 0 0 0 1.5px #c9cbd1; }
+.ab-bar[data-muted] .ab-bar-close { color: #c9cbd1; }
+
+@media (max-width: 480px) {
+  .ab-bar[data-level="category"], .ab-bar[data-level="item"] { padding-right: 12px; gap: 8px; }
+  .ab-bar[data-level="item"] { padding-left: 8px; }
+  .ab-tab { width: 50px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ab-bar .ab-opts > .ab-tile svg, .ab-bar .ab-tab svg, .ab-bar .ab-cat svg { transition: none; }
+}
+
+/* The main row of a bar: on its own scroller, so tabs and tiles stay put while a long row scrolls
+   (about seven options show; the expand button opens the rest as a grid) */
+.ab-opts { display: flex; flex: none; align-items: center; gap: 9px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.ab-opts::-webkit-scrollbar { display: none; }
+.ab-opts > * { flex: none; }
+.ab-opts[data-swatches] { gap: 6px; padding: 0 2px; }
+.ab-opts[data-long] { flex: 0 1 auto; max-width: 400px; }
+.ab-opts[data-overflow] {
+  padding-right: 24px;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+}
+.ab-bar[data-level="category"] .ab-tiles, .ab-bar[data-level="item"] .ab-tiles { gap: 9px; }
+/* The tray hangs under the bar it belongs to */
+.ab-under { position: relative; display: flex; justify-content: center; max-width: 100%; }
+@media (max-width: 480px) {
+  /* On a phone the whole row scrolls as one (tabs, options, tiles), opening on what's chosen */
+  .ab-opts, .ab-opts[data-long] { flex: none; max-width: none; overflow: visible; }
+  .ab-opts[data-overflow] { padding-right: 0; -webkit-mask-image: none; mask-image: none; }
+}
