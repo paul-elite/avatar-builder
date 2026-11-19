@@ -656,7 +656,7 @@ export default function AvatarBuilder({
       return (
         <button key={k} type="button" className="ab-tile ab-cat" onClick={() => open(k)} data-opens={[...path, k].join('/')} aria-label={it.label}>
           <span className="ab-cat-art" style={off ? { opacity: 0.4 } : undefined}>
-            <NavIcon name={k} group={group.key} color={it.kind === 'color' && !it.optional ? config[k] : undefined} />
+            <NavIcon name={k} group={group.key} wheel={it.kind === 'color' && !it.optional} color={config[k]} />
           </span>
           <span className="ab-cat-label">{it.label}</span>
         </button>

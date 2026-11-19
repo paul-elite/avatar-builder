@@ -1,88 +1,97 @@
 import { useId } from 'react';
 
+
 /* =========================================================================
-   Navigation icons: one metaphor per category and item, never the item itself
-   (option tiles show the actual item). Line icons on a 24px grid, 1.5px
-   strokes in the current colour, matching the toolbar's undo / shuffle icons.
+   Tab icons. Rules, from the set curated in Figma (Toolbar 23:638, 24:1019):
+
+   1. The subject is the avatar itself. Every icon is the same little head
+      (the toolbar's head outline, a 23×28 box), not an outside metaphor
+      (no combs, wands or binoculars).
+   2. One part is filled. The part the tab edits is filled light grey
+      (#D5D7DD); everything else on the head is blank white. Never two filled parts.
+   3. Context is quiet. Eyes appear as small grey dots only when a tab needs
+      them for orientation (nose, mouth, brows…); nothing else is added.
+   4. One line weight: a 1px #9FA3B1 outline with round caps and joins, on every shape.
+   5. Height 28. Icons sit in the 28px frame; width follows the drawing.
+   6. A colour you must have (skin, hair, outfit, background, tongue) is the colour
+      wheel, filled with the current colour. A colour you can switch off
+      (headwear, glasses, tears, blush) is drawn as that thing, and the tile
+      fades while it's off.
+   7. Abstract settings (tilt) use a simple filled form: the segmented ball.
+   8. The torso tabs use the bust: a small head on the shoulders, the part
+      being edited filled.
    ========================================================================= */
 
-const L = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' };
-const Dot = ({ x, y }) => <circle cx={x} cy={y} r="1.1" fill="currentColor" />;
+const PART = '#D5D7DD';
+const BLANK = '#fff';
+const INK = '#9FA3B1';
+const K = { stroke: INK, strokeLinecap: 'round', strokeLinejoin: 'round' };
 
-const ICONS = {
-  /* Categories */
-  head: <><circle {...L} cx="12" cy="8" r="4" /><path {...L} d="M4.5 20.5c1-4 4-6 7.5-6s6.5 2 7.5 6" /></>, // a bust
-  hair: <><rect {...L} x="3" y="5" width="18" height="5" rx="1.5" /><path {...L} d="M5.5 10v8M9 10v8M12.5 10v8M16 10v8M19 10v6" /></>, // a comb
-  face: <><path {...L} d="M5 4h14v7a7 7 0 0 1-14 0Z" /><path {...L} d="M8.5 8.5h1.5M14 8.5h1.5M9 13c1.6 1.6 4.4 1.6 6 0" /></>, // a mask
-  eyes: <><circle {...L} cx="7" cy="16" r="3.5" /><circle {...L} cx="17" cy="16" r="3.5" /><path {...L} d="M5 13 8 5h2.5v8.5M19 13 16 5h-2.5v8.5M10.5 16h3" /></>, // binoculars
-  features: <><path {...L} d="M4 20 15 9" /><path {...L} d="M17.5 3v3.5M15.75 4.75h3.5M20.5 9v2.5M19.25 10.25h2.5M11 3.5v2M10 4.5h2" /></>, // a magic wand
-  outfit: <path {...L} d="M8.5 3.5 3.5 6.5l2 4 2-1V20.5h9V9.5l2 1 2-4-5-3c-.5 1.5-2 2.5-3.5 2.5S9 5 8.5 3.5Z" />, // a tee
-  background: <><path {...L} d="m5 11.5 6.5-6.5 7 7-6.5 6.5a1.5 1.5 0 0 1-2.1 0L5 13.6a1.5 1.5 0 0 1 0-2.1Z" /><path {...L} d="M5 12h13.5M9 7.5 6.5 5M20 15.5s1.5 2 1.5 3a1.5 1.5 0 0 1-3 0c0-1 1.5-3 1.5-3Z" /></>, // a paint bucket
-  frame: <path {...L} d="M7 3v14h14M3 7h14v14" />, // crop marks
+const Head = ({ fill = BLANK }) => <path d={FACE_D} fillRule="evenodd" clipRule="evenodd" fill={fill} {...K} />;
+const EyeDots = () => <><circle cx="9.2" cy="15.9" r=".85" fill={INK} /><circle cx="14.4" cy="15.9" r=".85" fill={INK} /></>;
+const MOUTH_D = 'M8.6 19.2h6.5a3.25 3.25 0 0 1-6.5 0Z';
+const Drop = ({ x }) => <path d={`M${x} 17.6c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6Z`} fill={PART} {...K} />;
 
-  /* Head */
-  ears: <><circle cx="5.5" cy="12" r="1.5" fill="currentColor" /><path {...L} d="M9.5 8.5a5 5 0 0 1 0 7M13 5.5a9 9 0 0 1 0 13M16.5 3a12.5 12.5 0 0 1 0 18" /></>, // listening
-  tilt: <path {...L} d="M20 12a8 8 0 1 1-2.35-5.65M20 4v4.5h-4.5" />, // a turn
-  // head shape: a circle and a square
-  'face:head': <><circle {...L} cx="8.5" cy="8.5" r="5" /><rect {...L} x="12" y="12" width="8.5" height="8.5" rx="1.5" /></>,
+// Head icons, 23×28. Functions, because the shared paths are defined further down.
+const HEAD_ICONS = {
+  // Face bar
+  'face:head': () => ({ w: 18.9985, art: <g {...K}><path d="M1.19784 9.93937C1.08485 11.1387 1.0652 12.1233 1.08728 12.8918C1.11316 13.7924 1.19631 14.3965 1.25371 14.7021L1.00979 14.8017C0.0694864 15.3775 0.633666 16.721 1.07247 17.7446C1.28765 18.2466 1.51791 18.364 1.74846 18.4815C1.98805 18.6037 2.22796 18.7258 2.45158 19.2802C2.80262 20.1503 3.60083 21.2634 3.95605 21.7113C5.23646 23.0181 6.80989 23.7115 8.38762 23.94C10.6255 24.2056 13.153 23.613 15.0424 21.6846C15.3978 21.2368 16.1959 20.1235 16.547 19.2534C16.7707 18.6993 17.0104 18.5769 17.2501 18.4548C17.4806 18.3374 17.7109 18.2199 17.9261 17.718C18.3649 16.6942 18.929 15.3508 17.9887 14.775L17.7449 14.6754C17.8008 14.3773 17.8813 13.7952 17.9092 12.9308C17.9344 12.1529 17.917 11.1465 17.8007 9.91269C17.4873 6.58582 14.4156 4.92239 11.9708 4.2826C10.1519 3.80661 8.22832 4.03151 7.32919 4.23687C7.22848 4.25896 7.12794 4.28306 7.02768 4.3093C4.5829 4.94908 1.51127 6.61251 1.19784 9.93937Z" fill={PART} /></g> }),
+  tilt: () => ({ w: 23, h: 23.0002, box: 23, art: <g {...K}><path d="M10.5112 0.543826C10.8369 0.514799 11.1667 0.5 11.5 0.5C14.0846 0.5 16.4611 1.39143 18.3386 2.88362C19.2832 3.63438 20.1016 4.53712 20.7567 5.555C21.8599 7.26929 22.5 9.30991 22.5 11.5C22.5 11.9615 22.4716 12.4162 22.4164 12.8628C22.1079 15.3594 20.9628 17.5969 19.2702 19.2861C17.2802 21.272 14.5335 22.5 11.5 22.5C10.3194 22.5 9.18226 22.314 8.11627 21.9697C4.46101 20.7892 1.64221 17.7478 0.776611 13.9621C0.595594 13.1705 0.5 12.3464 0.5 11.5C0.5 7.61019 2.51902 4.192 5.5662 2.23612C7.01708 1.30486 8.70109 0.705073 10.5112 0.543826Z" fill={PART} /><path d="M6.94354 14.5072C7.00297 17.1851 7.41905 19.7138 8.11627 21.9698C4.46101 20.7893 1.64221 17.7478 0.776611 13.9621C2.68455 14.2452 4.76025 14.4332 6.94354 14.5072Z" fill={BLANK} /><path d="M8.11629 21.97C7.41908 19.714 7.00299 17.1853 6.94357 14.5074C7.30034 14.5195 7.66004 14.5286 8.0223 14.5345C8.36022 14.54 8.70037 14.5428 9.04258 14.5428C12.6886 14.5428 16.1014 14.226 19.0225 13.6742C19.0006 14.1512 18.9894 14.6362 18.9894 15.1279C18.9894 16.5856 19.0883 17.9852 19.2702 19.2863C17.2802 21.2723 14.5336 22.5002 11.5 22.5002C10.3195 22.5002 9.18228 22.3143 8.11629 21.97Z" fill={BLANK} /><path d="M18.9893 15.1275C18.9893 14.6358 19.0006 14.1508 19.0225 13.6739C20.2464 13.4427 21.3841 13.1702 22.4164 12.8626C22.1079 15.3593 20.9627 17.5968 19.2702 19.286C19.0882 17.9848 18.9893 16.5853 18.9893 15.1275Z" fill={PART} /><path d="M22.4164 12.863C21.3841 13.1706 20.2465 13.4431 19.0225 13.6743C19.1716 10.4269 19.8142 7.55801 20.7567 5.55527C21.8599 7.26957 22.5 9.31018 22.5 11.5003C22.5 11.9617 22.4716 12.4165 22.4164 12.863Z" fill={PART} /><path d="M10.5112 0.543826C10.1778 1.04391 9.86314 1.57719 9.56939 2.14053C7.92755 5.28884 6.93618 9.37493 6.93618 13.8404C6.93618 14.0637 6.93864 14.2859 6.94355 14.5072C7.30033 14.5193 7.66002 14.5283 8.02229 14.5342C8.36021 14.5398 8.70036 14.5426 9.04256 14.5426C12.6886 14.5426 16.1014 14.2257 19.0225 13.674C19.1716 10.4266 19.8142 7.55773 20.7567 5.555C20.1016 4.53712 19.2832 3.63438 18.3386 2.88362C16.4611 1.39143 14.0847 0.5 11.5 0.5C11.1667 0.5 10.8369 0.514799 10.5112 0.543826Z" fill={BLANK} /><path d="M9.56938 2.14074C9.86313 1.57741 10.1777 1.04413 10.5112 0.544043C8.70109 0.70529 7.01708 1.30508 5.5662 2.23634C2.51902 4.19222 0.5 7.6104 0.5 11.5002C0.5 12.3466 0.595594 13.1707 0.776611 13.9623C2.68455 14.2454 4.76025 14.4334 6.94354 14.5074C6.93863 14.2862 6.93617 14.0639 6.93617 13.8406C6.93617 9.37515 7.92754 5.28906 9.56938 2.14074Z" fill={BLANK} /></g> }),
+  ears: () => <><ellipse cx="3.9" cy="17.3" rx="1.9" ry="2.6" fill={PART} {...K} /><ellipse cx="19.6" cy="17.3" rx="1.9" ry="2.6" fill={PART} {...K} /><Head /></>,
+  features: () => <><Head /><ellipse cx="9.2" cy="16" rx="1.2" ry="1.5" fill={PART} {...K} /><ellipse cx="14.4" cy="16" rx="1.2" ry="1.5" fill={PART} {...K} /><path d="M9.6 19.6h4.5a2.25 2.25 0 0 1-4.5 0Z" fill={PART} {...K} /></>,
 
-  /* Hair */
-  'hair:hair': <><circle {...L} cx="6" cy="6" r="2.5" /><circle {...L} cx="6" cy="18" r="2.5" /><path {...L} d="M8.2 7.3 20 18M8.2 16.7 20 6" /></>, // scissors
-  hairColor: <><path {...L} d="m13 13.5 7-7.5a1.8 1.8 0 0 0-2.5-2.5L10 10.5" /><path {...L} d="M10 10.5c-2.2 0-3.7 1.6-3.7 3.6 0 1.6-1 2.6-2.8 3.1 3.2 1.3 7.3.6 8.9-2.4.6-1.6.4-2.8-2.4-4.3Z" /></>, // a brush
-  cap: <path {...L} d="M4 18.5h16M4.5 18.5 3 7.5l5 4 4-6.5 4 6.5 5-4-1.5 11" />, // a crown
-  hat: <><path {...L} d="M3 12a9 9 0 0 1 18 0Z" /><path {...L} d="M12 12v6.5a2 2 0 0 1-4 0" /></>, // an umbrella
+  // Features: one organ each
+  eyes: () => <><Head /><ellipse cx="9.1" cy="16" rx="1.6" ry="2" fill={PART} {...K} /><ellipse cx="14.5" cy="16" rx="1.6" ry="2" fill={PART} {...K} /></>,
+  gaze: () => <><Head /><circle cx="9.1" cy="16" r="2.2" fill={BLANK} {...K} /><circle cx="14.5" cy="16" r="2.2" fill={BLANK} {...K} /><circle cx="10" cy="16.4" r="1.1" fill={INK} /><circle cx="15.4" cy="16.4" r="1.1" fill={INK} /></>,
+  brows: () => <><Head /><EyeDots /><rect x="7.3" y="12.3" width="3.8" height="1.6" rx=".8" transform="rotate(-8 9.2 13.1)" fill={PART} {...K} /><rect x="12.5" y="12.3" width="3.8" height="1.6" rx=".8" transform="rotate(8 14.4 13.1)" fill={PART} {...K} /></>,
+  glasses: () => <><Head /><path d="M4 15.3h2.4M17.3 15.3h2.4M11.3 15.6c.35-.4.75-.4 1.1 0" fill="none" {...K} /><circle cx="8.9" cy="16" r="2.5" fill={PART} {...K} /><circle cx="14.8" cy="16" r="2.5" fill={PART} {...K} /></>,
+  tears: () => <><Head /><EyeDots /><Drop x={8.7} /><Drop x={15} /></>,
+  mouth: () => <><Head /><EyeDots /><path d={MOUTH_D} fill={PART} {...K} /></>,
+  tongue: () => <><Head /><EyeDots /><path d={MOUTH_D} fill={BLANK} {...K} /><path d="M10.3 21.5a1.55 1.3 0 0 1 3.1 0c0 .5-.7.85-1.55.85s-1.55-.35-1.55-.85Z" fill={PART} {...K} /></>,
+  nose: () => <><Head /><EyeDots /><path d="M11.85 15.9c-.6 1.3-1.7 2.5-1.7 3.2 0 .6.7.9 1.7.9s1.7-.3 1.7-.9c0-.7-1.1-1.9-1.7-3.2Z" fill={PART} {...K} /></>,
+  blush: () => <><Head /><EyeDots /><ellipse cx="7.1" cy="19" rx="1.9" ry="1.2" fill={PART} {...K} /><ellipse cx="16.6" cy="19" rx="1.9" ry="1.2" fill={PART} {...K} /></>,
+  gesture: () => <><Head /><EyeDots /><path d="M15.4 27.2v-4.6a1 1 0 0 1 2 0v-.9a1 1 0 0 1 2 0v.7a1 1 0 0 1 1.9.3V25c0 1.6-1.2 2.6-2.8 2.6h-.7c-1 0-1.7-.2-2.4-.4Z" fill={PART} {...K} /></>,
 
-  /* Face */
-  mouth: <path {...L} d="M4 5h16v11H9.5L5 19.5V16H4Z" />, // a speech bubble
-  tongue: <><circle {...L} cx="12" cy="8.5" r="5.5" /><path {...L} d="M12 8.5a2 2 0 1 1 2 2M12 14v7" /></>, // a lollipop
-  brows: <><path {...L} d="M9 9a3 3 0 1 1 4.4 2.7c-.9.5-1.4 1.1-1.4 2.3" /><Dot x={12} y={18} /></>, // a question
+  // Hair
+  'hair:hair': () => <><Head /><path d={FRINGE_D} fill={PART} {...K} /></>,
+  cap: () => <><Head /><path d="M11.7027 8.54678L11.7027 8.54904C10.2786 8.59646 8.81299 8.77262 7.22388 9.5513C5.63057 10.332 4.07561 11.4152 3.50337 12.9025C3.49539 12.9232 3.48761 12.944 3.48002 12.9649C3.87109 13.9353 5.51576 14.7105 6.97539 13.3148C8.13661 12.0124 9.38319 11.0425 11.7027 11.0232L11.7027 11.0209C14.0222 11.0403 15.2688 12.0101 16.43 13.3125C17.8896 14.7082 19.5834 13.9185 19.9744 12.9481C19.973 12.9453 19.9716 12.9426 19.9702 12.9399C19.2454 11.5202 17.7939 10.3391 16.1815 9.54904C14.5924 8.77036 13.1268 8.5942 11.7027 8.54678Z" fill={BLANK} {...K} /><path d="M3.50362 12.9021C3.482 12.1649 3.50123 11.2206 3.61184 10.0703C3.91865 6.87941 6.92545 5.28397 9.31861 4.67034C9.41675 4.64517 9.51518 4.62206 9.61375 4.60086C10.4939 4.4039 12.377 4.1882 14.1575 4.64473C16.5506 5.25836 19.5574 6.85381 19.8642 10.0447C19.978 11.228 19.9951 12.1934 19.9705 12.9395C19.2457 11.5198 17.7941 10.3387 16.1817 9.54863C14.5926 8.76995 13.1271 8.59379 11.7029 8.54637L11.7029 8.54863C10.2788 8.59605 8.81325 8.77221 7.22413 9.55089C5.63082 10.3316 4.07587 11.4148 3.50362 12.9021Z" fill={PART} {...K} /></>,
+  hat: () => <><Head /><path d="M6.7 11.3c0-3.7 2.3-6.8 5.15-6.8s5.15 3.1 5.15 6.8Z" fill={PART} {...K} /><path d="M2.7 11.7c0-.75 4.1-1.35 9.15-1.35S21 10.95 21 11.7s-4.1 1.35-9.15 1.35S2.7 12.45 2.7 11.7Z" fill={PART} {...K} /></>,
+};
+// The Features organs share their item's drawing
+Object.assign(HEAD_ICONS, {
+  'features:eyes': HEAD_ICONS.eyes,
+  'features:mouth': HEAD_ICONS.mouth,
+  'features:nose': HEAD_ICONS.nose,
+  'features:cheeks': HEAD_ICONS.blush,
+  'features:hands': HEAD_ICONS.gesture,
+});
 
-  /* Features: one metaphor per organ */
-  'features:eyes': <><circle {...L} cx="7" cy="16" r="3.5" /><circle {...L} cx="17" cy="16" r="3.5" /><path {...L} d="M5 13 8 5h2.5v8.5M19 13 16 5h-2.5v8.5M10.5 16h3" /></>, // binoculars
-  'features:mouth': <><rect {...L} x="9" y="3" width="6" height="11" rx="3" /><path {...L} d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6" /></>, // a microphone
-  'features:nose': <><path {...L} d="M8 4l2 2.5 2-3 2 3L16 4v4a4 4 0 0 1-8 0Z" /><path {...L} d="M12 12v9M12 17.5c-2.4 0-3.9-1.4-4.4-3.4 2.4 0 3.9 1.4 4.4 3.4Z" /></>, // a flower
-  'features:cheeks': <path {...L} d="M12 19.5S4 14.8 4 9.3A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 8 2.3c0 5.5-8 10.2-8 10.2Z" />, // a heart
-  'features:hands': <path {...L} d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1V4a1.5 1.5 0 0 1 3 0v7m0-.5V5.5a1.5 1.5 0 0 1 3 0V14c0 3.8-2.6 6.5-6.2 6.5-2.4 0-4-1.1-5.4-3.2l-2.2-3.5a1.5 1.5 0 0 1 2.5-1.6L8 14" />, // a wave
-
-  /* Eyes */
-  'eyes:eyes': <><path {...L} d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" /><circle {...L} cx="12" cy="12" r="2.5" /></>, // an eye
-  gaze: <><circle {...L} cx="12" cy="12" r="9" /><path {...L} d="m15.5 8.5-2 5-5 2 2-5Z" /></>, // a compass
-  glasses: <path {...L} d="M12 6.5C10 5 7 4.5 4 5v13.5c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5V5c-3-.5-6 0-8 1.5ZM12 6.5V20" />, // a book
-  tears: <><path {...L} d="M7 14.5a3.8 3.8 0 0 1-.4-7.6 5.5 5.5 0 0 1 10.6 1.6 3 3 0 0 1-.2 6Z" /><path {...L} d="m8.5 17.5-1 2.5M12.5 17.5l-1 2.5M16.5 17.5l-1 2.5" /></>, // rain
-
-  /* Features */
-  nose: <><path {...L} d="M8 4l2 2.5 2-3 2 3L16 4v4a4 4 0 0 1-8 0Z" /><path {...L} d="M12 12v9M12 17.5c-2.4 0-3.9-1.4-4.4-3.4 2.4 0 3.9 1.4 4.4 3.4Z" /></>, // a flower (smell)
-  blush: <path {...L} d="M12 19.5S4 14.8 4 9.3A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 8 2.3c0 5.5-8 10.2-8 10.2Z" />, // a heart
-  gesture: <path {...L} d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11m0-1V4a1.5 1.5 0 0 1 3 0v7m0-.5V5.5a1.5 1.5 0 0 1 3 0V14c0 3.8-2.6 6.5-6.2 6.5-2.4 0-4-1.1-5.4-3.2l-2.2-3.5a1.5 1.5 0 0 1 2.5-1.6L8 14" />, // a wave
-
-  /* Torso */
-  body: <><path {...L} d="M3 15.5 15.5 3 21 8.5 8.5 21Z" /><path {...L} d="m7 11.5 1.5 1.5M10 8.5l1.5 1.5M13 5.5l1.5 1.5" /></>, // a ruler
-  'outfit:outfit': <><path {...L} d="M12 7.5a2 2 0 1 1 2-2" /><path {...L} d="M12 7.5V9l-8.6 6.6A1.4 1.4 0 0 0 4.3 18h15.4a1.4 1.4 0 0 0 .9-2.4L12 9" /></>, // a hanger
-  outfitColor: <><path {...L} d="M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.3-1.6-1.3-2.8 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8Z" /><Dot x={7.5} y={11} /><Dot x={9.5} y={7} /><Dot x={14.5} y={7} /></>, // a palette
-  detail: <path {...L} d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z" />, // a star
+// Bust icons, 26.47×28: a small head on the shoulders
+const MiniHead = () => <g transform="translate(6.05 2.45) scale(.62)"><path d={FACE_D} fillRule="evenodd" fill={BLANK} {...K} strokeWidth={1 / 0.62} /></g>;
+const BUST_ICONS = {
+  torso: () => <><path d={BUST_D} fill={PART} {...K} /><MiniHead /></>,
+  'outfit:outfit': () => <><path d={BUST_D} fill={PART} {...K} /><path d="M10.8 16.7c1.6 1.6 3.3 1.6 4.9 0l-2.45 4.2Z" fill={BLANK} {...K} /><MiniHead /></>,
+  body: () => <><path d={BUST_D} fill={BLANK} {...K} /><path d="M6 23.2h14.5M7.4 21.8 6 23.2l1.4 1.4M19.1 21.8l1.4 1.4-1.4 1.4" fill="none" {...K} /><MiniHead /></>,
+  detail: () => <><path d={BUST_D} fill={BLANK} {...K} /><rect x="16.2" y="21" width="3.8" height="3.4" rx=".7" fill={PART} {...K} /><MiniHead /></>,
 };
 
-
-/* Filled tile icons drawn in Figma (Toolbar 23:638): a grey head for Head shape, a segmented
-   ball for Tilt. Their own art boxes; light fill, mid-grey outline. */
-const FIG = { fill: 'none', stroke: '#9FA3B1', strokeLinecap: 'round', strokeLinejoin: 'round' };
-const FIGMA_ICONS = {
-  'face:head': { w: 18.9985, h: 28, art: <g {...FIG}><path d="M1.19784 9.93937C1.08485 11.1387 1.0652 12.1233 1.08728 12.8918C1.11316 13.7924 1.19631 14.3965 1.25371 14.7021L1.00979 14.8017C0.0694864 15.3775 0.633666 16.721 1.07247 17.7446C1.28765 18.2466 1.51791 18.364 1.74846 18.4815C1.98805 18.6037 2.22796 18.7258 2.45158 19.2802C2.80262 20.1503 3.60083 21.2634 3.95605 21.7113C5.23646 23.0181 6.80989 23.7115 8.38762 23.94C10.6255 24.2056 13.153 23.613 15.0424 21.6846C15.3978 21.2368 16.1959 20.1235 16.547 19.2534C16.7707 18.6993 17.0104 18.5769 17.2501 18.4548C17.4806 18.3374 17.7109 18.2199 17.9261 17.718C18.3649 16.6942 18.929 15.3508 17.9887 14.775L17.7449 14.6754C17.8008 14.3773 17.8813 13.7952 17.9092 12.9308C17.9344 12.1529 17.917 11.1465 17.8007 9.91269C17.4873 6.58582 14.4156 4.92239 11.9708 4.2826C10.1519 3.80661 8.22832 4.03151 7.32919 4.23687C7.22848 4.25896 7.12794 4.28306 7.02768 4.3093C4.5829 4.94908 1.51127 6.61251 1.19784 9.93937Z" fill="#D5D7DD" /></g> },
-  tilt: { w: 23, h: 23.0002, size: 23, art: <g {...FIG}><path d="M10.5112 0.543826C10.8369 0.514799 11.1667 0.5 11.5 0.5C14.0846 0.5 16.4611 1.39143 18.3386 2.88362C19.2832 3.63438 20.1016 4.53712 20.7567 5.555C21.8599 7.26929 22.5 9.30991 22.5 11.5C22.5 11.9615 22.4716 12.4162 22.4164 12.8628C22.1079 15.3594 20.9628 17.5969 19.2702 19.2861C17.2802 21.272 14.5335 22.5 11.5 22.5C10.3194 22.5 9.18226 22.314 8.11627 21.9697C4.46101 20.7892 1.64221 17.7478 0.776611 13.9621C0.595594 13.1705 0.5 12.3464 0.5 11.5C0.5 7.61019 2.51902 4.192 5.5662 2.23612C7.01708 1.30486 8.70109 0.705073 10.5112 0.543826Z" fill="#D5D7DD" /><path d="M6.94354 14.5072C7.00297 17.1851 7.41905 19.7138 8.11627 21.9698C4.46101 20.7893 1.64221 17.7478 0.776611 13.9621C2.68455 14.2452 4.76025 14.4332 6.94354 14.5072Z" fill="#fff" /><path d="M8.11629 21.97C7.41908 19.714 7.00299 17.1853 6.94357 14.5074C7.30034 14.5195 7.66004 14.5286 8.0223 14.5345C8.36022 14.54 8.70037 14.5428 9.04258 14.5428C12.6886 14.5428 16.1014 14.226 19.0225 13.6742C19.0006 14.1512 18.9894 14.6362 18.9894 15.1279C18.9894 16.5856 19.0883 17.9852 19.2702 19.2863C17.2802 21.2723 14.5336 22.5002 11.5 22.5002C10.3195 22.5002 9.18228 22.3143 8.11629 21.97Z" fill="#fff" /><path d="M18.9893 15.1275C18.9893 14.6358 19.0006 14.1508 19.0225 13.6739C20.2464 13.4427 21.3841 13.1702 22.4164 12.8626C22.1079 15.3593 20.9627 17.5968 19.2702 19.286C19.0882 17.9848 18.9893 16.5853 18.9893 15.1275Z" fill="#D5D7DD" /><path d="M22.4164 12.863C21.3841 13.1706 20.2465 13.4431 19.0225 13.6743C19.1716 10.4269 19.8142 7.55801 20.7567 5.55527C21.8599 7.26957 22.5 9.31018 22.5 11.5003C22.5 11.9617 22.4716 12.4165 22.4164 12.863Z" fill="#D5D7DD" /><path d="M10.5112 0.543826C10.1778 1.04391 9.86314 1.57719 9.56939 2.14053C7.92755 5.28884 6.93618 9.37493 6.93618 13.8404C6.93618 14.0637 6.93864 14.2859 6.94355 14.5072C7.30033 14.5193 7.66002 14.5283 8.02229 14.5342C8.36021 14.5398 8.70036 14.5426 9.04256 14.5426C12.6886 14.5426 16.1014 14.2257 19.0225 13.674C19.1716 10.4266 19.8142 7.55773 20.7567 5.555C20.1016 4.53712 19.2832 3.63438 18.3386 2.88362C16.4611 1.39143 14.0847 0.5 11.5 0.5C11.1667 0.5 10.8369 0.514799 10.5112 0.543826Z" fill="#fff" /><path d="M9.56938 2.14074C9.86313 1.57741 10.1777 1.04413 10.5112 0.544043C8.70109 0.70529 7.01708 1.30508 5.5662 2.23634C2.51902 4.19222 0.5 7.6104 0.5 11.5002C0.5 12.3466 0.595594 13.1707 0.776611 13.9623C2.68455 14.2454 4.76025 14.4334 6.94354 14.5074C6.93863 14.2862 6.93617 14.0639 6.93617 13.8406C6.93617 9.37515 7.92754 5.28906 9.56938 2.14074Z" fill="#fff" /></g> },
-};
-
-/* `name` is a category or item key; `group` disambiguates an item that shares its category's name */
-export function NavIcon({ name, group, size = 26, color }) {
-  if (name === 'skin' && !(group && ICONS[`${group}:skin`])) return <ColourWheel size={size} color={color} />;
-  const fig = (group && FIGMA_ICONS[`${group}:${name}`]) || FIGMA_ICONS[name];
-  if (fig) {
-    const h = fig.size ?? 28, w = fig.size ?? (fig.w / fig.h) * 28;
-    return <svg className="ab-fig-icon" width={w} height={h} viewBox={`0 0 ${fig.w} ${fig.h}`} overflow="visible" aria-hidden="true">{fig.art}</svg>;
+/* `name` is a category or item key; `group` disambiguates an item that shares its
+   category's name. `wheel` marks a colour you must have (rule 6). */
+export function NavIcon({ name, group, wheel, color }) {
+  if (wheel) return <ColourWheel size={26} color={color} />;
+  const pick = (set) => (group && set[`${group}:${name}`]) || set[name];
+  const bust = pick(BUST_ICONS);
+  if (bust) return <svg className="ab-fig-icon" width="26.4686" height="28" viewBox="0 0 26.4686 28" fill="none" overflow="visible" aria-hidden="true">{bust()}</svg>;
+  const head = pick(HEAD_ICONS);
+  if (!head) return null;
+  const art = head();
+  if (art && art.art) {
+    const h = art.box ?? 28, w = art.box ?? art.w * (28 / (art.h ?? 28));
+    return <svg className="ab-fig-icon" width={w} height={h} viewBox={`0 0 ${art.w} ${art.h ?? 28}`} overflow="visible" aria-hidden="true">{art.art}</svg>;
   }
-  const art = (group && ICONS[`${group}:${name}`]) || ICONS[name];
-  if (!art) return null;
-  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{art}</svg>;
+  return <svg className="ab-fig-icon" width="23" height="28" viewBox="0 0 23 28" fill="none" overflow="visible" aria-hidden="true">{art}</svg>;
 }
+
 
 /* The colour wheel (Figma "UI/Colour wheel" 44:2), from its own layers: the exported
    spectrum image, the shine over it, and the white hub with its dark ring and soft shadow. */
