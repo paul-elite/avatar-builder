@@ -46,7 +46,7 @@ import { NavIcon, BarIcon } from './icons.jsx';
 
 // demote overlaps enter: the new bar starts as the old one is still settling into the tray,
 // so there's never a frame with an empty slab. 'tab' (switching sibling items) keeps the bar.
-const MS = { tab: 180, morph: 180, fold: 160, flip: 360 };
+const MS = { tab: 150, morph: 150, fold: 130, flip: 300 };
 
 /* ---- Colours: a row first, the full grid behind a button ---- */
 const hsl = (h, s, l) => {
@@ -394,12 +394,14 @@ export default function AvatarBuilder({
           const from = snap.opens[key] || snap.from;
           if (from) {
             // The bar grows out of the top of its tab: from 66% scale, pinned at the tab's top centre,
-            // fading up from nothing with a touch of motion blur that clears as it settles
+            // fading up from nothing with a touch of motion blur, and a little spring as it lands
+            // (a 2% overshoot that settles back)
             const fr = from.rect || from;
             const origin = `${fr.left + fr.width / 2 - r.left}px ${fr.top - r.top}px`;
             el.animate([
               { transformOrigin: origin, transform: 'scale(0.66)', opacity: 0, filter: 'blur(2px)' },
-              { transformOrigin: origin, opacity: 1, offset: 0.6 },
+              { transformOrigin: origin, opacity: 1, offset: 0.5 },
+              { transformOrigin: origin, transform: 'scale(1.02)', filter: 'blur(0)', offset: 0.72 },
               { transformOrigin: origin, transform: 'none', opacity: 1, filter: 'blur(0)' },
             ], { duration: M, easing: ease });
           } else {
@@ -433,10 +435,12 @@ export default function AvatarBuilder({
         // into its place draw over it
         const g = ghost(old, under);
         const drop = Math.min(10, Math.max(0, tab.rect.top - old.rect.bottom) + 6);
+        // a little spring: it slips slightly past where it stops, then eases back as it vanishes
         done(g.animate([
           { transform: 'none', opacity: 1, filter: 'blur(0)' },
+          { transform: `translateY(${drop * 1.25}px)`, opacity: 0.3, offset: 0.7 },
           { transform: `translateY(${drop}px)`, opacity: 0, filter: 'blur(2px)' },
-        ], { duration: 150, delay: leaveAt, easing: 'ease-out', fill: 'both' }), g);
+        ], { duration: 120, delay: leaveAt, easing: 'ease-out', fill: 'both' }), g);
         continue;
       }
       const g = ghost(old, under);
