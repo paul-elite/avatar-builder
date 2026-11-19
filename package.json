@@ -9,8 +9,17 @@
     "type": "git",
     "url": "git+https://github.com/paul-elite/avatar-builder.git"
   },
-  "keywords": ["avatar", "react", "svg", "component", "builder", "profile"],
-  "sideEffects": ["*.css"],
+  "keywords": [
+    "avatar",
+    "react",
+    "svg",
+    "component",
+    "builder",
+    "profile"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "./dist-lib/avatar-builder.cjs",
   "module": "./dist-lib/avatar-builder.js",
   "exports": {
@@ -20,10 +29,13 @@
     },
     "./styles.css": "./src/lib/styles.css"
   },
-  "files": ["dist-lib", "src/lib"],
+  "files": [
+    "dist-lib",
+    "src/lib"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.embed.config.js",
     "build:lib": "vite build --config vite.lib.config.js",
     "preview": "vite preview",
     "prepare": "vite build --config vite.lib.config.js"

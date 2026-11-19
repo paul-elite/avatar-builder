@@ -296,16 +296,43 @@ export function headSwatchSvg(color, shape) {
 }
 
 /* A complete, standalone SVG document string — drop into an <img src>, save,
-   or render a saved avatar anywhere without the builder UI. The background
-   fills the square unless bg is 'transparent'. */
-export function avatarToSvg(config, { size = 512 } = {}) {
+   or render a saved avatar anywhere without the builder UI.
+
+   It's also the portable template (see document.js): the look travels inside it
+   as <metadata><avatar-builder>{document JSON}</avatar-builder></metadata>, and the
+   drawing is split into named layers and parts, so any copy of it can be opened
+   in the editor again (readAvatar) and edited from where it was.
+   `embed: false` leaves the metadata out; `seed` is recorded when it was generated. */
+export function avatarToSvg(config, { size = 512, embed = true, seed, title = 'Avatar' } = {}) {
   const c = { ...defaultAvatar, ...config };
   const view = viewFor(c);
   const [x, y, w, h] = view.split(' ').map(Number);
   // The background is always round (older saved looks with another frame render round too)
   const fill = c.bg && c.bg !== 'transparent' ? c.bg : null;
-  const bg = !fill ? '' : `<circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2}" fill="${fill}"/>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" width="${size}" height="${size}" role="img" aria-label="Avatar">${bg}${innerSvg(c, { id: 'export' })}</svg>`;
+  const bg = !fill ? '' : `<g data-layer="background"><circle cx="${x + w / 2}" cy="${y + h / 2}" r="${w / 2}" fill="${fill}"/></g>`;
+  // Ids unique to this look, so several avatars inlined on one page don't share masks
+  const id = 'av' + hashString(JSON.stringify(c));
+  let meta = '';
+  if (embed) {
+    const doc = { format: 'avatar-builder', version: 1, config: c, ...(seed ? { seed: String(seed) } : {}) };
+    const json = JSON.stringify(doc).replace(/&/g, '\\u0026').replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+    meta = `<metadata><avatar-builder xmlns="https://avatars.paulelite.com/ns/avatar/1">${json}</avatar-builder></metadata>`;
+  }
+  const label = String(title).replace(/[<>&"]/g, '');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${view}" width="${size}" height="${size}" role="img" aria-label="${label}" data-avatar-format="avatar-builder/1"><title>${label}</title>${meta}${bg}<g data-layer="avatar">${innerSvg(c, { id, parts: true })}</g></svg>`;
+}
+
+/* A short, stable hash of a string (cyrb53), as base-36. Not for secrets. */
+export function hashString(str, seed = 0) {
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0, ch; i < str.length; i++) {
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
 /* A base64 data URI, handy for <img src={avatarToDataUri(config)} />. */

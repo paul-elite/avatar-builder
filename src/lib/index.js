@@ -1,10 +1,25 @@
 export { default as AvatarBuilder } from './AvatarBuilder.jsx';
+export { default as Avatar } from './Avatar.jsx';
+export {
+  AVATAR_FORMAT,
+  AVATAR_FORMAT_VERSION,
+  normalizeAvatar,
+  compactAvatar,
+  toAvatarDocument,
+  readAvatar,
+  readAvatarDocument,
+  loadAvatar,
+  encodeAvatar,
+  decodeAvatar,
+} from './document.js';
+export { avatarFromSeed, avatarFromUser, seedFromUser, GENERATOR_VERSION } from './seed.js';
 export {
   avatarToSvg,
   avatarToDataUri,
   innerSvg,
   itemSvg,
   randomAvatar,
+  hashString,
   defaultAvatar,
   AVATAR_OPTIONS,
   SETUP,

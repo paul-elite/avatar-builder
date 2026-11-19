@@ -6,6 +6,9 @@
    and the levels behind the current one peek out as faded bars. Type inherits
    from the host app. */
 
+/* Self-contained sizing, whatever the host page sets */
+.ab-root, .ab-root *, .ab-root *::before, .ab-root *::after { box-sizing: border-box; }
+
 .ab-root {
   --ab-ink: #141b34;
   --ab-muted: #9a9a95;

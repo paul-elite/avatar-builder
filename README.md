@@ -39,13 +39,103 @@ import { avatarToDataUri } from 'avatar-builder';
 <img src={avatarToDataUri(config)} width={48} height={48} alt="" />
 ```
 
+## Avatars on demand (HTTP API)
+
+Give every user an avatar before they've made one. The same seed always gives the
+same face, so you can store nothing and still show a stable avatar.
+
+```html
+<img src="https://avatars.paulelite.com/a/user_42.svg" width="48" height="48" alt="">
+```
+
+| Request | Returns |
+| --- | --- |
+| `GET /a/<seed>.svg` | The avatar as `image/svg+xml` |
+| `GET /a/<seed>.json` | `{ seed, url, editUrl, config, document, svg }` |
+| `GET /api/avatar?id=42` (or `email`, `username`, `name`) | The SVG for that user. The value is hashed into the seed, so it never appears in the image URL |
+| `GET /api/avatar?seed=x&hair=mop&skin=f3d2b9` | The generated look with some fields pinned |
+| `GET /api/avatar?avatar=<code>` | An exact look, from a share code |
+| `POST /api/avatar` `{ "user": { "id": 42, "avatar": {...saved} } }` | One avatar as JSON. A saved `avatar` wins over the generated look |
+| `POST /api/avatar` `{ "users": [ ... ] }` | Up to 100 at once |
+
+Query options: `size` (16–2048, default 256), `format=json`, `download=1`.
+Responses are CORS-enabled and cached.
+
+User metadata is only used to choose a seed. Profile fields such as name, gender or
+age are never used to guess what someone looks like. If you know a user's
+choices, pass them explicitly as `avatar`.
+
+## The portable avatar (edit it again anywhere)
+
+Every avatar, whether made by the editor, the library or the API, is an SVG that
+carries its own description:
+
+```xml
+<svg … data-avatar-format="avatar-builder/1">
+  <metadata><avatar-builder>{"format":"avatar-builder","version":1,"config":{…},"seed":"…"}</avatar-builder></metadata>
+  <g data-layer="background">…</g>
+  <g data-layer="avatar"><g data-part="skin">…</g><g data-part="eyes">…</g><g data-part="hair">…</g>…</g>
+</svg>
+```
+
+So an avatar already saved or embedded on another website is also a template.
+Hand that SVG (or its URL) back to the editor and the user carries on from that
+exact look:
+
+```js
+import { readAvatar, loadAvatar } from 'avatar-builder';
+
+readAvatar(svgString)          // → config, also from an <svg> element, a data URI, a document, JSON or a partial config
+await loadAvatar(url)          // → fetch an avatar SVG and read it
+```
+
+Everything read is validated: unknown shapes fall back to defaults, and colours
+must be plain hex values. This makes it safe to accept avatars from users.
+
+Shareable links use a short code: `https://avatars.paulelite.com/?avatar=<code>`
+(`encodeAvatar` / `decodeAvatar`). The site's ⋮ menu has **Copy link**.
+
+## Embed on any website (no build step)
+
+```html
+<script src="https://avatars.paulelite.com/embed.js" defer></script>
+
+<!-- show avatars -->
+<avatar-image seed="user_42" size="48"></avatar-image>
+<avatar-image src="https://avatars.paulelite.com/a/user_42.svg"></avatar-image>
+
+<!-- let users create or edit theirs, starting from any avatar -->
+<form>
+  <avatar-builder name="avatar" template="https://avatars.paulelite.com/a/user_42.svg"></avatar-builder>
+</form>
+```
+
+- `template`: where to start editing from. It accepts an avatar URL, SVG markup, an `?avatar=` code, or `seed:<seed>`.
+- `name`: inside a form, submits the avatar document as JSON.
+- `persist`: a storage key, to remember the look in that browser.
+- **Event:** `change` fires with `event.detail = { config, svg, document, code }`.
+- **Properties:** `.value`, `.svg` and `.document` read the current avatar; setting `.value` loads one.
+- `window.AvatarKit` exposes the functions above (`readAvatar`, `avatarFromSeed`, …).
+
+## React components
+
+```jsx
+import { Avatar, AvatarBuilder, avatarFromUser } from 'avatar-builder';
+
+<Avatar user={{ id: user.id }} size={40} />            // generated, stable
+<Avatar value={user.savedAvatar} size={40} />          // a saved config, document or SVG
+<AvatarBuilder template={user.savedAvatar ?? avatarFromUser(user).config}
+               onChange={(config, { svg, document }) => save(document)} />
+```
+
 ## `<AvatarBuilder>` props
 
 | Prop          | Type                                 | Default | Description                                   |
 | ------------- | ------------------------------------ | ------- | --------------------------------------------- |
 | `value`       | `AvatarConfig`                       | —       | Controlled config. Omit for uncontrolled.     |
 | `defaultValue`| `AvatarConfig`                       | —       | Initial config when uncontrolled.             |
-| `onChange`    | `(config, { svg }) => void`          | —       | Fires on every edit.                          |
+| `template`    | SVG / URL / document / config        | —       | Start editing from an existing avatar; wins over `persist`, skips setup, and **Start over** returns to it. |
+| `onChange`    | `(config, { svg, document, code }) => void` | — | Fires on every edit. `svg` carries the document, so it can be reopened as a template. |
 | `size`        | `number`                             | `240`   | Preview size in px.                           |
 | `backdrop`    | `'plain' \| 'circle'`                 | `'plain'` | `'circle'` puts the preview on a white circle and drops its shadow (exports keep it). |
 | `persist`     | `string`                             | —       | Storage key: remember the look in this browser. |

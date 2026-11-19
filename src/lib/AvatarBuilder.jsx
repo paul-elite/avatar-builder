@@ -4,6 +4,7 @@ import {
   defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg,
 } from './avatar.js';
 import { downloadPng } from './export.js';
+import { readAvatar, loadAvatar, toAvatarDocument, encodeAvatar } from './document.js';
 import { NavIcon, BarIcon } from './icons.jsx';
 
 /* =========================================================================
@@ -28,7 +29,12 @@ import { NavIcon, BarIcon } from './icons.jsx';
    Props:
      value?        controlled config (omit for uncontrolled)
      defaultValue? initial config when uncontrolled
-     onChange?     (config, { svg }) => void   — fires on every change
+     template?     start editing from an existing avatar: one of our SVGs (string,
+                   element or data URI), its URL, a document, or a (partial) config.
+                   It wins over what `persist` remembered, and skips setup.
+     onChange?     (config, { svg, document, code }) => void   — fires on every change
+                   (svg carries the document, so it can be opened again as a template;
+                   code is the short form for links: ?avatar=code)
      size?         preview size in px (default 240)
      exportSize?   downloaded PNG size in px (default 512)
      showActions?  show the download button (default true)
@@ -68,6 +74,7 @@ const LINE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLin
 const CloseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" {...LINE} /></svg>;
 const DownloadIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 20h14" {...LINE} /></svg>;
 const MoreIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M11.9967 12.5V12M11.9967 6.5V6M11.9967 18.5V18M12.9967 12.5C12.9967 11.9477 12.549 11.5 11.9967 11.5C11.4444 11.5 10.9967 11.9477 10.9967 12.5C10.9967 13.0523 11.4444 13.5 11.9967 13.5C12.549 13.5 12.9967 13.0523 12.9967 12.5ZM12.9967 6.5C12.9967 5.94772 12.549 5.5 11.9967 5.5C11.4444 5.5 10.9967 5.94772 10.9967 6.5C10.9967 7.05228 11.4444 7.5 11.9967 7.5C12.549 7.5 12.9967 7.05228 12.9967 6.5ZM12.9967 18.5C12.9967 17.9477 12.549 17.5 11.9967 17.5C11.4444 17.5 10.9967 17.9477 10.9967 18.5C10.9967 19.0523 11.4444 19.5 11.9967 19.5C12.549 19.5 12.9967 19.0523 12.9967 18.5Z" {...LINE} /></svg>;
+const LinkIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" {...LINE} /></svg>;
 const ResetIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.35-5.65M4 4v4.5h4.5" {...LINE} /></svg>;
 const ExpandIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4H20v5.5M9.5 20H4v-5.5M20 4l-6.5 6.5M4 20l6.5-6.5" {...LINE} /></svg>;
 // Shape rows longer than this scroll and get an expand button
@@ -146,19 +153,25 @@ export default function AvatarBuilder({
   persist,
   className = '',
   backdrop = 'plain', // 'plain' | 'circle': a white circle behind the preview (and no drop shadow on it)
+  template,
 }) {
-  const saved = useRef(typeof window !== 'undefined' ? load(persist) : null).current;
+  // A template given inline is read now; one given as a URL is fetched (below)
+  const isUrl = typeof template === 'string' && /^(https?:)?\/\/|^\//.test(template.trim());
+  const fromTemplate = useRef(template != null && !isUrl ? readAvatar(template) : null).current;
+  const saved = useRef(typeof window !== 'undefined' && !fromTemplate ? load(persist) : null).current;
+  const startLook = useRef(fromTemplate);
   const isControlled = value != null;
-  const [internal, setInternal] = useState(() => ({ ...defaultAvatar, ...defaultValue, ...saved?.config }));
+  const [internal, setInternal] = useState(() => fromTemplate || { ...defaultAvatar, ...(readAvatar(defaultValue) || {}), ...saved?.config });
   const config = { ...defaultAvatar, ...(isControlled ? value : internal) };
 
   // Where the editor is: ['setup'] · [] (primary) · [group] · [group, item]
-  const [setupDone, setSetupDone] = useState(() => !!saved?.setupDone);
-  const [path, setPath] = useState(() => (saved?.setupDone ? [] : ['setup']));
+  const [setupDone, setSetupDone] = useState(() => !!(fromTemplate || isUrl || saved?.setupDone));
+  const [path, setPath] = useState(() => (fromTemplate || isUrl || saved?.setupDone ? [] : ['setup']));
   const [phase, setPhase] = useState('idle'); // idle | exit | promote | demote | enter
   const [instance, setInstance] = useState(0);
   const [grid, setGrid] = useState(false);
   const [menu, setMenu] = useState(false); // the ⋮ menu on the default bar
+  const [copied, setCopied] = useState(false);
   const menuRef = useRef(null);
   const [history, setHistory] = useState({ past: [], future: [] });
   // The category you last opened stays lit on the default toolbar
@@ -179,8 +192,16 @@ export default function AvatarBuilder({
   /* ---- Changes and history: an action is a change to how the avatar looks ---- */
   const emit = useCallback((next) => {
     if (!isControlled) setInternal(next);
-    if (onChange) onChange(next, { svg: avatarToSvg(next, { size: exportSize }) });
+    if (onChange) onChange(next, { svg: avatarToSvg(next, { size: exportSize }), document: toAvatarDocument(next), code: encodeAvatar(next) });
   }, [isControlled, onChange, exportSize]);
+
+  // A template URL (e.g. https://avatars.paulelite.com/a/<seed>.svg): load it once, then edit from there
+  useEffect(() => {
+    if (!isUrl) return undefined;
+    let live = true;
+    loadAvatar(template).then((c) => { if (live) { startLook.current = c; emit(c); } }, () => {});
+    return () => { live = false; };
+  }, [isUrl ? template : null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const commit = (next) => {
     if (!changed(next, config)) return;
@@ -197,9 +218,10 @@ export default function AvatarBuilder({
   const reset = () => {
     try { if (persist) window.localStorage.removeItem(persist); } catch { /* storage unavailable */ }
     setGrid(false);
-    commit({ ...defaultAvatar, category: config.category, style: config.style });
+    commit(startLook.current || { ...defaultAvatar, category: config.category, style: config.style });
   };
-  const edited = changed({ ...defaultAvatar, category: config.category, style: config.style }, config);
+  // Starting over goes back to the template the editor was opened with, if any
+  const edited = changed(startLook.current || { ...defaultAvatar, category: config.category, style: config.style }, config);
   const redo = () => {
     if (!history.future.length) return;
     setHistory((h) => ({ past: [...h.past, config], future: h.future.slice(1) }));
@@ -490,6 +512,11 @@ export default function AvatarBuilder({
     </button>
   ));
   // Figma 88:5720: the ⋮ menu holds what used to sit on the bar (download) plus starting over
+  // A link that opens this exact look in the editor, anywhere (the site reads ?avatar=)
+  const copyLink = () => {
+    const url = `https://avatars.paulelite.com/?avatar=${encodeAvatar(config)}`;
+    try { navigator.clipboard.writeText(url).then(() => { setCopied(true); after(900, () => { setMenu(false); setCopied(false); }); }, () => {}); } catch { /* no clipboard */ }
+  };
   const homeExtras = (
     <>
       <span className="ab-sep" aria-hidden="true" />
@@ -499,6 +526,7 @@ export default function AvatarBuilder({
           {showActions && (
             <button type="button" role="menuitem" tabIndex={menu ? 0 : -1} onClick={() => { setMenu(false); downloadPng(config, { size: exportSize }); }}><DownloadIcon />Download PNG</button>
           )}
+          <button type="button" role="menuitem" tabIndex={menu ? 0 : -1} onClick={copyLink}><LinkIcon />{copied ? 'Link copied' : 'Copy link'}</button>
           <button type="button" role="menuitem" tabIndex={menu ? 0 : -1} disabled={!edited} onClick={() => { setMenu(false); reset(); }}><ResetIcon />Start over</button>
         </div>
       </div>
