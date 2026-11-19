@@ -310,14 +310,6 @@ export default function AvatarBuilder({
   });
   // Switching items keeps the bar: its width eases from the old to the new instead of jumping
   const barRef = useRef(null);
-  // Figma 92:7014: the selected tab in the dark bar is tied to the bar above by a neck; centre it on the tab
-  useLayoutEffect(() => {
-    const bar = rootRef.current && rootRef.current.querySelector('.ab-bar[data-under]');
-    const tab = bar && bar.querySelector('.ab-cat.on');
-    if (!tab) return;
-    const b = bar.getBoundingClientRect(), t = tab.getBoundingClientRect();
-    bar.style.setProperty('--neck-x', `${t.left - b.left + t.width / 2}px`);
-  });
   const barWidth = useRef(null);
   useLayoutEffect(() => {
     const bar = barRef.current;
@@ -331,11 +323,11 @@ export default function AvatarBuilder({
   /* ---- Levels as layers ----------------------------------------------------
      Bars and trays carry data-layer (the level they show) and data-kind (bar | tray); a tab
      that opens a level carries data-opens (that level). Moves are snappy (no overshoot):
-     · opening  1 · the pressed tab stretches into the new bar (a white surface morphing
-                    from the tab's box to the bar's), its contents fade in as it lands
+     · opening  1 · the new bar grows out of the top of the pressed tab: 66% → 100% scale,
+                    opacity 0 → 1, a 2px blur clearing as it lands
                 2 · then the bars below fold into the stack (or slide to their new place)
-     · closing  1 · the stack unfolds back into bars
-                2 · then the closing bar shrinks back into the tab that opened it
+     · closing  the bar fades out at once, slipping a few px toward its parent (ease-out, 2px blur),
+                while the stack unfolds back into bars over it
      · anything else (a jump from the avatar, setup) plays in one step */
   useLayoutEffect(() => {
     const snap = flip.current;
@@ -367,7 +359,7 @@ export default function AvatarBuilder({
     const closing = !opening && [...before.values()].some((o) => o.kind === 'bar' && !nowKeys.has(o.key));
     // Step timing: what lands/leaves first, and what the stack does around it
     const stackAt = opening ? M : 0; // the stack moves after a new bar lands, or first when closing
-    const leaveAt = closing ? F : 0; // a closing bar shrinks into its tab after the stack unfolds
+    const leaveAt = 0; // a closing bar just goes, at once, while the stack unfolds over it
     const tabFor = (key) => { const t = stackRef.current.querySelector(`[data-opens="${key}"]`); return t ? { rect: t.getBoundingClientRect(), radius: getComputedStyle(t).borderRadius } : null; };
     const closingTabs = new Map([...before.values()].filter((o) => o.kind === 'bar' && !nowKeys.has(o.key)).map((o) => [o.key, tabFor(o.key)]));
 
@@ -379,24 +371,15 @@ export default function AvatarBuilder({
         if (kind === 'bar') {
           const from = snap.opens[key] || snap.from;
           if (from) {
-            // The tab stretches into the bar: a plain surface morphs from the tab's box to the bar's
-            const blob = document.createElement('div');
-            blob.className = 'ab-morph';
-            // The bar's own contents ride inside, centred at full size, so they show as the tab widens
-            const inner = el.cloneNode(true);
-            inner.removeAttribute('data-layer');
-            inner.inert = true;
-            inner.className += ' ab-morph-inner';
-            Object.assign(inner.style, { width: r.width + 'px', height: r.height + 'px' });
-            blob.appendChild(inner);
-            over.appendChild(blob);
-            inner.animate([{ opacity: 0 }, { opacity: 0, offset: 0.25 }, { opacity: 1 }], { duration: M, easing: 'ease-out', fill: 'both' });
+            // The bar grows out of the top of its tab: from 66% scale, pinned at the tab's top centre,
+            // fading up from nothing with a touch of motion blur that clears as it settles
             const fr = from.rect || from;
-            done(blob.animate([
-              { ...box(fr), borderRadius: from.radius || '12px' },
-              { ...box(r), borderRadius: n.radius },
-            ], { duration: M, easing: ease, fill: 'forwards' }), blob);
-            el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: M });
+            const origin = `${fr.left + fr.width / 2 - r.left}px ${fr.top - r.top}px`;
+            el.animate([
+              { transformOrigin: origin, transform: 'scale(0.66)', opacity: 0, filter: 'blur(2px)' },
+              { transformOrigin: origin, opacity: 1, offset: 0.6 },
+              { transformOrigin: origin, transform: 'none', opacity: 1, filter: 'blur(0)' },
+            ], { duration: M, easing: ease });
           } else {
             el.animate([{ transform: 'translateY(8px) scale(0.97)' }, { transform: 'none' }], { duration: M, easing: ease });
             fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 110, easing: 'ease-out' });
@@ -410,7 +393,7 @@ export default function AvatarBuilder({
       } else if (kind === 'bar') {
         // Out of the stack: the bar unfolds from its tray, contents arriving as it opens
         el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, delay: stackAt, easing: ease, fill: 'backwards' });
-        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: F * 0.65, delay: stackAt + F * 0.35, easing: 'ease-out', fill: 'backwards' });
+        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: F * 0.7, delay: stackAt + F * 0.1, easing: 'ease-out', fill: 'backwards' });
       } else {
         // Into the stack: a copy of the bar waits, then folds into its tray, which takes over
         const g = ghost(old, under);
@@ -423,15 +406,15 @@ export default function AvatarBuilder({
     for (const old of before.values()) {
       const tab = old.kind === 'bar' && closingTabs.get(old.key);
       if (tab) {
-        // Back into its tab: the bar waits for the stack, drops its contents, then shrinks into the tab
-        const g = ghost(old, over);
-        g.style.overflow = 'hidden';
-        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 70, delay: leaveAt, easing: 'ease-out', fill: 'both' });
+        // Closing: the bar just goes, slipping a little toward its parent (not all the way),
+        // easing out as it fades with a touch of motion blur; under the stack, so bars unfolding
+        // into its place draw over it
+        const g = ghost(old, under);
+        const drop = Math.min(10, Math.max(0, tab.rect.top - old.rect.bottom) + 6);
         done(g.animate([
-          { ...box(old.rect), borderRadius: old.radius, opacity: 1 },
-          { opacity: 1, offset: 0.75 },
-          { ...box(tab.rect), borderRadius: tab.radius, opacity: 0 },
-        ], { duration: M, delay: leaveAt, easing: ease, fill: 'both' }), g);
+          { transform: 'none', opacity: 1, filter: 'blur(0)' },
+          { transform: `translateY(${drop}px)`, opacity: 0, filter: 'blur(2px)' },
+        ], { duration: 150, delay: leaveAt, easing: 'ease-out', fill: 'both' }), g);
         continue;
       }
       const g = ghost(old, under);
@@ -502,7 +485,7 @@ export default function AvatarBuilder({
   };
   const homeTiles = PRIMARY.filter((g) => g.bar).map((g) => (
     <button key={g.key} type="button" className={'ab-tile ab-cat' + (openTab === g.key ? ' on' : '')} onClick={() => openTop(g.key)} data-opens={'all/' + g.key} aria-label={g.label} aria-pressed={openTab === g.key}>
-      <span className="ab-cat-art"><BarIcon name={g.key} on={openTab === g.key} dark={!isDefault} /></span>
+      <span className="ab-cat-art"><BarIcon name={g.key} on={openTab === g.key} dark /></span>
       <span className="ab-cat-label">{g.label}</span>
     </button>
   ));
@@ -771,7 +754,6 @@ export default function AvatarBuilder({
           </div>}
           {homeShown && (
             <div className="ab-bar" data-layer="home" data-kind="bar" data-level="default" data-under={!isDefault || undefined} role="toolbar" aria-label="Avatar">
-              {!isDefault && <span className="ab-neck" aria-hidden="true"><svg width="20" height="13" viewBox="0 0 20 13"><path d="M0 0H20C17.3 .3 16 1.8 16 4.5V8.5C16 11.2 17.3 12.7 20 13H0C2.7 12.7 4 11.2 4 8.5V4.5C4 1.8 2.7 .3 0 0Z" /></svg></span>}
               <div className="ab-history">
                 <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
                 <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>

@@ -577,34 +577,22 @@
 .ab-bar[data-level="default"] .ab-cat.on { background: #eff0f1; }
 .ab-bar[data-level="default"] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
 
-/* Under an open category (Figma 92:7014) the default bar goes dark, and the selected tab
-   turns white and is tied to the bar above by a neck */
+/* The default bar is dark (Figma 92:7014); the selected tab turns white */
 .ab-bar[data-level="default"],
 .ab-bar[data-level="default"] .ab-history,
 .ab-bar[data-level="default"] .ab-cat { transition: background-color 180ms ease-out, border-color 180ms ease-out, transform 120ms ease-out; }
-.ab-bar[data-level="default"][data-under] { background: #202123; }
-.ab-bar[data-under] .ab-history { border-color: #3d4145; background: #26282b; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.33); }
-.ab-bar[data-under] .ab-hist-btn { color: #d8d9dd; }
-.ab-bar[data-under] .ab-hist-btn:disabled { color: #62656e; }
-.ab-bar[data-under] .ab-cat-label { color: #777c88; }
-.ab-bar[data-under] .ab-cat:hover { background: rgba(255, 255, 255, 0.06); }
-.ab-bar[data-under] .ab-cat:hover .ab-cat-label { color: #d8d9dd; }
-.ab-bar[data-under] .ab-cat.on,
-.ab-bar[data-under] .ab-cat.on:hover { background: #fff; }
-.ab-bar[data-under] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
-.ab-root .ab-bar[data-under] .ab-more-btn:hover,
-.ab-root .ab-bar[data-under] .ab-more-btn[aria-expanded="true"] { color: #fff; }
-.ab-neck {
-  position: absolute;
-  z-index: 2;
-  top: -9px; /* the 8px gap between bars, plus a hair over the bar above's edge */
-  left: calc(var(--neck-x, 50%) - 10px);
-  width: 20px;
-  height: 13px;
-  pointer-events: none;
-  animation: ab-fade-in 140ms ease-out 180ms both; /* after the bar above has landed */
-}
-.ab-neck svg { display: block; fill: #fff; }
+.ab-bar[data-level="default"] { background: #202123; }
+.ab-bar[data-level="default"] .ab-history { border-color: #3d4145; background: #26282b; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.33); }
+.ab-bar[data-level="default"] .ab-hist-btn { color: #d8d9dd; }
+.ab-bar[data-level="default"] .ab-hist-btn:disabled { color: #62656e; }
+.ab-bar[data-level="default"] .ab-cat-label { color: #777c88; }
+.ab-bar[data-level="default"] .ab-cat:hover { background: rgba(255, 255, 255, 0.06); }
+.ab-bar[data-level="default"] .ab-cat:hover .ab-cat-label { color: #d8d9dd; }
+.ab-bar[data-level="default"] .ab-cat.on,
+.ab-bar[data-level="default"] .ab-cat.on:hover { background: #fff; }
+.ab-bar[data-level="default"] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
+.ab-root .ab-bar[data-level="default"] .ab-more-btn:hover,
+.ab-root .ab-bar[data-level="default"] .ab-more-btn[aria-expanded="true"] { color: #fff; }
 
 /* ⋮ and its menu, which grows up out of the button */
 .ab-more { position: relative; flex: none; }
