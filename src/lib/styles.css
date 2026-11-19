@@ -415,11 +415,11 @@
 .ab-cat {
   width: 60px;
   height: 56px;
-  grid-template-rows: 32px auto;
+  grid-template-rows: 28px auto;
   align-content: center;
   gap: 2px;
 }
-.ab-cat-art { display: grid; place-items: center; height: 32px; }
+.ab-cat-art { display: grid; place-items: center; height: 28px; }
 .ab-cat-label { color: var(--ab-muted); font-size: 11px; line-height: 1.2; -webkit-text-stroke: 0.05px currentColor; transition: color 140ms ease; }
 .ab-cat:hover .ab-cat-label { color: var(--ab-ink); }
 
