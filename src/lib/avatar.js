@@ -89,10 +89,10 @@ export const SETUP = [
 
 export const ITEMS = {
   skin: { label: 'Skin colour', kind: 'color', presets: SKIN },
-  head: { label: 'Head shape', kind: 'shape', options: HEAD },
+  head: { label: 'Shape', kind: 'shape', options: HEAD },
   // The Figma (classic) head has its ears built in
   ears: { label: 'Ears', kind: 'shape', options: EARS, when: (c) => c.head === 'round' || c.head === 'square' },
-  tilt: { label: 'Tilt', kind: 'shape', options: TILT },
+  tilt: { label: 'Angle', kind: 'shape', options: TILT },
   hair: { label: 'Style', kind: 'shape', options: HAIR },
   hairColor: { label: 'Colour', kind: 'color', presets: HAIR_COLOR, when: (c) => c.hair !== 'none' },
   cap: { label: 'Headwear', kind: 'color', presets: CAP, optional: true },
