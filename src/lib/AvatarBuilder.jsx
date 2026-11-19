@@ -5,7 +5,7 @@ import {
 } from './avatar.js';
 import { downloadPng } from './export.js';
 import { readAvatar, loadAvatar, toAvatarDocument, encodeAvatar } from './document.js';
-import { NavIcon, BarIcon, ColourDot } from './icons.jsx';
+import { NavIcon, BarIcon, ColourDot, HairIcon, hasHairIcon } from './icons.jsx';
 import { visibleSections, visibleMore, optionsFor, TARGETS, TAB_TINT, parentOf } from './sections.js';
 
 /* =========================================================================
@@ -655,7 +655,8 @@ export default function AvatarBuilder({
   // A row of shapes for an item
   const shapeTiles = (k, top) => ITEMS[k].options.map((o) => optionTile(k, o, { on: eq(config[k], o), pick: (v) => set(k, v), top }));
   // A tile that opens a bar above (a colour, the finer items, Features); lit while that bar is open
-  const moreTile = (cat, k, top) => {
+  // bare: the bar's own options are unlabelled icons, so its tiles (Colour…) drop their label to match
+  const moreTile = (cat, k, top, bare = false) => {
     const target = k === 'features' ? ['all', 'features'] : ['all', cat, k];
     const on = path.join('/') === target.join('/') || (k === 'features' && path[1] === 'features');
     const it = ITEMS[k];
@@ -663,12 +664,12 @@ export default function AvatarBuilder({
     const label = k === 'features' ? 'Features' : wheel ? 'Colour' : it.label;
     const off = it && (config[k] === null || config[k] === 'none');
     return (
-      <button key={k} type="button" className={'ab-tile ab-cat' + (on ? ' on' : '')} data-opens={target.join('/')} aria-label={k === 'features' ? 'Features' : it.label} aria-expanded={on} tabIndex={live(top)}
+      <button key={k} type="button" className={'ab-tile ab-cat' + (on ? ' on' : '')} data-bare={bare || undefined} data-opens={target.join('/')} aria-label={k === 'features' ? 'Features' : it.label} aria-expanded={on} tabIndex={live(top)}
         onClick={() => (on ? go(['all', cat], 'up') : go(target, path.length > 2 || path[1] === 'features' ? 'swap' : 'down'))}>
         <span className="ab-cat-art" style={off ? { opacity: 0.4 } : undefined}>
           <NavIcon name={k} group={cat} wheel={wheel} color={config[k]} />
         </span>
-        <span className="ab-cat-label">{label}</span>
+        {!bare && <span className="ab-cat-label">{label}</span>}
       </button>
     );
   };
@@ -687,7 +688,7 @@ export default function AvatarBuilder({
       options: o.options,
       isOn: (v) => eq(o.value, v),
       pick: (v) => commit({ ...config, ...o.pick(v) }),
-      art: (v) => (v === null ? <None /> : s.key === 'wear' ? <Face item="hat" config={{ ...config, cap: config.cap || '#1a1a1a', hat: v }} /> : s.key === 'outfit' ? <Face item="outfit" config={{ ...config, torso: true, outfit: v }} /> : undefined),
+      art: (v) => (v === null ? <None /> : s.item === 'hair' && hasHairIcon(v) ? <HairIcon style={v} color={config.hairColor} /> : s.key === 'wear' ? <Face item="hat" config={{ ...config, cap: config.cap || '#1a1a1a', hat: v }} /> : s.key === 'outfit' ? <Face item="outfit" config={{ ...config, torso: true, outfit: v }} /> : undefined),
     };
   };
   // A level's bar, left of its ×: tabs, then the main row (scrolling on its own when long), then tiles
@@ -712,7 +713,7 @@ export default function AvatarBuilder({
         })}
       </div>
     );
-    return { tabs, row, swatches: !!m.swatches, long: m.options.length > SHAPE_ROW, more: visibleMore(s, config).map((k) => moreTile(cat, k, top)) };
+    return { tabs, row, swatches: !!m.swatches, long: m.options.length > SHAPE_ROW, more: visibleMore(s, config).map((k) => moreTile(cat, k, top, row.length > 0)) };
   };
   const closeX = (top) => (
     <>

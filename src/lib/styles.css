@@ -420,6 +420,8 @@
   gap: 2px;
 }
 .ab-cat-art { display: grid; place-items: center; height: 28px; }
+/* Without its label (next to unlabelled options) a tile is the size of the options beside it */
+.ab-cat[data-bare] { width: 48px; height: 48px; }
 .ab-cat-label { color: var(--ab-muted); font-size: 11px; line-height: 1.2; -webkit-text-stroke: 0.05px currentColor; transition: color 140ms ease; }
 .ab-cat:hover .ab-cat-label { color: var(--ab-ink); }
 
