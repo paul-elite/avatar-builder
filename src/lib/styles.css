@@ -391,7 +391,7 @@
 .ab-tile.on[data-kind="swatch"],
 .ab-tile.on[data-kind="swatch"]:hover { background: var(--ab-dark); }
 .ab-tile.on[data-kind="item"],
-.ab-tile.on[data-kind="item"]:hover { background: var(--ab-field); box-shadow: inset 0 0 0 1.5px var(--ab-dark); }
+.ab-tile.on[data-kind="item"]:hover { background: #f3f3f1; box-shadow: none; }
 
 /* Colour options: round patches the size of the colour-wheel icon, close together;
    the chosen one wears the white hub. The button is taller than the patch for an easy tap. */
@@ -848,7 +848,7 @@
 .ab-bar[data-muted] .ab-tab .ab-cat-label { color: #b9bcc4; }
 .ab-bar[data-muted] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
 .ab-bar[data-muted] .ab-tab.on { box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
-.ab-bar[data-muted] .ab-tile.on[data-kind="item"] { box-shadow: inset 0 0 0 1.5px #c9cbd1; }
+.ab-bar[data-muted] .ab-tile.on[data-kind="item"] { background: #f6f6f4; box-shadow: none; }
 .ab-bar[data-muted] .ab-bar-close { color: #c9cbd1; }
 
 @media (max-width: 480px) {
@@ -880,3 +880,32 @@
   .ab-opts, .ab-opts[data-long] { flex: none; max-width: none; overflow: visible; }
   .ab-opts[data-overflow] { padding-right: 0; -webkit-mask-image: none; mask-image: none; }
 }
+
+/* A category's tabs (Style · Wear): a small pill 9px over the bar in focus (Figma 156:17484). It arrives
+   once the bar has risen, and goes with it */
+.ab-pill-wrap { display: flex; justify-content: center; margin-bottom: 1px; animation: ab-pill-in 220ms cubic-bezier(0.2, 0, 0, 1) 140ms both; }
+.ab-pill {
+  display: flex;
+  padding: 2px;
+  border-radius: 100px;
+  background: #fff;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 2px 4px 1px rgba(0, 0, 0, 0.05);
+}
+.ab-pill-tab {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 100px;
+  background: transparent;
+  color: #9a9a95;
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, transform 120ms ease-out;
+}
+@media (hover: hover) { .ab-pill-tab:hover { color: #0b0c0e; } }
+.ab-pill-tab:active { transform: scale(0.97); }
+.ab-pill-tab.on { background: #eff0f1; color: #141b34; }
+@keyframes ab-pill-in { from { opacity: 0; transform: translateY(4px) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { .ab-pill-wrap { animation: ab-pill-fade 140ms ease-out 100ms both; } }
+@keyframes ab-pill-fade { from { opacity: 0; } }

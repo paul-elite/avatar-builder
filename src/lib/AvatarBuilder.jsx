@@ -6,7 +6,7 @@ import {
 import { downloadPng } from './export.js';
 import { readAvatar, loadAvatar, toAvatarDocument, encodeAvatar } from './document.js';
 import { NavIcon, BarIcon, ColourDot, HairIcon, hasHairIcon } from './icons.jsx';
-import { visibleSections, visibleMore, optionsFor, TARGETS, TAB_TINT, parentOf } from './sections.js';
+import { visibleSections, visibleMore, optionsFor, TARGETS, parentOf } from './sections.js';
 
 /* =========================================================================
    <AvatarBuilder /> — one editor, broad → detailed, with progressive disclosure.
@@ -700,14 +700,14 @@ export default function AvatarBuilder({
       : m.options.map((v) => optionTile(m.k, v, { on: m.isOn(v), pick: m.pick, top, art: m.art && m.art(v) }));
     if (d.kind === 'item') return { row, swatches: !!m.swatches, long: m.options.length > SHAPE_ROW };
     const { cat, sections, s } = d;
+    // The category's tabs: a small pill over the bar in focus (Figma 156:17484), not inside the bar
     const tabs = sections.length > 1 && (
-      <div key="tabs" className="ab-tabs" role="tablist" aria-label={crumbs[0]}>
+      <div key="tabs" className="ab-pill" role="tablist" aria-label={crumbs[0]}>
         {sections.map((t) => {
           const on = t.key === s.key;
           return (
-            <button key={t.key} type="button" role="tab" aria-selected={on} className={'ab-tab' + (on ? ' on' : '')} tabIndex={live(top)} onClick={() => switchTab(cat, t.key)}>
-              <span className="ab-cat-art"><NavIcon name={t.key === 'wear' ? 'cap' : t.key} group={cat} tint={on && TAB_TINT[t.key] ? config[TAB_TINT[t.key]] || undefined : undefined} /></span>
-              <span className="ab-cat-label">{t.label}</span>
+            <button key={t.key} type="button" role="tab" aria-selected={on} className={'ab-pill-tab' + (on ? ' on' : '')} tabIndex={live(top)} onClick={() => switchTab(cat, t.key)}>
+              {t.label}
             </button>
           );
         })}
@@ -780,7 +780,6 @@ export default function AvatarBuilder({
           const parts = levelParts(d, top);
           return (
             <div className="ab-tiles">
-              {parts.tabs}
               <div className="ab-opts" data-swatches={parts.swatches ? '' : undefined} data-long={parts.long ? '' : undefined}>{parts.row}</div>
               {top && parts.long && gridRow && (
                 <button type="button" className="ab-tile ab-grid-btn" onClick={() => setGrid((g) => !g)} aria-label={`All ${(ITEMS[gridRow.k] || {}).label?.toLowerCase() || ''} options`} aria-expanded={grid} data-open={grid || undefined}>
@@ -868,6 +867,10 @@ export default function AvatarBuilder({
               {canClose && closeX(true)}
             </div>
           )}
+          {level && level.kind !== 'item' && (() => {
+            const t = levelParts(level, true).tabs;
+            return t ? <div key={'pill/' + level.cat} className="ab-pill-wrap">{t}</div> : null;
+          })()}
           {level && levelBar(level, true)}
           {underLevel && (
             // The tray hangs under the bar it belongs to, sized to it
