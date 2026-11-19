@@ -180,10 +180,6 @@
 }
 .ab-seg::-webkit-scrollbar { display: none; }
 
-/* It arrives with its bar rather than ahead of it */
-.ab-bright { animation: ab-fade-in 140ms ease-out 90ms both; }
-@media (prefers-reduced-motion: reduce) { .ab-bright { animation: none; } }
-
 /* Brightness over the open colour (in place of the item switcher): a white pill like it,
    a track running from the colour's darkest to its lightest, the colour itself at the centre */
 .ab-bright {

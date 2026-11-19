@@ -410,7 +410,10 @@ export default function AvatarBuilder({
     const opening = now.some((n) => n.kind === 'bar' && !before.has(n.key));
     const closing = !opening && [...before.values()].some((o) => o.kind === 'bar' && !nowKeys.has(o.key));
     // Step timing: what lands/leaves first, and what the stack does around it
-    const stackAt = opening ? M : 0; // the stack moves after a new bar lands, or first when closing
+    // How long a new bar takes to grow (longer bars reveal for longer); the stack waits for it
+    const growFor = (w) => Math.round(Math.min(280, Math.max(M, M + (w - 360) * 0.25)));
+    const newBar = now.find((n) => n.kind === 'bar' && !before.has(n.key));
+    const stackAt = opening ? growFor(newBar.rect.width) : 0; // the stack moves after a new bar lands, or first when closing
     const leaveAt = 0; // a closing bar just goes, at once, while the stack unfolds over it
     const tabFor = (key) => { const t = stackRef.current.querySelector(`[data-opens="${key}"]`); return t ? { rect: t.getBoundingClientRect(), radius: getComputedStyle(t).borderRadius } : null; };
     const closingTabs = new Map([...before.values()].filter((o) => o.kind === 'bar' && !nowKeys.has(o.key)).map((o) => [o.key, tabFor(o.key)]));
@@ -436,7 +439,12 @@ export default function AvatarBuilder({
             const left0 = Math.min(Math.max(cx - w0 / 2, r.left), r.right - w0);
             const at = (p) => ({ left: left0 + (r.left - left0) * p, width: w0 + (r.width - w0) * p });
             const box2 = (x, y, w, h) => ({ left: x - base.left + 'px', top: y - base.top + 'px', width: w + 'px', height: h + 'px' });
-            const D = Math.round(Math.min(280, Math.max(M, M + (r.width - 360) * 0.25)));
+            const D = growFor(r.width);
+            // Like every level, it grows out of the top of its parent bar first. When its real place
+            // is lower (deeper levels take the bottom slot as the bars below fold away), it lands
+            // above the parent bar, then settles down into place with the fold.
+            const parent = snap.layers.find((o) => o.kind === 'bar' && fr.top >= o.rect.top - 1 && fr.bottom <= o.rect.bottom + 1);
+            const landTop = parent && r.top > parent.rect.top - 8 - r.height + 1 ? parent.rect.top - 8 - r.height : r.top;
             const blob = document.createElement('div');
             blob.className = 'ab-morph';
             const inner = el.cloneNode(true);
@@ -448,13 +456,15 @@ export default function AvatarBuilder({
             over.appendChild(blob);
             const a1 = at(0.12), a2 = at(0.5);
             done(blob.animate([
-              { ...box2(left0, r.bottom - h0, w0, h0), borderRadius: n.radius, opacity: 0, filter: 'blur(2px)', easing: 'cubic-bezier(0.2, 0, 0, 1)' },
-              { ...box2(a1.left, r.top, a1.width, r.height), opacity: 1, filter: 'blur(0)', offset: 0.3, easing: 'cubic-bezier(0.3, 0, 0.2, 1)' },
-              { ...box2(a2.left, r.top, a2.width, r.height), offset: 0.62, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
-              { ...box2(r.left, r.top, r.width, r.height), borderRadius: n.radius, opacity: 1, filter: 'blur(0)' },
+              { ...box2(left0, landTop + r.height - h0, w0, h0), borderRadius: n.radius, opacity: 0, filter: 'blur(2px)', easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+              { ...box2(a1.left, landTop, a1.width, r.height), opacity: 1, filter: 'blur(0)', offset: 0.3, easing: 'cubic-bezier(0.3, 0, 0.2, 1)' },
+              { ...box2(a2.left, landTop, a2.width, r.height), offset: 0.62, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+              { ...box2(r.left, landTop, r.width, r.height), borderRadius: n.radius, opacity: 1, filter: 'blur(0)' },
             ], { duration: D, fill: 'forwards' }), blob);
             // the real bar takes over once the surface has landed
             el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: D });
+            // then it settles from where it landed into its place, with the fold
+            if (landTop !== r.top) el.animate([{ transform: `translateY(${landTop - r.top}px)` }, { transform: 'none' }], { duration: F, delay: D, easing: ease, fill: 'backwards' });
           } else {
             el.animate([{ transform: 'translateY(8px) scale(0.97)' }, { transform: 'none' }], { duration: M, easing: ease });
             fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 110, easing: 'ease-out' });
@@ -477,6 +487,10 @@ export default function AvatarBuilder({
         fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 70, delay: stackAt, easing: 'ease-out', fill: 'both' });
         done(g.animate([{ transform: 'none', opacity: 1 }, { transform: toward(r, old.rect), opacity: end }], { duration: F, delay: stackAt, easing: ease, fill: 'both' }), g);
       }
+    }
+    if (opening) {
+      const top = rootRef.current && rootRef.current.querySelector('.ab-dock > .ab-seg, .ab-dock > .ab-bright, .ab-dock > .ab-crumbs');
+      if (top) top.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 140, delay: stackAt + F * 0.5, easing: 'ease-out', fill: 'backwards' });
     }
     for (const old of before.values()) {
       const tab = old.kind === 'bar' && closingTabs.get(old.key);
