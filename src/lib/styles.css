@@ -622,10 +622,10 @@
 }
 .ab-bar[data-level="default"] .ab-history {
   position: relative;
-  gap: 20px;
+  gap: 28px;
   width: auto;
   height: 56px;
-  padding: 4px 12px;
+  padding: 4px 18px;
   border-radius: 14px;
   border: 0.5px solid #e5e5e5;
   background: #fafafa;
@@ -764,7 +764,7 @@
   /* Four tabs, undo/redo and ⋮ in a phone-width bar: no dividers, slightly narrower tabs,
      so undo and redo keep a roomy well */
   .ab-bar[data-level="default"] { gap: 4px; }
-  .ab-bar[data-level="default"] .ab-history { gap: 12px; padding: 4px 10px; }
+  .ab-bar[data-level="default"] .ab-history { gap: 18px; padding: 4px 14px; }
   .ab-bar[data-level="default"] .ab-tiles { gap: 0; }
   .ab-bar[data-level="default"] .ab-cat,
   .ab-bar[data-level="default"] .ab-cat[aria-label="Outfit"],
@@ -776,6 +776,7 @@
   .ab-bar[data-level="default"] .ab-cat,
   .ab-bar[data-level="default"] .ab-cat[aria-label="Outfit"],
   .ab-bar[data-level="default"] .ab-cat[aria-label="Color"] { width: 51px; }
+  .ab-bar[data-level="default"] .ab-history { gap: 12px; padding: 4px 10px; } /* the narrowest phones: as much as fits */
 }
 
 @media (prefers-reduced-motion: reduce) {
