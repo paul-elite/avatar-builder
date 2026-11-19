@@ -374,8 +374,9 @@ export default function AvatarBuilder({
   /* ---- Levels as layers ----------------------------------------------------
      Bars and trays carry data-layer (the level they show) and data-kind (bar | tray); a tab
      that opens a level carries data-opens (that level). Moves are snappy (no overshoot):
-     · opening  1 · the new bar grows out of the top of the pressed tab: 66% → 100% scale,
-                    opacity 0 → 1, a 2px blur clearing as it lands
+     · opening  1 · the new bar grows out of the pressed tab: full height first while narrow,
+                    then it widens to its centred place, its unscaled contents pinned left
+                    and revealed rightward (fade in, a 2px blur clearing)
                 2 · then the bars below fold into the stack (or slide to their new place)
      · closing  the bar fades out at once, slipping a few px toward its parent (ease-out, 2px blur),
                 while the stack unfolds back into bars over it
@@ -422,17 +423,38 @@ export default function AvatarBuilder({
         if (kind === 'bar') {
           const from = snap.opens[key] || snap.from;
           if (from) {
-            // The bar grows out of the top of its tab: from 66% scale, pinned at the tab's top centre,
-            // fading up from nothing with a touch of motion blur, and a little spring as it lands
-            // (a 2% overshoot that settles back)
+            // The bar grows out of its tab without stretching its contents. A plain surface
+            // (with the bar's real contents inside, unscaled and pinned to its left edge):
+            //   1 · gets its full height fast while still narrow, just above the tab
+            //   2 · then widens to its place, centred on the page, revealing more of
+            //       the row to the right as it goes
+            // Long bars take a little longer, so the reveal reads instead of whipping past.
             const fr = from.rect || from;
-            const origin = `${fr.left + fr.width / 2 - r.left}px ${fr.top - r.top}px`;
-            el.animate([
-              { transformOrigin: origin, transform: 'scale(0.66)', opacity: 0, filter: 'blur(2px)' },
-              { transformOrigin: origin, opacity: 1, offset: 0.5 },
-              { transformOrigin: origin, transform: 'scale(1.02)', filter: 'blur(0)', offset: 0.72 },
-              { transformOrigin: origin, transform: 'none', opacity: 1, filter: 'blur(0)' },
-            ], { duration: M, easing: ease });
+            const w0 = Math.min(r.width, Math.max(fr.width * 2.4, 140));
+            const h0 = r.height * 0.66;
+            const cx = fr.left + fr.width / 2;
+            const left0 = Math.min(Math.max(cx - w0 / 2, r.left), r.right - w0);
+            const at = (p) => ({ left: left0 + (r.left - left0) * p, width: w0 + (r.width - w0) * p });
+            const box2 = (x, y, w, h) => ({ left: x - base.left + 'px', top: y - base.top + 'px', width: w + 'px', height: h + 'px' });
+            const D = Math.round(Math.min(280, Math.max(M, M + (r.width - 360) * 0.25)));
+            const blob = document.createElement('div');
+            blob.className = 'ab-morph';
+            const inner = el.cloneNode(true);
+            inner.removeAttribute('data-layer');
+            inner.inert = true;
+            inner.className += ' ab-morph-inner';
+            Object.assign(inner.style, { width: r.width + 'px', height: r.height + 'px' });
+            blob.appendChild(inner);
+            over.appendChild(blob);
+            const a1 = at(0.12), a2 = at(0.5);
+            done(blob.animate([
+              { ...box2(left0, r.bottom - h0, w0, h0), borderRadius: n.radius, opacity: 0, filter: 'blur(2px)', easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+              { ...box2(a1.left, r.top, a1.width, r.height), opacity: 1, filter: 'blur(0)', offset: 0.3, easing: 'cubic-bezier(0.3, 0, 0.2, 1)' },
+              { ...box2(a2.left, r.top, a2.width, r.height), offset: 0.62, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+              { ...box2(r.left, r.top, r.width, r.height), borderRadius: n.radius, opacity: 1, filter: 'blur(0)' },
+            ], { duration: D, fill: 'forwards' }), blob);
+            // the real bar takes over once the surface has landed
+            el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: D });
           } else {
             el.animate([{ transform: 'translateY(8px) scale(0.97)' }, { transform: 'none' }], { duration: M, easing: ease });
             fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 110, easing: 'ease-out' });

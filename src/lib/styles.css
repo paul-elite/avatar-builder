@@ -185,6 +185,10 @@
 }
 .ab-seg::-webkit-scrollbar { display: none; }
 
+/* It arrives with its bar rather than ahead of it */
+.ab-bright { animation: ab-fade-in 140ms ease-out 90ms both; }
+@media (prefers-reduced-motion: reduce) { .ab-bright { animation: none; } }
+
 /* Brightness over the open colour (in place of the item switcher): a white pill like it,
    a track running from the colour's darkest to its lightest, the colour itself at the centre */
 .ab-bright {
@@ -296,8 +300,9 @@
 .ab-dock { position: relative; z-index: 1; }
 .ab-ghosts-top { z-index: 2; }
 /* A tab stretching into its bar: a plain white surface with the bar's shadow */
-.ab-morph { position: absolute; overflow: hidden; background: #fff; box-shadow: var(--ab-bar-shadow); will-change: left, top, width, height; }
-.ab-morph-inner { position: absolute; left: 50%; top: 50%; margin: 0; transform: translate(-50%, -50%); background: transparent !important; box-shadow: none !important; }
+.ab-morph { position: absolute; z-index: 3; overflow: hidden; background: #fff; box-shadow: var(--ab-bar-shadow); will-change: left, top, width, height; }
+/* The growing bar's contents: full size, pinned to the surface's left edge, centred top to bottom */
+.ab-morph-inner { position: absolute; left: 0; top: 50%; margin: 0; transform: translateY(-50%); background: transparent !important; box-shadow: none !important; animation: none !important; }
 
 .ab-peek {
   position: absolute;
