@@ -311,10 +311,9 @@
     0 0.6px 1.8px rgba(75, 78, 88, 0.08);
 }
 
-/* Anything stacked underneath is one grey card, whatever it was on top: the tray of the black main
-   bar and the white bar you came from alike */
+/* The tray of the black main bar is grey; the white bar you came from stays white */
 :root { --ab-under: #e4e5e7; }
-.ab-peek, .ab-peek[data-dark] { background: var(--ab-under); opacity: 1; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 3px 3px rgba(75, 78, 88, 0.06); }
+.ab-peek[data-dark] { background: var(--ab-under); opacity: 1; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 3px 3px rgba(75, 78, 88, 0.06); }
 
 .ab-bar {
   position: relative;
@@ -834,10 +833,7 @@
 /* The bar under the top one: drawn, but quiet, so the top bar keeps the focus. Colour drains out,
    the art lightens and loses contrast, labels go pale and the shadow thins; the tile that leads
    to the bar above stays lit. */
-.ab-bar[data-muted] { background: var(--ab-under); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(75, 78, 88, 0.05); }
-.ab-bar[data-muted] .ab-tabs { background: rgba(0, 0, 0, 0.035); }
-.ab-bar[data-muted] .ab-tab.on { background: rgba(255, 255, 255, 0.5); }
-.ab-bar[data-muted] .ab-cat.on { background: rgba(255, 255, 255, 0.5); }
+.ab-bar[data-muted] { box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(75, 78, 88, 0.05); }
 .ab-bar .ab-opts > .ab-tile svg,
 .ab-bar .ab-tab svg,
 .ab-bar .ab-cat svg,
