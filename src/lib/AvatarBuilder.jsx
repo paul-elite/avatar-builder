@@ -126,6 +126,14 @@ function Face({ item, config, size }) {
 
 
 const eq = (a, b) => a === b || (a != null && b != null && String(a).toLowerCase() === String(b).toLowerCase());
+// Mix a hex colour toward another (for brightness): t = 0 keeps it, 1 reaches the target
+const mixHex = (hex, target, t) => {
+  const p = (h) => { const x = h.replace('#', ''); const n = parseInt(x.length === 3 ? x.replace(/./g, '$&$&') : x, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const a = p(hex), b = p(target);
+  return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('');
+};
+// Brightness −1…1 → the base colour darkened toward black or lightened toward white (never all the way)
+const brighten = (base, b) => (b < 0 ? mixHex(base, '#000000', -b * 0.75) : b > 0 ? mixHex(base, '#ffffff', b * 0.85) : base);
 const changed = (a, b) => Object.keys({ ...a, ...b }).some((k) => !eq(a[k], b[k]));
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -172,6 +180,10 @@ export default function AvatarBuilder({
   const [grid, setGrid] = useState(false);
   const [menu, setMenu] = useState(false); // the ⋮ menu on the default bar
   const [copied, setCopied] = useState(false);
+  // Brightness over the open colour: the colour it started from (base), how far it's moved (b),
+  // and the colour that produced (so an undo or a new pick resets it)
+  const [bright, setBright] = useState(null);
+  const brightStart = useRef(null); // the look when a slide began: one undo step per slide
   const menuRef = useRef(null);
   const [history, setHistory] = useState({ past: [], future: [] });
   // The category you last opened stays lit on the default toolbar
@@ -332,6 +344,23 @@ export default function AvatarBuilder({
   });
   // Switching items keeps the bar: its width eases from the old to the new instead of jumping
   const barRef = useRef(null);
+  // The white selection on the default bar is one shape that slides from tab to tab
+  // (it fades in on the first pick, and out where it is when the tab is closed)
+  const indRef = useRef(null);
+  useLayoutEffect(() => {
+    const ind = indRef.current;
+    if (!ind) return;
+    const tab = ind.parentElement.querySelector('.ab-cat.on');
+    if (!tab) { ind.removeAttribute('data-show'); return; }
+    const place = () => { ind.style.transform = `translateX(${tab.offsetLeft}px)`; ind.style.width = `${tab.offsetWidth}px`; };
+    if (!ind.hasAttribute('data-show')) {
+      ind.style.transition = 'none';
+      place();
+      void ind.offsetWidth; // commit the spot before fading in, so it appears there rather than sliding in
+      ind.style.transition = '';
+      ind.setAttribute('data-show', '');
+    } else place();
+  });
   const barWidth = useRef(null);
   useLayoutEffect(() => {
     const bar = barRef.current;
@@ -499,6 +528,8 @@ export default function AvatarBuilder({
 
   // An open item's siblings in its category (switches like Torso's are shown inline, not opened)
   const siblings = group && item ? shown.filter((k) => ITEMS[k].kind !== 'toggle') : [];
+  // The brightness slide on the open colour, while it still describes that colour
+  const brightNow = bright && bright.key === itemKey && eq(bright.value, config[itemKey]) ? bright : null;
 
   // The default bar (Figma 88:5720): Face · Hair · Outfit · Color, then the ⋮ menu.
   // It stays as a full bar under a category (one over the other); deeper, it folds into the stack.
@@ -609,7 +640,8 @@ export default function AvatarBuilder({
     // Colour chips and skin heads take the dark selected tile; items (mostly black) a light one with a ring
     const isSwatch = ['skin', 'bg', 'blush', 'tears'].includes(itemKey) || (itemKey === 'hairColor' && config.hair === 'none');
     const optionTile = (opt, { inGrid = false } = {}) => {
-      const on = eq(config[itemKey], opt);
+      // A brightened colour keeps its swatch marked
+      const on = eq(config[itemKey], opt) || (!!brightNow && brightNow.b !== 0 && eq(brightNow.base, opt));
       const label = opt === null ? 'None' : opt === true ? 'On' : opt === false ? 'Off' : String(opt);
       return (
         <button
@@ -623,7 +655,8 @@ export default function AvatarBuilder({
           tabIndex={inGrid && !grid ? -1 : undefined}
           onClick={() => { set(itemKey, opt); if (inGrid) setGrid(false); }}
         >
-          <Face item={itemKey} config={{ ...config, [itemKey]: opt }} />
+          {/* the brightened swatch shows its colour as it is now */}
+          <Face item={itemKey} config={{ ...config, [itemKey]: on && brightNow && eq(brightNow.base, opt) ? config[itemKey] : opt }} />
         </button>
       );
     };
@@ -704,7 +737,48 @@ export default function AvatarBuilder({
       </div>
 
       <div className="ab-dock">
-        {siblings.length > 1 ? (
+        {item && item.kind === 'color' ? (
+          // Colours: a brightness slider over the chosen colour, in place of the item switcher
+          (() => {
+            const cur = config[itemKey];
+            const base = brightNow ? brightNow.base : cur;
+            const b = brightNow ? brightNow.b : 0;
+            const slide = (v) => {
+              if (!base) return;
+              const nb = Math.max(-1, Math.min(1, v));
+              const next = { ...config, [itemKey]: brighten(base, nb) };
+              if (brightStart.current && !brightStart.current.recorded) {
+                const from = brightStart.current.config;
+                brightStart.current.recorded = true;
+                setHistory((h) => ({ past: [...h.past.slice(-99), from], future: [] }));
+              }
+              setBright({ key: itemKey, base, b: nb, value: next[itemKey] });
+              emit(next);
+            };
+            const begin = () => { brightStart.current = { config, recorded: false }; };
+            return (
+              <div className="ab-bright" role="group" aria-label="Brightness" data-off={!base || undefined}>
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
+                <input
+                  type="range"
+                  min="-100"
+                  max="100"
+                  step="1"
+                  value={Math.round(b * 100)}
+                  disabled={!base}
+                  aria-label="Brightness"
+                  aria-valuetext={b === 0 ? 'Original' : `${b > 0 ? 'Lighter' : 'Darker'} ${Math.abs(Math.round(b * 100))}%`}
+                  style={base ? { '--lo': brighten(base, -1), '--mid': base, '--hi': brighten(base, 1) } : undefined}
+                  onPointerDown={begin}
+                  onFocus={begin}
+                  onChange={(e) => slide(Number(e.target.value) / 100)}
+                  onDoubleClick={() => { begin(); slide(0); }}
+                />
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              </div>
+            );
+          })()
+        ) : siblings.length > 1 ? (
           // Inside an item: a toggle of the category's items, to switch straight between them
           <div className="ab-seg" role="tablist" aria-label={group.label} ref={segRef}>
             {/* One dark pill that slides to the chosen item, rather than two crossfading */}
@@ -791,7 +865,7 @@ export default function AvatarBuilder({
                 <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
               </div>
               <span className="ab-sep" aria-hidden="true" />
-              <div className="ab-tiles">{homeTiles}</div>
+              <div className="ab-tiles ab-home-tiles"><span className="ab-cat-ind" ref={indRef} aria-hidden="true" />{homeTiles}</div>
               {homeExtras}
             </div>
           )}

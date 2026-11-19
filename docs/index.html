@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fcfcfc" />
+    <meta name="description" content="Developer docs for Avatar Builder: avatars on demand over HTTP, an editor you can embed anywhere, and an SVG format that stays editable." />
+    <title>Avatar Builder · Developer docs</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Sans&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/"><img id="brand-face" width="28" height="28" alt="" /> Avatar Builder</a>
+      <nav class="top-links"><a href="/docs/" aria-current="page">Docs</a><a href="/">Editor</a><a href="https://github.com/paul-elite/avatar-builder">GitHub</a></nav>
+    </header>
+
+    <div class="layout">
+      <aside class="toc" aria-label="On this page">
+        <a href="#start">Quick start</a>
+        <a href="#playground">Playground</a>
+        <a href="#api">HTTP API</a>
+        <a href="#users">From user data</a>
+        <a href="#format">Portable format</a>
+        <a href="#embed">Embed</a>
+        <a href="#react">React</a>
+        <a href="#reference">Reference</a>
+        <a href="#safety">Safety &amp; versioning</a>
+      </aside>
+
+      <main>
+        <section class="hero">
+          <h1>Avatars for your users, and an editor they can keep using</h1>
+          <p class="lede">Give every user a stable avatar from their id, with nothing to store. Let them make it theirs with an editor you can drop into any page. Every avatar is an SVG that carries its own look, so wherever it's saved, it can be opened and edited again.</p>
+          <div class="faces" id="faces" aria-hidden="true"></div>
+        </section>
+
+        <section id="start">
+          <h2>Quick start</h2>
+          <p>Three ways in, from no code to full control.</p>
+          <div class="steps">
+            <div class="step">
+              <span class="step-n">1</span>
+              <h3>An image URL</h3>
+              <p>Any string gives the same face, every time.</p>
+              <pre><code>&lt;img src="https://avatars.paulelite.com/a/user_42.svg"
+     width="48" height="48" alt=""&gt;</code></pre>
+            </div>
+            <div class="step">
+              <span class="step-n">2</span>
+              <h3>One script tag</h3>
+              <p>Avatars and the full editor as HTML tags. No build step.</p>
+              <pre><code>&lt;script src="https://avatars.paulelite.com/embed.js" defer&gt;&lt;/script&gt;
+
+&lt;avatar-image seed="user_42" size="48"&gt;&lt;/avatar-image&gt;
+&lt;avatar-builder name="avatar"&gt;&lt;/avatar-builder&gt;</code></pre>
+            </div>
+            <div class="step">
+              <span class="step-n">3</span>
+              <h3>The React package</h3>
+              <p>Components plus the headless functions.</p>
+              <pre><code>npm i github:paul-elite/avatar-builder
+
+import { Avatar, AvatarBuilder } from 'avatar-builder';
+import 'avatar-builder/styles.css';</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="playground">
+          <h2>Playground</h2>
+          <p>Type a user id, email or any string. The avatar, its URL and the JSON the API returns update as you type. Pin a part to override the generated look.</p>
+          <div class="play">
+            <div class="play-controls">
+              <label class="field"><span>Seed or user id</span><input id="seed" value="user_42" autocomplete="off" spellcheck="false" /></label>
+              <label class="field"><span>Size</span>
+                <select id="size"><option>64</option><option>128</option><option selected>256</option><option>512</option></select>
+              </label>
+              <div class="field"><span>Pin</span>
+                <div class="pins">
+                  <select id="pin-hair" aria-label="Hair"><option value="">Hair: generated</option></select>
+                  <select id="pin-eyes" aria-label="Eyes"><option value="">Eyes: generated</option></select>
+                  <select id="pin-mouth" aria-label="Mouth"><option value="">Mouth: generated</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="play-out">
+              <div class="play-face" id="play-face"></div>
+              <div class="play-links">
+                <div class="url"><code id="play-url"></code><button class="copy" data-copy="#play-url" type="button">Copy</button></div>
+                <a id="play-edit" class="btn" href="/">Open in the editor</a>
+              </div>
+            </div>
+          </div>
+          <details class="json"><summary>Response from <code id="play-json-url"></code></summary><pre><code id="play-json"></code></pre></details>
+        </section>
+
+        <section id="api">
+          <h2>HTTP API</h2>
+          <p>Every response can be called from any origin and is cached at the edge. A given seed always gives the same image.</p>
+          <div class="table">
+            <table>
+              <thead><tr><th>Request</th><th>Returns</th></tr></thead>
+              <tbody>
+                <tr><td><code>GET /a/&lt;seed&gt;.svg</code></td><td>The avatar, <code>image/svg+xml</code></td></tr>
+                <tr><td><code>GET /a/&lt;seed&gt;.json</code></td><td><code>{ seed, generator, url, editUrl, config, document, svg }</code></td></tr>
+                <tr><td><code>GET /api/avatar?id=42</code></td><td>The SVG for a user. <code>id</code>, <code>email</code>, <code>username</code> or <code>name</code> is hashed into the seed</td></tr>
+                <tr><td><code>GET /api/avatar?seed=x&amp;hair=mop&amp;skin=f3d2b9</code></td><td>The generated look with some parts pinned</td></tr>
+                <tr><td><code>GET /api/avatar?avatar=&lt;code&gt;</code></td><td>An exact look from a share code</td></tr>
+                <tr><td><code>POST /api/avatar</code></td><td>One avatar as JSON, for a user record (below)</td></tr>
+                <tr><td><code>POST /api/avatar</code> with <code>users</code></td><td>Up to 100 avatars in one call</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Query options</h3>
+          <dl class="opts">
+            <dt><code>size</code></dt><dd>16–2048 px, default 256.</dd>
+            <dt><code>format=json</code></dt><dd>The JSON response instead of the image.</dd>
+            <dt><code>download=1</code></dt><dd>Serve it as a file download.</dd>
+            <dt>any part</dt><dd><code>hair</code>, <code>eyes</code>, <code>mouth</code>, <code>skin</code>, <code>hairColor</code>, <code>bg</code>… (see <a href="#reference">fields</a>). Colours may leave out the <code>#</code>; <code>none</code> turns optional parts off.</dd>
+          </dl>
+          <h3>For your users, in one call</h3>
+          <pre><code>curl -X POST https://avatars.paulelite.com/api/avatar \
+  -H 'content-type: application/json' \
+  -d '{ "users": [ { "id": 1 }, { "id": 2, "avatar": { "hair": "buzz" } } ], "size": 96 }'</code></pre>
+          <pre><code>{
+  "avatars": [
+    {
+      "seed": "u_emhgni9yrs",
+      "generator": 1,
+      "url": "https://avatars.paulelite.com/a/u_emhgni9yrs.svg?size=96",
+      "editUrl": "https://avatars.paulelite.com/?avatar=eyJiZyI6…",
+      "config": { "skin": "#e8b98f", "hair": "spiky", … },
+      "document": { "format": "avatar-builder", "version": 1, "config": { … }, "seed": "u_emhgni9yrs" },
+      "svg": "&lt;svg …&gt;…&lt;/svg&gt;"
+    },
+    …
+  ]
+}</code></pre>
+          <p>Store the <code>url</code> (or nothing, and rebuild it from the user id), show it anywhere, and send people to <code>editUrl</code> to customise theirs.</p>
+        </section>
+
+        <section id="users">
+          <h2>From user data</h2>
+          <p>Metadata only picks the <em>seed</em>. The first of <code>id</code>, <code>userId</code>, <code>uid</code>, <code>sub</code>, <code>email</code> (trimmed, lower-cased), <code>username</code>, <code>handle</code> or <code>name</code> is hashed, so raw values never appear in URLs. Pass <code>seed</code> to choose it yourself.</p>
+          <div class="note">
+            <strong>We never guess appearance from profile data.</strong> Name, gender, age or location don't change the face. If a user has made choices, send them as <code>avatar</code> (a partial config, a saved document or an SVG) and they win over the generated look.
+          </div>
+          <pre><code>import { avatarFromUser } from 'avatar-builder';
+
+const { seed, config } = avatarFromUser({ id: user.id, avatar: user.savedAvatar });</code></pre>
+          <p class="aside">Prefer stable ids to emails: hashing hides an email from the URL, but someone who already knows the email can still compute its seed.</p>
+        </section>
+
+        <section id="format">
+          <h2>Portable format</h2>
+          <p>Every SVG from the editor, the library or the API carries the description of its own look. That makes any copy of an avatar, on any website, a template: open it in the editor and the user carries on from that exact look.</p>
+          <pre><code>&lt;svg viewBox="-6 -16 195 195" data-avatar-format="avatar-builder/1" …&gt;
+  &lt;title&gt;Avatar&lt;/title&gt;
+  &lt;metadata&gt;
+    &lt;avatar-builder&gt;{ "format": "avatar-builder", "version": 1,
+                      "config": { "skin": "#f3d2b9", "hair": "mop", … },
+                      "seed": "u_1dz58yaqlv3" }&lt;/avatar-builder&gt;
+  &lt;/metadata&gt;
+  &lt;g data-layer="background"&gt;…&lt;/g&gt;
+  &lt;g data-layer="avatar"&gt;
+    &lt;g data-part="skin"&gt;…&lt;/g&gt; &lt;g data-part="eyes"&gt;…&lt;/g&gt; &lt;g data-part="hair"&gt;…&lt;/g&gt; …
+  &lt;/g&gt;
+&lt;/svg&gt;</code></pre>
+          <ul class="bullets">
+            <li><strong>document</strong>: <code>{ format, version, config, seed? }</code>, the source of truth. Readers ignore anything else in the SVG.</li>
+            <li><strong>layers and parts</strong>: named groups so the drawing can be inspected or styled. They're output only; edit the config, not the paths.</li>
+            <li><strong>config</strong>: one flat object of named choices and hex colours (<a href="#reference">all fields</a>).</li>
+          </ul>
+          <pre><code>import { readAvatar, loadAvatar, encodeAvatar } from 'avatar-builder';
+
+readAvatar(svgString);   // → config. Also takes an &lt;svg&gt; element, a data URI, a document, JSON or a partial config
+await loadAvatar(url);   // fetch an avatar SVG and read it
+encodeAvatar(config);    // a short code for links: https://avatars.paulelite.com/?avatar=&lt;code&gt;</code></pre>
+          <div class="demo-read">
+            <div>
+              <h3>Try it: read an avatar back</h3>
+              <p>Paste any avatar SVG (copy one from the playground, or save one from the editor). We'll read the look back out of it.</p>
+              <textarea id="read-in" rows="5" spellcheck="false" placeholder="&lt;svg … data-avatar-format=&quot;avatar-builder/1&quot;&gt;…"></textarea>
+              <button class="btn" id="read-sample" type="button">Use the playground's SVG</button>
+            </div>
+            <pre class="read-out"><code id="read-out">// the config appears here</code></pre>
+          </div>
+        </section>
+
+        <section id="embed">
+          <h2>Embed</h2>
+          <p>One script defines two tags. It bundles React, the editor and its styles (about 87&nbsp;KB gzipped), and is safe to load next to your own framework.</p>
+          <pre><code>&lt;script src="https://avatars.paulelite.com/embed.js" defer&gt;&lt;/script&gt;</code></pre>
+
+          <h3><code>&lt;avatar-image&gt;</code></h3>
+          <div class="table">
+            <table>
+              <thead><tr><th>Attribute</th><th>Shows</th></tr></thead>
+              <tbody>
+                <tr><td><code>seed</code></td><td>The generated avatar for that seed</td></tr>
+                <tr><td><code>user</code></td><td>The generated avatar for a user id (hashed like the API)</td></tr>
+                <tr><td><code>src</code></td><td>An avatar SVG at a URL</td></tr>
+                <tr><td><code>value</code></td><td>A config/document as JSON, an SVG, or an <code>?avatar=</code> code</td></tr>
+                <tr><td><code>size</code>, <code>alt</code></td><td>Pixels (default 64) and alt text</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3><code>&lt;avatar-builder&gt;</code></h3>
+          <div class="table">
+            <table>
+              <thead><tr><th>Attribute / API</th><th>Does</th></tr></thead>
+              <tbody>
+                <tr><td><code>template</code></td><td>Where to start: an avatar URL, SVG markup, an <code>?avatar=</code> code, or <code>seed:&lt;seed&gt;</code>. Start over returns here</td></tr>
+                <tr><td><code>name</code></td><td>Inside a <code>&lt;form&gt;</code>, submits the avatar document as JSON under that name</td></tr>
+                <tr><td><code>persist</code></td><td>A storage key: remember the look in this browser</td></tr>
+                <tr><td><code>actions="false"</code></td><td>Hide download</td></tr>
+                <tr><td><code>change</code> event</td><td><code>event.detail = { config, svg, document, code }</code> on every edit</td></tr>
+                <tr><td><code>.value</code> / <code>.svg</code> / <code>.document</code></td><td>Read the current avatar. Set <code>.value</code> to load one</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <pre><code>&lt;form method="post" action="/profile"&gt;
+  &lt;avatar-builder name="avatar"
+    template="https://avatars.paulelite.com/a/u_1dz58yaqlv3.svg"&gt;&lt;/avatar-builder&gt;
+  &lt;button&gt;Save&lt;/button&gt;
+&lt;/form&gt;
+
+&lt;script&gt;
+  document.querySelector('avatar-builder')
+    .addEventListener('change', (e) =&gt; console.log(e.detail.config));
+&lt;/script&gt;</code></pre>
+
+          <h3>Live: this page embeds the editor</h3>
+          <p>Started from the playground's avatar. The JSON below is what a form would submit.</p>
+          <div class="live">
+            <div class="live-frame" id="live-frame"></div>
+            <pre class="live-out"><code id="live-out">// edit the avatar to see change events</code></pre>
+          </div>
+        </section>
+
+        <section id="react">
+          <h2>React</h2>
+          <pre><code>import { Avatar, AvatarBuilder, avatarFromUser } from 'avatar-builder';
+import 'avatar-builder/styles.css';
+
+// Show
+&lt;Avatar user={{ id: user.id }} size={40} /&gt;     // generated, stable
+&lt;Avatar value={user.savedAvatar} size={40} /&gt;   // a saved config, document or SVG
+
+// Create or edit, starting from what they have
+&lt;AvatarBuilder
+  template={user.savedAvatar ?? avatarFromUser(user).config}
+  onChange={(config, { svg, document, code }) =&gt; save(document)}
+/&gt;</code></pre>
+          <div class="table">
+            <table>
+              <thead><tr><th><code>&lt;AvatarBuilder&gt;</code> prop</th><th>Does</th></tr></thead>
+              <tbody>
+                <tr><td><code>template</code></td><td>Start from an avatar: SVG (string, element, data URI), its URL, a document, or a partial config. Wins over <code>persist</code> and skips setup</td></tr>
+                <tr><td><code>value</code> / <code>defaultValue</code></td><td>Controlled or initial config</td></tr>
+                <tr><td><code>onChange</code></td><td><code>(config, { svg, document, code })</code> on every edit</td></tr>
+                <tr><td><code>persist</code></td><td>Remember the look in this browser under a key</td></tr>
+                <tr><td><code>backdrop</code></td><td><code>'plain'</code> or <code>'circle'</code></td></tr>
+                <tr><td><code>size</code>, <code>exportSize</code>, <code>showActions</code>, <code>className</code></td><td>Preview size, download size, download button, root class</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="reference">
+          <h2>Reference</h2>
+          <h3>Functions</h3>
+          <div class="table">
+            <table>
+              <tbody>
+                <tr><td><code>avatarFromSeed(seed, overrides?)</code></td><td>Config for a seed</td></tr>
+                <tr><td><code>avatarFromUser(user, overrides?)</code></td><td><code>{ seed, config }</code> for a user record</td></tr>
+                <tr><td><code>seedFromUser(user)</code></td><td>The hashed seed the API would use</td></tr>
+                <tr><td><code>avatarToSvg(config, { size, embed, seed, title })</code></td><td>The portable SVG string</td></tr>
+                <tr><td><code>avatarToDataUri(config, opts)</code></td><td>The same as a data URI for <code>&lt;img src&gt;</code></td></tr>
+                <tr><td><code>readAvatar(input)</code> / <code>loadAvatar(url)</code></td><td>Config from any avatar input / URL</td></tr>
+                <tr><td><code>normalizeAvatar(config)</code></td><td>A complete, validated config</td></tr>
+                <tr><td><code>toAvatarDocument(config)</code></td><td>The document object</td></tr>
+                <tr><td><code>encodeAvatar(config)</code> / <code>decodeAvatar(code)</code></td><td>Share codes for links</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Config fields</h3>
+          <div class="table"><table id="fields"><thead><tr><th>Field</th><th>Values</th></tr></thead><tbody></tbody></table></div>
+        </section>
+
+        <section id="safety">
+          <h2>Safety &amp; versioning</h2>
+          <ul class="bullets">
+            <li><strong>Every input is validated.</strong> Unknown shapes fall back to the default, colours must be plain hex (<code>#abc</code> or <code>#aabbcc</code>), and unknown fields are dropped. Avatars from users are safe to accept and re-render.</li>
+            <li><strong>Seeds are stable per generator version.</strong> Responses include <code>generator</code> (now <code>1</code>). If the generator ever changes, it ships as a new version, and existing seeds keep their faces.</li>
+            <li><strong>Documents are versioned</strong> (<code>format: "avatar-builder"</code>, <code>version: 1</code>). New fields only ever get added, so older avatars stay readable.</li>
+          </ul>
+        </section>
+
+        <footer class="foot">Avatar Builder · <a href="/">Open the editor</a></footer>
+      </main>
+    </div>
+    <script type="module" src="/src/docs/docs.js"></script>
+  </body>
+</html>

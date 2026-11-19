@@ -184,6 +184,67 @@
   scrollbar-width: none;
 }
 .ab-seg::-webkit-scrollbar { display: none; }
+
+/* Brightness over the open colour (in place of the item switcher): a white pill like it,
+   a track running from the colour's darkest to its lightest, the colour itself at the centre */
+.ab-bright {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--ab-bar-shadow);
+  color: #9fa3b1;
+}
+.ab-bright svg { flex: none; }
+.ab-bright input {
+  width: min(220px, 52vw);
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.ab-bright input:disabled { cursor: default; }
+.ab-bright[data-off] { opacity: 0.5; }
+.ab-bright input::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 100px;
+  background: linear-gradient(to right, var(--lo, #e8e7e6), var(--mid, #e8e7e6), var(--hi, #e8e7e6));
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+.ab-bright input::-moz-range-track {
+  height: 10px;
+  border-radius: 100px;
+  background: linear-gradient(to right, var(--lo, #e8e7e6), var(--mid, #e8e7e6), var(--hi, #e8e7e6));
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+.ab-bright input::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.2);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: transform 120ms ease-out;
+}
+.ab-bright input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.ab-bright input:active::-webkit-slider-thumb { transform: scale(1.1); }
+.ab-bright input:focus-visible { outline: none; }
+.ab-bright input:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px #1084fe, 0 1px 3px rgba(0, 0, 0, 0.2); }
 .ab-seg { position: relative; }
 .ab-seg-ind {
   position: absolute;
@@ -600,7 +661,25 @@
 .ab-bar[data-level="default"] .ab-cat:hover { background: rgba(255, 255, 255, 0.06); }
 .ab-bar[data-level="default"] .ab-cat:hover .ab-cat-label { color: #d8d9dd; }
 .ab-bar[data-level="default"] .ab-cat.on,
-.ab-bar[data-level="default"] .ab-cat.on:hover { background: #fff; }
+.ab-bar[data-level="default"] .ab-cat.on:hover { background: transparent; }
+/* The selection: one white shape behind the tabs that zips to the chosen one, with a little spring */
+.ab-home-tiles { position: relative; }
+.ab-home-tiles > .ab-cat { position: relative; z-index: 1; }
+.ab-cat-ind {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 56px;
+  border-radius: 14px;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+  transition: transform 220ms cubic-bezier(0.3, 1.25, 0.5, 1), width 220ms cubic-bezier(0.3, 1.25, 0.5, 1), opacity 120ms ease-out;
+}
+.ab-cat-ind[data-show] { opacity: 1; }
+.ab-bar[data-level="default"] .ab-cat-label { transition: color 120ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .ab-cat-ind { transition: opacity 120ms ease-out; } }
 .ab-bar[data-level="default"] .ab-cat.on .ab-cat-label { color: #0b0c0e; }
 .ab-root .ab-bar[data-level="default"] .ab-more-btn:hover,
 .ab-root .ab-bar[data-level="default"] .ab-more-btn[aria-expanded="true"] { color: #fff; }

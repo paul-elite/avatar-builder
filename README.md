@@ -3,7 +3,7 @@
 A tiny, drop-in **React avatar builder**. Pick a look — your app receives the
 chosen config and a ready-to-use SVG. No dependencies beyond React.
 
-**Live:** https://avatars.paulelite.com
+**Live:** https://avatars.paulelite.com · **Developer docs:** https://avatars.paulelite.com/docs/
 
 ## Install
 
