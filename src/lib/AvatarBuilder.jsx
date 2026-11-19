@@ -712,7 +712,8 @@ export default function AvatarBuilder({
               </button>
             ))}
           </div>
-        ) : (
+        ) : crumbs.length > 1 && (
+          // Only when there's a trail to show (Features · Eyes); a lone label would read as a switch with nothing to switch
           <div className="ab-crumbs" aria-live="polite">
             {crumbs.map((c, i) => (
               <span key={i} className={i === crumbs.length - 1 ? 'ab-crumb-now' : undefined}>{c}</span>
