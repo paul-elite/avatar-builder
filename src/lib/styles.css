@@ -585,6 +585,14 @@
 .ab-bar[data-level="default"] .ab-history { border-color: #3d4145; background: #26282b; box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.33); }
 .ab-bar[data-level="default"] .ab-hist-btn { color: #d8d9dd; }
 .ab-bar[data-level="default"] .ab-hist-btn:disabled { color: #62656e; }
+/* The dividers from the former dark bar: near-black grooves with a bright inner edge */
+.ab-bar[data-level="default"] .ab-sep {
+  width: 2px;
+  height: 24px;
+  border-radius: 100px;
+  background: #141415;
+  box-shadow: inset -0.5px 0 0.5px rgba(205, 210, 215, 0.25), inset 0 0 0.2px rgba(166, 172, 179, 0.66);
+}
 .ab-bar[data-level="default"] .ab-cat-label { color: #777c88; }
 .ab-bar[data-level="default"] .ab-cat:hover { background: rgba(255, 255, 255, 0.06); }
 .ab-bar[data-level="default"] .ab-cat:hover .ab-cat-label { color: #d8d9dd; }
