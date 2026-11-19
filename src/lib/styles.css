@@ -664,14 +664,21 @@
 .ab-menu button:disabled svg { color: var(--ab-faint); }
 
 @media (max-width: 480px) {
-  /* Four tabs, undo/redo and ⋮ in a phone-width bar: tighter well, no dividers */
+  /* Four tabs, undo/redo and ⋮ in a phone-width bar: no dividers, slightly narrower tabs,
+     so undo and redo keep a roomy well */
   .ab-bar[data-level="default"] { gap: 4px; }
-  .ab-bar[data-level="default"] .ab-history { gap: 4px; padding: 4px 6px; }
+  .ab-bar[data-level="default"] .ab-history { gap: 12px; padding: 4px 10px; }
   .ab-bar[data-level="default"] .ab-tiles { gap: 0; }
+  .ab-bar[data-level="default"] .ab-cat,
   .ab-bar[data-level="default"] .ab-cat[aria-label="Outfit"],
-  .ab-bar[data-level="default"] .ab-cat[aria-label="Color"] { width: 56px; }
+  .ab-bar[data-level="default"] .ab-cat[aria-label="Color"] { width: 53px; }
   .ab-bar[data-level="default"] .ab-sep { display: none; }
-  .ab-root .ab-more-btn { padding: 4px 4px 4px 2px; }
+  .ab-root .ab-more-btn { padding: 4px 2px 4px 0; }
+}
+@media (max-width: 370px) {
+  .ab-bar[data-level="default"] .ab-cat,
+  .ab-bar[data-level="default"] .ab-cat[aria-label="Outfit"],
+  .ab-bar[data-level="default"] .ab-cat[aria-label="Color"] { width: 51px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
