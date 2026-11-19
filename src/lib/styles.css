@@ -98,8 +98,8 @@
 /* With the colour grid open, the avatar moves up to stay in view above it */
 .ab-root[data-grid] .ab-avatar { transform: translateY(-150px); }
 /* An open grid covers the item toggle's place: the toggle steps out instead of showing through */
-.ab-seg, .ab-crumbs { transition: opacity 140ms ease-out; }
-.ab-root[data-grid] .ab-seg, .ab-root[data-grid] .ab-crumbs { opacity: 0; pointer-events: none; }
+.ab-seg, .ab-crumbs, .ab-bright { transition: opacity 140ms ease-out; }
+.ab-root[data-grid] .ab-seg, .ab-root[data-grid] .ab-crumbs, .ab-root[data-grid] .ab-bright { opacity: 0; pointer-events: none; }
 /* Tap a part to edit it */
 .ab-avatar[data-tappable] [data-part] { cursor: pointer; }
 @media (hover: hover) {
@@ -314,6 +314,9 @@
     0 3px 3px rgba(75, 78, 88, 0.07),
     0 0.6px 1.8px rgba(75, 78, 88, 0.08);
 }
+
+/* The main bar's tray is dark, like the bar */
+.ab-peek[data-dark] { background: #202123; opacity: 1; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.25), 0 3px 3px rgba(75, 78, 88, 0.07); }
 
 .ab-bar {
   position: relative;
