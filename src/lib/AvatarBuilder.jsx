@@ -275,7 +275,7 @@ export default function AvatarBuilder({
       return;
     }
     // Every other move: snapshot the bars and trays, switch level, then FLIP each one to its new place
-    if (stackRef.current && !reducedMotion()) {
+    if (stackRef.current) {
       // Where the move came from: the tab (or part of the avatar) just pressed, else the focused control
       const pressed = pressRef.current && performance.now() - pressRef.current.t < 1500 ? pressRef.current.el : document.activeElement;
       const from = pressed && pressed !== document.body && rootRef.current && rootRef.current.contains(pressed) ? pressed.getBoundingClientRect() : null;
@@ -421,6 +421,12 @@ export default function AvatarBuilder({
     const before = new Map(snap.layers.map((o) => [o.key, o]));
     const now = [...stackRef.current.querySelectorAll('[data-layer]')].map((el) => ({ el, key: el.dataset.layer, kind: el.dataset.kind, rect: el.getBoundingClientRect() }));
     const nowMap = new Map(now.map((n) => [n.key, n]));
+    // Reduced motion: no rising, sliding, scaling or blur; bars that arrive fade in, bars that leave fade out
+    if (reducedMotion()) {
+      for (const n of now) if (!before.has(n.key)) n.el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'ease-out' });
+      for (const old of before.values()) if (!nowMap.has(old.key)) { const g = ghost(old, under); done(g.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 110, easing: 'ease-out', fill: 'forwards' }), g); }
+      return;
+    }
     // The level a bar sits on, by layer key ('all/hair/hairColor' → 'all/hair' → 'home')
     const parentKey = (key) => { const p = parentOf(key.split('/')); return p.length ? p.join('/') : 'home'; };
 
