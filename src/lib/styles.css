@@ -93,10 +93,8 @@
   max-width: min(100%, 60vh);
   height: auto;
   overflow: visible;
-  transition: transform 240ms ease-in-out;
 }
-/* With the colour grid open, the avatar moves up to stay in view above it */
-.ab-root[data-grid] .ab-avatar { transform: translateY(-150px); }
+/* The avatar never moves on the page, whatever opens around it (the colour grid floats over) */
 /* An open grid covers the item toggle's place: the toggle steps out instead of showing through */
 .ab-seg, .ab-crumbs, .ab-bright { transition: opacity 140ms ease-out; }
 .ab-root[data-grid] .ab-seg, .ab-root[data-grid] .ab-crumbs, .ab-root[data-grid] .ab-bright { opacity: 0; pointer-events: none; }
@@ -116,7 +114,6 @@
   height: var(--ab-circle);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  transition: transform 240ms ease-in-out;
 }
 .ab-page { --ab-circle: min(340px, 82vw); }
 /* Phones: the avatar and its circle at 0.67× (circle 320 → 214px, avatar 240 → 161px) */
@@ -124,10 +121,10 @@
   .ab-page { --ab-circle: calc(min(340px, 82vw) * 0.67); }
   .ab-page .ab-avatar { width: calc(240px * 0.67); height: auto; }
 }
-.ab-root[data-backdrop="circle"] .ab-stage { border-radius: 50%; background: var(--ab-fill, #ffffff); transition: background-color 240ms ease, transform 240ms ease-in-out; }
+.ab-root[data-backdrop="circle"] .ab-stage { border-radius: 50%; background: var(--ab-fill, #ffffff); transition: background-color 240ms ease; }
 .ab-stage[data-tappable] { cursor: pointer; }
 /* Frame: the backdrop's shape */
-.ab-root[data-frame] .ab-stage { transition: background-color 240ms ease, border-radius 240ms ease-in-out, transform 240ms ease-in-out; }
+.ab-root[data-frame] .ab-stage { transition: background-color 240ms ease, border-radius 240ms ease-in-out; }
 .ab-root[data-frame="rounded"] .ab-stage { border-radius: 24%; }
 .ab-root[data-frame="square"] .ab-stage { border-radius: 0; }
 .ab-root[data-frame="full"] .ab-stage { background: transparent; }
@@ -143,8 +140,6 @@
   width: max-content;
   max-width: calc(100% - 32px);
 }
-.ab-page[data-grid] .ab-stage { transform: translate(-50%, calc(-50% - 150px)); }
-.ab-page[data-grid] .ab-avatar { transform: none; }
 
 /* ---- Dock: where you are, the toolbar stack, close ---- */
 .ab-dock {
