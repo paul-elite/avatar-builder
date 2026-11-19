@@ -88,7 +88,7 @@ export const SETUP = [
 ];
 
 export const ITEMS = {
-  skin: { label: 'Skin colour', kind: 'color', presets: SKIN },
+  skin: { label: 'Colour', kind: 'color', presets: SKIN },
   head: { label: 'Shape', kind: 'shape', options: HEAD },
   // The Figma (classic) head has its ears built in
   ears: { label: 'Ears', kind: 'shape', options: EARS, when: (c) => c.head === 'round' || c.head === 'square' },
