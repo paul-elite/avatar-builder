@@ -738,7 +738,8 @@ export default function AvatarBuilder({
   const below = [];
   if (inAll) for (let p = parentOf(path); ; p = parentOf(p)) { below.push(p.length ? p.join('/') : 'home'); if (!p.length) break; }
   const homeShown = isDefault || below.length === 1;
-  const trays = below.length >= 2 ? below.slice(0, 2) : [];
+  // Just the level you came from, in its own colour (the main bar only shows when it is that level)
+  const trays = below.length >= 2 ? below.slice(0, 1) : [];
   const levelKey = isDefault ? 'home' : path.join('/');
   // The preview centres the head itself (its silhouette spans x 33–177, y 3.5–160), not head + shadow;
   // with a torso it stays centred left–right and keeps the body in frame. Exports keep the full views.
