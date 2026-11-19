@@ -493,13 +493,16 @@ export default function AvatarBuilder({
 
   // The default bar (Figma 88:5720): Face · Hair · Outfit · Color, then the ⋮ menu.
   // It stays as a full bar under a category (one over the other); deeper, it folds into the stack.
+  // A tab is selected only while its bar is open: nothing is selected on the bare default bar,
+  // closing the bar above deselects it, and tapping the selected tab closes its bar (deselects it).
+  const openTab = isDefault ? null : lastTop;
   const openTop = (key) => {
-    if (inAll && path.length === 2 && path[1] === key) return;
+    if (inAll && path.length === 2 && path[1] === key) return back();
     go(['all', key], inAll && path.length === 2 && path[1] !== 'features' ? 'tab' : 'down');
   };
   const homeTiles = PRIMARY.filter((g) => g.bar).map((g) => (
-    <button key={g.key} type="button" className={'ab-tile ab-cat' + (lastTop === g.key ? ' on' : '')} onClick={() => openTop(g.key)} data-opens={'all/' + g.key} aria-label={g.label} aria-pressed={!isDefault && lastTop === g.key}>
-      <span className="ab-cat-art"><BarIcon name={g.key} on={lastTop === g.key} dark={!isDefault} /></span>
+    <button key={g.key} type="button" className={'ab-tile ab-cat' + (openTab === g.key ? ' on' : '')} onClick={() => openTop(g.key)} data-opens={'all/' + g.key} aria-label={g.label} aria-pressed={openTab === g.key}>
+      <span className="ab-cat-art"><BarIcon name={g.key} on={openTab === g.key} dark={!isDefault} /></span>
       <span className="ab-cat-label">{g.label}</span>
     </button>
   ));
