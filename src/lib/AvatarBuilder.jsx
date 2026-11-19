@@ -5,7 +5,7 @@ import {
 } from './avatar.js';
 import { downloadPng } from './export.js';
 import { readAvatar, loadAvatar, toAvatarDocument, encodeAvatar } from './document.js';
-import { NavIcon, BarIcon } from './icons.jsx';
+import { NavIcon, BarIcon, ColourDot } from './icons.jsx';
 
 /* =========================================================================
    <AvatarBuilder /> — one editor, broad → detailed, with progressive disclosure.
@@ -578,7 +578,7 @@ export default function AvatarBuilder({
   };
   const homeTiles = PRIMARY.filter((g) => g.bar).map((g) => (
     <button key={g.key} type="button" className={'ab-tile ab-cat' + (openTab === g.key ? ' on' : '')} onClick={() => openTop(g.key)} data-opens={'all/' + g.key} aria-label={g.label} aria-pressed={openTab === g.key}>
-      <span className="ab-cat-art"><BarIcon name={g.key} on={openTab === g.key} dark /></span>
+      <span className="ab-cat-art"><BarIcon name={g.key} on={openTab === g.key} dark color={g.key === 'frame' ? config.bg : undefined} /></span>
       <span className="ab-cat-label">{g.label}</span>
     </button>
   ));
@@ -656,7 +656,7 @@ export default function AvatarBuilder({
       return (
         <button key={k} type="button" className="ab-tile ab-cat" onClick={() => open(k)} data-opens={[...path, k].join('/')} aria-label={it.label}>
           <span className="ab-cat-art" style={off ? { opacity: 0.4 } : undefined}>
-            <NavIcon name={k} group={group.key} />
+            <NavIcon name={k} group={group.key} color={it.kind === 'color' && !it.optional ? config[k] : undefined} />
           </span>
           <span className="ab-cat-label">{it.label}</span>
         </button>
@@ -679,6 +679,15 @@ export default function AvatarBuilder({
       // A brightened colour keeps its swatch marked
       const on = eq(config[itemKey], opt) || (!!brightNow && brightNow.b !== 0 && eq(brightNow.base, opt));
       const label = opt === null ? 'None' : opt === true ? 'On' : opt === false ? 'Off' : String(opt);
+      if (item.kind === 'color' && !inGrid) {
+        // the brightened swatch shows its colour as it is now
+        const shown = on && brightNow && eq(brightNow.base, opt) ? config[itemKey] : opt;
+        return (
+          <button key={String(opt)} type="button" className="ab-swatch" aria-pressed={on} aria-label={label} title={label} onClick={() => set(itemKey, opt)}>
+            <ColourDot color={shown} on={on} />
+          </button>
+        );
+      }
       return (
         <button
           key={String(opt)}
@@ -883,7 +892,7 @@ export default function AvatarBuilder({
               <button type="button" className="ab-icon ab-hist-btn" onClick={undo} disabled={!history.past.length} aria-label="Undo" title="Undo"><HistoryIcon mirrored /></button>
               <button type="button" className="ab-icon ab-hist-btn" onClick={redo} disabled={!history.future.length} aria-label="Redo" title="Redo"><HistoryIcon /></button>
             </div>}
-            <div className="ab-tiles" ref={tilesRef} data-long={shapeGrid ? '' : undefined}>
+            <div className="ab-tiles" ref={tilesRef} data-long={shapeGrid ? '' : undefined} data-swatches={item && item.kind === 'color' ? '' : undefined}>
               {tiles}
             </div>
             {extras}

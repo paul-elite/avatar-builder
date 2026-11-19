@@ -392,6 +392,25 @@
 .ab-tile.on[data-kind="item"],
 .ab-tile.on[data-kind="item"]:hover { background: var(--ab-field); box-shadow: inset 0 0 0 1.5px var(--ab-dark); }
 
+/* Colour options: round patches the size of the colour-wheel icon, close together;
+   the chosen one wears the white hub. The button is taller than the patch for an easy tap. */
+.ab-tiles[data-swatches] { gap: 6px; padding: 0 4px; }
+.ab-swatch {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform 120ms ease-out;
+}
+.ab-swatch .ab-dot { display: block; pointer-events: none; transition: transform 120ms ease-out; }
+@media (hover: hover) { .ab-swatch:hover .ab-dot { transform: scale(1.08); } }
+.ab-swatch:active .ab-dot { transform: scale(0.94); }
+
 /* Primary categories: the only labelled tiles */
 .ab-cat {
   width: 60px;

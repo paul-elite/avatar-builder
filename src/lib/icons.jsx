@@ -63,8 +63,8 @@ const ICONS = {
 };
 
 /* `name` is a category or item key; `group` disambiguates an item that shares its category's name */
-export function NavIcon({ name, group, size = 26 }) {
-  if (name === 'skin' && !(group && ICONS[`${group}:skin`])) return <ColourWheel size={size} />;
+export function NavIcon({ name, group, size = 26, color }) {
+  if (name === 'skin' && !(group && ICONS[`${group}:skin`])) return <ColourWheel size={size} color={color} />;
   const art = (group && ICONS[`${group}:${name}`]) || ICONS[name];
   if (!art) return null;
   return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{art}</svg>;
@@ -73,7 +73,8 @@ export function NavIcon({ name, group, size = 26 }) {
 /* The colour wheel (Figma "UI/Colour wheel" 44:2), from its own layers: the exported
    spectrum image, the shine over it, and the white hub with its dark ring and soft shadow. */
 const SPECTRUM = 'data:image/png;base64,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';
-export function ColourWheel({ size = 26 }) {
+// `color`: a colour that's always set (skin, background) shows as itself, not as the spectrum
+export function ColourWheel({ size = 26, color }) {
   const id = 'ab-hub' + useId().replace(/:/g, '');
   return (
     <svg className="ab-wheel-icon" width={size} height={size} viewBox="0 0 28 28" aria-hidden="true">
@@ -86,12 +87,45 @@ export function ColourWheel({ size = 26 }) {
           <feDropShadow dx="0" dy=".5" stdDeviation=".75" floodColor="#000" floodOpacity=".18" />
         </filter>
       </defs>
-      <image href={SPECTRUM} width="28" height="28" />
+      {color ? <circle cx="14" cy="14" r="14" fill={color} /> : <image href={SPECTRUM} width="28" height="28" />}
+      {color && <circle cx="14" cy="14" r="13.75" fill="none" stroke="#000" strokeOpacity=".12" strokeWidth=".5" />}
       <path d="M28 14C28 21.732 21.732 28 14 28C6.26801 28 0 21.732 0 14C0 6.26801 6.26801 0 14 0C21.732 0 28 6.26801 28 14ZM5.32 14C5.32 18.7938 9.20617 22.68 14 22.68C18.7938 22.68 22.68 18.7938 22.68 14C22.68 9.20617 18.7938 5.32 14 5.32C9.20617 5.32 5.32 9.20617 5.32 14Z" fill={`url(#${id}g)`} />
       <g filter={`url(#${id})`}>
         <circle cx="14" cy="14" r="9" fill="#fff" />
         <circle cx="14" cy="14" r="8.5" fill="none" stroke="#000" strokeOpacity=".8" />
       </g>
+    </svg>
+  );
+}
+
+/* A colour option: a plain round patch the size of the colour-wheel icon. The chosen one
+   carries the wheel's white hub (the stopper) in its centre. `color` null = the "none" option. */
+export function ColourDot({ color, on, size = 28 }) {
+  const id = 'ab-dot' + useId().replace(/:/g, '');
+  return (
+    <svg className="ab-dot" width={size} height={size} viewBox="0 0 28 28" aria-hidden="true">
+      <defs>
+        <filter id={id} x="3.5" y="4.5" width="21" height="21" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+          <feDropShadow dx="0" dy=".5" stdDeviation=".75" floodColor="#000" floodOpacity=".18" />
+        </filter>
+      </defs>
+      {color ? (
+        <>
+          <circle cx="14" cy="14" r="14" fill={color} />
+          <circle cx="14" cy="14" r="13.75" fill="none" stroke="#000" strokeOpacity=".12" strokeWidth=".5" />
+        </>
+      ) : (
+        <>
+          <circle cx="14" cy="14" r="13.25" fill="#fff" stroke={on ? '#0b0c0e' : '#d9d9d7'} strokeWidth="1.5" />
+          <path d="M5 23 23 5" stroke={on ? '#0b0c0e' : '#d9d9d7'} strokeWidth="1.5" strokeLinecap="round" />
+        </>
+      )}
+      {on && color && (
+        <g filter={`url(#${id})`}>
+          <circle cx="14" cy="14" r="9" fill="#fff" />
+          <circle cx="14" cy="14" r="8.5" fill="none" stroke="#000" strokeOpacity=".8" />
+        </g>
+      )}
     </svg>
   );
 }
@@ -107,13 +141,13 @@ const BUST_GREY = '#F1F2F4';
 const ON = '#0B0C0E';
 
 // `dark`: the bar under an open category (Figma 92:7014), where unselected heads are drawn in slate
-export function BarIcon({ name, on, dark }) {
+export function BarIcon({ name, on, dark, color }) {
   const d = dark && !on;
   const stroke = on ? ON : d ? '#777C88' : LINE_GREY;
   const lit = on ? ON : d ? '#3C3E44' : LIT_GREY;
   const blank = d ? '#202123' : '#fff';
   const k = { stroke, strokeLinecap: 'round', strokeLinejoin: 'round' };
-  if (name === 'frame') return <ColourWheel size={28} />;
+  if (name === 'frame') return <ColourWheel size={28} color={color} />;
   if (name === 'outfit') {
     const t = { ...k, stroke: on ? 'rgba(255,255,255,.35)' : stroke, strokeWidth: 1.08, fill: 'none' };
     return (
