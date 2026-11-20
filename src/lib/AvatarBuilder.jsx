@@ -49,7 +49,10 @@ import { visibleSections, visibleMore, optionsFor, TARGETS, parentOf } from './s
 // so there's never a frame with an empty slab. 'tab' (switching sibling items) keeps the bar.
 // rise: a new bar coming up from behind the one under it · fold: the stack moving around it ·
 // sink: a closing bar dropping back behind its parent
-const MS = { tab: 150, rise: 260, fold: 220, sink: 170, flip: 320 };
+// grow: a new bar growing in place (height, then width) · fold: the stack moving around it ·
+// sink: a closing bar dropping back · step: the gap between one bar's move and the next
+// (the stack moves one bar at a time, as in the article). flip: how long a level change holds the bars
+const MS = { tab: 150, grow: 440, reveal: 300, fold: 220, sink: 170, open: 180, close: 170, flip: 820 };
 
 /* ---- Colours: a row first, the full grid behind a button ---- */
 const hsl = (h, s, l) => {
@@ -263,7 +266,16 @@ export default function AvatarBuilder({
 
   /* ---- Moving between levels ---- */
   const go = (next, dir) => {
-    if (phase !== 'idle') return;
+    // A level change can be interrupted (× on a bar that's still arriving sends it straight back);
+    // switching tabs can't, it's too short to matter
+    if (phase !== 'idle' && !(phase === 'flip' && dir !== 'tab')) return;
+    if (phase === 'flip') {
+      timers.current.forEach(clearTimeout);
+      timers.current = [];
+      if (stackRef.current) stackRef.current.getAnimations({ subtree: true }).forEach((a) => a.finish());
+      if (ghostsRef.current) ghostsRef.current.replaceChildren();
+      if (topRef.current) topRef.current.replaceChildren();
+    }
     setGrid(false);
     if (dir === 'tab') {
       // Same level, another item: the bar stays put, its width morphs and only its contents change
@@ -405,7 +417,7 @@ export default function AvatarBuilder({
     const base = under.getBoundingClientRect();
     const ease = 'cubic-bezier(0.2, 0, 0, 1)';
     const spring = 'cubic-bezier(0.3, 1.2, 0.45, 1)';
-    const { rise: R, fold: F, sink: S } = MS;
+    const { grow: G, reveal: RV, fold: F, sink: S } = MS;
     const box = (r) => ({ left: r.left - base.left + 'px', top: r.top - base.top + 'px', width: r.width + 'px', height: r.height + 'px' });
     const toward = (a, b) => `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
     const ghost = (old, layer) => {
@@ -430,46 +442,80 @@ export default function AvatarBuilder({
     // The level a bar sits on, by layer key ('all/hair/hairColor' → 'all/hair' → 'home')
     const parentKey = (key) => { const p = parentOf(key.split('/')); return p.length ? p.join('/') : 'home'; };
 
+    /* One bar at a time (the article's rule). Opening: the bar under folds into the tray, then the bar
+       you came from slides down, then the new bar grows. Closing: the bar sinks, then the one under it
+       rises back, then the tray unfolds. A step that has nothing to move is skipped. */
+    const barsNow = now.filter((n) => n.kind === 'bar');
+    const barsBefore = snap.layers.filter((o) => o.kind === 'bar');
+    const added = barsNow.some((n) => !before.has(n.key));
+    const removed = barsBefore.some((o) => !nowMap.has(o.key));
+    const opening = added && !removed;
+    const closing = removed && !added;
+    const moved = (n) => { const o = before.get(n.key); return o && o.kind === n.kind && Math.abs(o.rect.top - n.rect.top) + Math.abs(o.rect.left - n.rect.left) + Math.abs(o.rect.width - n.rect.width) >= 1; };
+    const folds = now.some((n) => { const o = before.get(n.key); return o && o.kind === 'bar' && n.kind === 'tray'; });
+    const slides = now.some(moved);
+    const T = { fold: 0, slide: 0, grow: 0, sink: 0, unfold: 0 };
+    if (opening) {
+      T.slide = folds ? MS.open : 0;
+      T.grow = T.slide + (slides ? MS.open : folds ? MS.open : 0);
+    } else if (closing) {
+      T.slide = MS.close;
+      T.unfold = T.slide + (slides ? MS.close : 0);
+    }
+
     for (const n of now) {
       const { el, key, kind, rect: r } = n;
       const old = before.get(key);
       before.delete(key);
       if (!old) {
         if (kind === 'bar') {
-          // Rises from behind the bar it sits on: from that bar's old place (it paints over this one),
-          // a little smaller, its contents sliding up from beneath just after the surface
-          const pk = parentKey(key);
-          const from = (snap.layers.find((o) => o.key === pk) || nowMap.get(pk) || {}).rect;
-          const dy = from ? Math.max(16, from.top + 8 - r.top) : 16;
-          el.animate([
-            { transform: `translateY(${dy}px) scale(0.94)`, opacity: 0, filter: 'blur(2px)' },
-            { opacity: 1, filter: 'blur(0)', offset: 0.45 },
-            { transform: 'none', opacity: 1, filter: 'blur(0)' },
-          ], { duration: R, easing: spring, fill: 'backwards' });
-          [...el.querySelectorAll('.ab-tiles > *, .ab-bar-close, .ab-sep-close')].forEach((c, i) => c.animate(
+          // Grows in place: a small chip at its centre, full height while still narrow, then out to
+          // its full width. The surface is a plain copy of the bar's skin (so nothing is squashed);
+          // the bar itself appears when the surface is full size, its options sliding up one by one
+          const r0 = { left: r.left + r.width / 2 - 12, top: r.top + r.height / 2 - 5, width: 24, height: 10 };
+          const r1 = { left: r.left + r.width / 2 - 28, top: r.top, width: 56, height: r.height };
+          const surf = document.createElement('div');
+          surf.className = 'ab-morph';
+          surf.style.borderRadius = getComputedStyle(el).borderRadius;
+          Object.assign(surf.style, box(r0));
+          over.appendChild(surf);
+          const grow = surf.animate([
+            { ...box(r0) },
+            { ...box(r1), offset: 0.42 },
+            { ...box(r) },
+          ], { duration: G, delay: T.grow, easing: ease, fill: 'both' });
+          grow.finished.then(() => surf.remove(), () => surf.remove());
+          el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: T.grow + G, fill: 'backwards' });
+          [...el.querySelectorAll('.ab-tiles > .ab-opts > *, .ab-tiles > :not(.ab-opts), .ab-bar-close, .ab-sep-close')].forEach((c, i) => c.animate(
             [{ transform: 'translateY(10px)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-            { duration: 190, delay: 10 + Math.min(i, 10) * 12, easing: ease, fill: 'backwards' },
+            { duration: 190, delay: T.grow + RV + Math.min(i, 10) * 12, easing: ease, fill: 'backwards' },
           ));
+          // The category's tabs arrive last, once there's a bar for them to sit on
+          const pill = el.previousElementSibling && el.previousElementSibling.classList.contains('ab-pill-wrap') ? el.previousElementSibling : null;
+          if (pill) {
+            pill.getAnimations().forEach((a) => a.cancel());
+            pill.animate([{ opacity: 0, transform: 'translateY(4px) scale(0.96)' }, { opacity: 1, transform: 'none' }], { duration: 220, delay: T.grow + G - 60, easing: ease, fill: 'backwards' });
+          }
         } else {
-          el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: 140, delay: F - 80, easing: 'ease-out', fill: 'backwards' });
+          el.animate([{ opacity: 0 }, { opacity: getComputedStyle(el).opacity }], { duration: 140, delay: (closing ? T.unfold : T.fold) + F - 80, easing: 'ease-out', fill: 'backwards' });
         }
       } else if (old.kind === kind) {
         if (Math.abs(old.rect.top - r.top) + Math.abs(old.rect.left - r.left) + Math.abs(old.rect.width - r.width) < 1) continue;
-        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, easing: ease, fill: 'backwards' });
+        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, delay: T.slide, easing: ease, fill: 'backwards' });
       } else if (kind === 'bar') {
         // Out of the stack: the bar unfolds from its tray, contents arriving as it opens; it stays
         // behind the bar above until it has landed (it comes out from under it)
         el.style.zIndex = '-1';
-        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, easing: ease, fill: 'backwards' })
+        el.animate([{ transformOrigin: '0 0', transform: toward(old.rect, r) }, { transformOrigin: '0 0', transform: 'none' }], { duration: F, delay: T.unfold, easing: ease, fill: 'backwards' })
           .finished.then(() => { el.style.zIndex = ''; }, () => { el.style.zIndex = ''; });
-        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: F * 0.7, delay: F * 0.1, easing: 'ease-out', fill: 'backwards' });
+        fadeKids(el, [{ opacity: 0 }, { opacity: 1 }], { duration: F * 0.7, delay: T.unfold + F * 0.1, easing: 'ease-out', fill: 'backwards' });
       } else {
         // Into the stack: a copy of the bar folds into its tray, which takes over
         const g = ghost(old, under);
         const end = getComputedStyle(el).opacity;
-        el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: F });
-        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 70, easing: 'ease-out', fill: 'both' });
-        done(g.animate([{ transform: 'none', opacity: 1 }, { transform: toward(r, old.rect), opacity: end }], { duration: F, easing: ease, fill: 'both' }), g);
+        el.animate([{ opacity: 0 }, { opacity: 0 }], { duration: T.fold + F });
+        fadeKids(g, [{ opacity: 1 }, { opacity: 0 }], { duration: 70, delay: T.fold, easing: 'ease-out', fill: 'both' });
+        done(g.animate([{ transform: 'none', opacity: 1 }, { transform: toward(r, old.rect), opacity: end }], { duration: F, delay: T.fold, easing: ease, fill: 'both' }), g);
       }
     }
     for (const old of before.values()) {
