@@ -909,3 +909,16 @@
 @keyframes ab-pill-in { from { opacity: 0; transform: translateY(4px) scale(0.96); } }
 @media (prefers-reduced-motion: reduce) { .ab-pill-wrap { animation: ab-pill-fade 140ms ease-out 100ms both; } }
 @keyframes ab-pill-fade { from { opacity: 0; } }
+
+/* "All colours": a colour wheel, the full spectrum around the edge fading to white in the middle */
+.ab-spectrum {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle closest-side, #fff 0, rgba(255, 255, 255, 0.85) 25%, rgba(255, 255, 255, 0) 100%),
+    conic-gradient(#ff3b30, #ff9500, #ffcc00, #34c759, #00c7be, #007aff, #5856d6, #af52de, #ff2d55, #ff3b30);
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+}
+.ab-bar[data-muted] .ab-spectrum { filter: grayscale(1) brightness(1.2) contrast(0.6); opacity: 0.55; }

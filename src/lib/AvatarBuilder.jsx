@@ -633,7 +633,6 @@ export default function AvatarBuilder({
       })}
     </svg>
   );
-  const RAINBOW = ['#ff4f4e', '#ffb900', '#00cc1a', '#14c8c8', '#1084fe', '#8b5cf6', '#f70492'];
   // A colour bar: shades of the current colour and the full grid on the left, then the colours
   const colourTiles = (k, top) => {
     const it = ITEMS[k];
@@ -646,7 +645,8 @@ export default function AvatarBuilder({
         <Cluster fills={shadesOf(shadeBase).slice(0, 7)} />
       </button>,
       <button key="all" type="button" className="ab-tile ab-tool" data-open={(top && grid) || undefined} aria-label="All colours" aria-expanded={top && grid} title="All colours" tabIndex={live(top)} onClick={() => { if (top) setGrid((g) => !g); }}>
-        <Cluster fills={RAINBOW} />
+        {/* Every colour: one continuous spectrum. A ring of single colours (the shades button) is one palette */}
+        <span className="ab-spectrum" aria-hidden="true" />
       </button>,
       <span key="sep" className="ab-sep ab-sep-close" aria-hidden="true" />,
       ...list.map((o) => swatch(k, o, top)),
