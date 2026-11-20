@@ -311,6 +311,10 @@
     0 0.6px 1.8px rgba(75, 78, 88, 0.08);
 }
 
+/* A tray is the bar it stands for, folded: its own width less 16px a side, never wider than the bar
+   over it (centred with auto margins, so the moves' transforms stay free) */
+.ab-peek[style*="--tray-w"] { left: 0; right: 0; margin: 0 auto; width: min(calc(100% - var(--depth) * 64px), var(--tray-w)); }
+
 /* The tray of the black main bar is grey; the white bar you came from stays white */
 :root { --ab-under: #e4e5e7; }
 .ab-peek[data-dark] { background: var(--ab-under); opacity: 1; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 3px 3px rgba(75, 78, 88, 0.06); }

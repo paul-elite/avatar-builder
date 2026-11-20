@@ -388,6 +388,16 @@ export default function AvatarBuilder({
     } else place();
   });
   const barWidth = useRef(null);
+  // Each bar's own width, so a bar folded into the tray keeps its width (inset a little), instead of
+  // taking the width of the bar it hangs under
+  const barWidths = useRef({});
+  useLayoutEffect(() => {
+    if (!stackRef.current) return;
+    stackRef.current.querySelectorAll('[data-layer][data-kind="bar"]').forEach((el) => {
+      if (el.getAnimations().length) return; // mid-move widths aren't its own
+      barWidths.current[el.dataset.layer] = el.offsetWidth;
+    });
+  });
   useLayoutEffect(() => {
     const bar = barRef.current;
     const from = barWidth.current;
@@ -442,9 +452,9 @@ export default function AvatarBuilder({
     // The level a bar sits on, by layer key ('all/hair/hairColor' → 'all/hair' → 'home')
     const parentKey = (key) => { const p = parentOf(key.split('/')); return p.length ? p.join('/') : 'home'; };
 
-    /* One bar at a time (the article's rule). Opening: the bar under folds into the tray, then the bar
-       you came from slides down, then the new bar grows. Closing: the bar sinks, then the one under it
-       rises back, then the tray unfolds. A step that has nothing to move is skipped. */
+    /* One bar at a time (the article's rule) when opening: the bar under folds into the tray, then the
+       bar you came from slides down, then the new bar grows. Closing starts on the press: the bar sinks
+       as the one under it rises back, then the tray unfolds. A step that has nothing to move is skipped. */
     const barsNow = now.filter((n) => n.kind === 'bar');
     const barsBefore = snap.layers.filter((o) => o.kind === 'bar');
     const added = barsNow.some((n) => !before.has(n.key));
@@ -459,8 +469,10 @@ export default function AvatarBuilder({
       T.slide = folds ? MS.open : 0;
       T.grow = T.slide + (slides ? MS.open : folds ? MS.open : 0);
     } else if (closing) {
-      T.slide = MS.close;
-      T.unfold = T.slide + (slides ? MS.close : 0);
+      // Closing answers the press at once: the bar under it rises back while the closed one sinks,
+      // then the tray unfolds
+      T.slide = 0;
+      T.unfold = slides ? MS.close : 0;
     }
 
     for (const n of now) {
@@ -933,7 +945,7 @@ export default function AvatarBuilder({
           {underLevel && (
             // The tray hangs under the bar it belongs to, sized to it
             <div className="ab-under">
-              {trayKey && <span key={trayKey} className="ab-peek" data-layer={trayKey} data-kind="tray" data-dark={trayKey === 'home' ? '' : undefined} style={{ '--depth': 1 }} aria-hidden="true" />}
+              {trayKey && <span key={trayKey} className="ab-peek" data-layer={trayKey} data-kind="tray" data-dark={trayKey === 'home' ? '' : undefined} style={{ '--depth': 1, ...(barWidths.current[trayKey] ? { '--tray-w': barWidths.current[trayKey] - 32 + 'px' } : {}) }} aria-hidden="true" />}
               {levelBar(underLevel, false)}
             </div>
           )}
