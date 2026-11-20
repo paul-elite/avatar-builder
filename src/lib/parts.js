@@ -354,15 +354,34 @@ const BEARD_D = {
 };
 // Each head's face centre, face edges at beard height and chin (the oval is what the beards were traced on)
 const FIT = { oval: [106.75, 59, 153, 158.4], classic: [105, 44, 166, 159], boy: [106.5, 60, 153, 144], round: [105, 41, 169, 160], square: [105, 40, 170, 159] };
-export function beard(c) {
-  const d = BEARD_D[c.beard];
-  if (!d) return '';
+// Sideburns on the oval: a strip down each side of the face, in front of the ears, to the cheekbone or the jaw
+// (wide where they meet the hair, tapering to a soft point; clipped to the face, so the outer edge follows it)
+const BURN = (y) => `M50 62H66C66.5 ${y - 16} 65 ${y - 5} 61 ${y}C58 ${y - 1} 54 ${y - 8} 50 ${y - 14}Z M163.5 62H147.5C147 ${y - 16} 148.5 ${y - 5} 152.5 ${y}C155.5 ${y - 1} 159.5 ${y - 8} 163.5 ${y - 14}Z`;
+/* Facial hair is five things you can mix (Face > Facial hair): a beard, a moustache, a goatee,
+   sideburns and stubble. Saved looks from the single `beard` field still render. */
+export function facialHair(c, id) {
+  let { beard: bd = 'none', moustache: mu = 'none', goatee: gt = 'none', sideburns: sb = 'none', stubble: st = 'none' } = c;
+  if (bd === 'moustache') { bd = 'none'; if (mu === 'none') mu = 'handlebar'; }
+  if (bd === 'goatee' || bd === 'chin') { if (gt === 'none') gt = bd; bd = 'none'; }
+  if ([bd, mu, gt, sb, st].every((v) => !v || v === 'none')) return '';
   const [cx, l, r, chin] = FIT[c.head] || FIT.classic;
   const [ox, ol, or, ochin] = FIT.oval;
   const sx = (r - l) / (or - ol), sy = (chin - 110) / (ochin - 110);
   const t = c.head === 'oval' ? '' : ` transform="translate(${cx} 110) scale(${sx.toFixed(3)} ${sy.toFixed(3)}) translate(${-ox} -110)"`;
-  return `<path d="${d}" fill="${c.hairColor}" fill-rule="evenodd"${t}/>`;
+  const fill = `fill="${c.hairColor}" fill-rule="evenodd"`;
+  let face = '', over = '';
+  // Stubble: a shadow of the full beard, kept on the face
+  if (st === 'light' || st === 'heavy') face += `<path d="${BEARD_D.full}" ${fill} fill-opacity="${st === 'light' ? 0.18 : 0.34}"/>`;
+  if (sb === 'short' || sb === 'long') face += `<path d="${BURN(sb === 'short' ? 98 : 120)}" fill="${c.hairColor}"/>`;
+  if (BEARD_D[bd] && ['short', 'full', 'long'].includes(bd)) over += `<path d="${BEARD_D[bd]}" ${fill}/>`;
+  if (gt === 'goatee' || gt === 'chin') over += `<path d="${BEARD_D[gt]}" ${fill}/>`;
+  if (mu === 'handlebar') over += `<path d="${BEARD_D.moustache}" ${fill}/>`;
+  // The thin moustache is the top of the goatee's ring, over the lip
+  if (mu === 'thin') over += `<clipPath id="${id}-lip"><rect x="0" y="0" width="210" height="127.5"/></clipPath><path d="${BEARD_D.goatee}" ${fill} clip-path="url(#${id}-lip)"/>`;
+  const clip = `<clipPath id="${id}-face"><path d="${headD(c)}"/></clipPath>`;
+  return (face ? clip + `<g clip-path="url(#${id}-face)"><g${t}>${face}</g></g>` : '') + (over ? `<g${t}>${over}</g>` : '');
 }
+export const beard = facialHair;
 
 /* ---- Torso (drawn behind the head) ---- */
 const WIDTH = { slim: 0.84, regular: 1, broad: 1.16 };

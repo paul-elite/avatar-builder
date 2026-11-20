@@ -22,14 +22,21 @@ import { ITEMS, HAT, CAP, OUTFIT } from './avatar.js';
    ========================================================================= */
 
 export const SECTIONS = {
+  // Face, in the user's order (2026-11-20): shape, skin, eyes, brows, nose, mouth, facial hair.
+  // Smaller settings ride along as tiles: angle and ears on Shape, blush on Skin, the eyes' extras
+  // on Eyes, tongue and hands on Mouth
   face: [
-    { key: 'head', label: 'Shape', item: 'head', more: ['ears', 'features', 'skin'] },
-    { key: 'tilt', label: 'Angle', item: 'tilt', more: ['features', 'skin'] },
+    { key: 'head', label: 'Shape', item: 'head', more: ['ears', 'tilt'] },
+    { key: 'skin', label: 'Skin', item: 'skin', more: ['blush'] },
+    { key: 'eyes', label: 'Eyes', item: 'eyes', more: ['gaze', 'glasses', 'tears'] },
+    { key: 'brows', label: 'Brows', item: 'brows' },
+    { key: 'nose', label: 'Nose', item: 'nose' },
+    { key: 'mouth', label: 'Mouth', item: 'mouth', more: ['tongue', 'gesture'] },
+    { key: 'facial', label: 'Facial hair', item: 'beard', more: ['moustache', 'goatee', 'sideburns', 'stubble', 'hairColor'] },
   ],
   hair: [
     { key: 'hair', label: 'Style', item: 'hair', more: ['hairColor'] },
     { key: 'wear', label: 'Wear', item: 'hat', more: ['cap'] },
-    { key: 'beard', label: 'Beard', item: 'beard', more: ['hairColor'] },
   ],
   outfit: [
     { key: 'outfit', label: 'Outfit', item: 'outfit', more: ['outfitColor'] },
@@ -37,6 +44,7 @@ export const SECTIONS = {
     { key: 'body', label: 'Body', item: 'body', when: (c) => c.torso },
     { key: 'detail', label: 'Details', item: 'detail', when: (c) => c.torso },
   ],
+  // Features is kept for old links; everything in it now lives under Face
   features: [
     { key: 'eyes', label: 'Eyes', item: 'eyes', more: ['gaze', 'brows', 'glasses', 'tears'] },
     { key: 'mouth', label: 'Mouth', item: 'mouth', more: ['tongue'] },
@@ -48,7 +56,7 @@ export const SECTIONS = {
 };
 
 // The colour a tab's icon wears while it's selected (Style shows the hair colour, and so on)
-export const TAB_TINT = { head: 'skin', hair: 'hairColor', beard: 'hairColor', wear: 'cap', outfit: 'outfitColor', pattern: 'outfitColor' };
+export const TAB_TINT = { head: 'skin', hair: 'hairColor', facial: 'hairColor', wear: 'cap', outfit: 'outfitColor', pattern: 'outfitColor' };
 
 export const visibleSections = (cat, c) => (SECTIONS[cat] || []).filter((s) => !s.when || s.when(c));
 
@@ -80,16 +88,16 @@ export function optionsFor(s, c) {
 export const TARGETS = {
   skin: ['face', 'head'],
   ears: ['face', 'head', 'ears'],
-  eyes: ['features', 'eyes'],
-  glasses: ['features', 'eyes', 'glasses'],
-  tears: ['features', 'eyes', 'tears'],
-  brows: ['features', 'eyes', 'brows'],
-  mouth: ['features', 'mouth'],
-  nose: ['features', 'nose'],
-  blush: ['features', 'cheeks'],
-  hand: ['features', 'hands'],
+  eyes: ['face', 'eyes'],
+  glasses: ['face', 'eyes', 'glasses'],
+  tears: ['face', 'eyes', 'tears'],
+  brows: ['face', 'brows'],
+  mouth: ['face', 'mouth'],
+  nose: ['face', 'nose'],
+  blush: ['face', 'skin', 'blush'],
+  hand: ['face', 'mouth', 'gesture'],
   hair: ['hair', 'hair'],
-  beard: ['hair', 'beard'],
+  beard: ['face', 'facial'],
   cap: ['hair', 'wear'],
   torso: ['outfit', 'outfit'],
   background: ['frame', 'bg'],
