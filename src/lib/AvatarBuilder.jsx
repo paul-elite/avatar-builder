@@ -247,7 +247,7 @@ export default function AvatarBuilder({
   useLayoutEffect(() => {
     const svg = avatarRef.current;
     if (!svg) return;
-    svg.querySelectorAll('[data-part]:not([data-part="skin"]):not([data-part="torso"]):not([data-part="hair"]):not([data-part="cap"])').forEach((g) => {
+    svg.querySelectorAll('[data-part]:not([data-part="skin"]):not([data-part="torso"]):not([data-part="hair"]):not([data-part="beard"]):not([data-part="cap"])').forEach((g) => {
       if (g.querySelector(':scope > [data-hit]')) return; // already padded
       const b = g.getBBox();
       if (!b.width && !b.height) return;
@@ -695,6 +695,7 @@ export default function AvatarBuilder({
         if (v === null) return <None />;
         const tint = (c) => (on ? c : UNPICKED);
         if (s.item === 'hair') return hasHairIcon(v) ? <HairIcon style={v} color={tint(config.hairColor)} /> : <Face item="hair" config={{ ...config, hair: v, hairColor: tint(config.hairColor) }} />;
+        if (s.item === 'beard') return <Face item="beard" config={{ ...config, beard: v, hairColor: tint(config.hairColor) }} />;
         if (s.key === 'wear') return <Face item="hat" config={{ ...config, cap: tint(config.cap || '#1a1a1a'), hat: v }} />;
         if (s.key === 'outfit') return <Face item="outfit" config={{ ...config, torso: true, outfit: v, outfitColor: tint(config.outfitColor) }} />;
         return undefined;

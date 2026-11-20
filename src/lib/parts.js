@@ -30,9 +30,17 @@ const BOY = {
   EAR_R: 'M156.46 105.56C156.47 104.31 156.62 101.17 156.85 97.66C157.23 91.98 157.82 85.33 158.42 84.14C159.10 82.77 161.57 81.56 164.78 79.97C165.26 79.74 165.75 79.49 166.26 79.24C166.65 78.92 166.98 78.62 167.27 78.29C170.54 81.90 174.87 89.65 170.18 95.90C166.64 100.61 164.17 101.79 160.63 103.46C159.40 104.04 158.04 104.69 156.46 105.56Z',
 };
 
+/* The oval head, from the user's reference sheet of 16 heads (2026-11-20):
+   a tall rounded crown, straight sides, small C-shaped ears between the eye line
+   and the nose, and a jaw that tapers to a soft, narrow chin. Sized to the drawn
+   hair (x 46–166 at the temples), so every boy-fitted style sits on it. Ears built in. */
+const OVAL_D =
+  'M106 8C140 8 166 34 166 70V92C174 89 180 95 179 103C178 112 172 118 165 117C163 131 154 143 141 150C130 155 118 157 106 157C94 157 82 155 71 150C58 143 49 131 47 117C40 118 34 112 33 103C32 95 38 89 46 92V70C46 34 72 8 106 8Z';
+
 export const HEADS = {
   classic: HEAD_D,
   boy: BOY.FACE, // ears built in, like classic
+  oval: OVAL_D, // ears built in
   round: 'M38 84C38 40 66 6 105 6C144 6 172 40 172 84C172 128 144 160 105 160C66 160 38 128 38 84Z',
   square: 'M38 58C38 24 66 6 105 6C144 6 172 24 172 58V116C172 144 148 159 105 159C62 159 38 144 38 116Z',
 };
@@ -330,6 +338,55 @@ export const hairFront = {
     CURLS.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="none" ${OUT}/>`).join('') +
     CURLS.map(([x, y, r]) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r - 2}" fill="${c.hairColor}"/>`).join(''),
 };
+
+/* ---- Facial hair ----
+   From the same reference sheet: a moustache, the goatee ring round the mouth, a
+   pointed chin tuft, a short boxed beard, a full beard and a long one. Filled in the
+   hair colour with no outline, like the drawn hair.
+   Each head has its own jaw, so a beard is clipped to the head it sits on and
+   hangs from that head's chin; a hole keeps every mouth clear. */
+// Each head's chin point, and its face edges at cheek height (inside any built-in ears)
+const CHIN = { classic: [105, 159], boy: [106, 144], round: [105, 160], square: [105, 159], oval: [106, 157] };
+const CHEEKS = { classic: [40, 170], boy: [57, 156], round: [38, 172], square: [38, 172], oval: [47, 165] };
+// Clear of every mouth (x 88–126, y 116–143)
+const MOUTH_HOLE = 'M88 125C92 117 120 117 125 124C126 134 118 142 106 142C94 142 87 134 88 125Z';
+const STACHE = 'M84 122C86 112 97 107 106 111C115 107 126 112 128 122C122 118 114 116 106 117C98 116 90 118 84 122Z';
+// Cheek line: high at the sideburns, dipping to the corners of the moustache
+const cheeks = (l, r, top) =>
+  `M${l} ${top}C${l + 12} ${top + 12} ${l + 28} ${top + 21} 84 122H128C${r - 28} ${top + 21} ${r - 12} ${top + 12} ${r} ${top}V240H${l}Z`;
+const BEARDS = {
+  moustache: () => ({ face: '', below: '', stache: true }),
+  goatee: (l, r, [x, y]) => ({
+    ring: `M82 121C84 110 97 106 106 110C115 106 128 110 130 121C132 ${y - 20} 124 ${y - 4} ${x} ${y + 2}C88 ${y - 4} 80 ${y - 20} 82 121Z`,
+    stache: true,
+  }),
+  chin: (l, r, [x, y]) => ({ below: `M${x - 9} ${y - 13}C${x - 5} ${y - 16} ${x + 5} ${y - 16} ${x + 9} ${y - 13}C${x + 9} ${y - 5} ${x + 5} ${y + 3} ${x} ${y + 9}C${x - 5} ${y + 3} ${x - 9} ${y - 5} ${x - 9} ${y - 13}Z` }),
+  short: (l, r, [x, y]) => ({ face: cheeks(l, r, 106), below: `M${x - 26} ${y - 10}C${x - 22} ${y + 3} ${x - 12} ${y + 6} ${x} ${y + 6}C${x + 12} ${y + 6} ${x + 22} ${y + 3} ${x + 26} ${y - 10}Z`, stache: true }),
+  full: (l, r, [x, y]) => ({ face: cheeks(l, r, 96), below: `M${x - 34} ${y - 14}C${x - 30} ${y + 6} ${x - 16} ${y + 13} ${x} ${y + 13}C${x + 16} ${y + 13} ${x + 30} ${y + 6} ${x + 34} ${y - 14}Z`, stache: true }),
+  long: (l, r, [x, y]) => ({
+    face: cheeks(l, r, 96),
+    // Tapers from the jaw to a forked point, short enough to stay inside the head-only frame
+    below: `M${x - 44} ${y - 26}C${x - 44} ${y - 2} ${x - 32} ${y + 12} ${x - 15} ${y + 18}L${x - 7} ${y + 14}L${x} ${y + 22}L${x + 7} ${y + 14}L${x + 15} ${y + 18}C${x + 32} ${y + 12} ${x + 44} ${y - 2} ${x + 44} ${y - 26}Z`,
+    stache: true,
+  }),
+};
+export function beard(c, id) {
+  const make = BEARDS[c.beard];
+  if (!make) return '';
+  const h = CHIN[c.head] ? c.head : 'classic';
+  const [l, r] = CHEEKS[h];
+  const b = make(l, r, CHIN[h]);
+  const m = `${id}-beard`;
+  // Inside the mask: the cheeks clipped to this head, what hangs below the chin, the mouth cut out, then the moustache over it
+  return `<clipPath id="${m}-face"><path d="${headD(c)}"/></clipPath>` +
+    `<mask id="${m}" maskUnits="userSpaceOnUse" x="0" y="0" width="210" height="240">` +
+    (b.face ? `<path d="${b.face}" fill="#fff" clip-path="url(#${m}-face)"/>` : '') +
+    (b.ring ? `<path d="${b.ring}" fill="#fff"/>` : '') +
+    (b.below ? `<path d="${b.below}" fill="#fff"/>` : '') +
+    (b.face || b.ring ? `<path d="${MOUTH_HOLE}" fill="#000"/>` : '') +
+    (b.stache ? `<path d="${STACHE}" fill="#fff"/>` : '') +
+    `</mask><rect x="0" y="0" width="210" height="240" fill="${c.hairColor}" mask="url(#${m})"/>`;
+}
 
 /* ---- Torso (drawn behind the head) ---- */
 const WIDTH = { slim: 0.84, regular: 1, broad: 1.16 };

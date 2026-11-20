@@ -26,7 +26,7 @@ export const OUTFIT_COLOR = ['#1084fe', '#f70492', '#50c810', '#ff7a00', '#ffe40
 export const CATEGORIES = ['person'];
 export const STYLES = ['outline'];
 export const EYES = ['boy', 'open', 'round', 'wide', 'big', 'side', 'up', 'sleepy', 'peek', 'angry', 'skeptical', 'bored', 'happy', 'sad', 'closed', 'wink', 'flat', 'squeeze', 'dead', 'dots'];
-export const HEAD = ['boy', 'classic', 'round', 'square'];
+export const HEAD = ['boy', 'oval', 'classic', 'round', 'square'];
 export const EARS = ['none', 'small', 'regular', 'big'];
 export const TILT = ['straight', 'left', 'right'];
 const TILT_DEG = { straight: 0, left: -10, right: 10 };
@@ -40,6 +40,8 @@ export const FRAME = ['circle', 'rounded', 'square', 'full'];
 const GAZE_EYES = ['round', 'wide', 'big', 'up', 'sleepy', 'peek', 'angry', 'bored'];
 export const MOUTH = ['boy', 'tongue', 'smile', 'smirk', 'open', 'o', 'frown', 'wobble', 'none'];
 export const HAIR = ['none', 'boy', 'tufts', 'swept', 'spiky', 'mop', 'curlytop', 'buzz', 'short', 'bangs', 'sidebob', 'curly', 'long', 'bun', 'underhat'];
+// Facial hair, from the user's reference sheet
+export const BEARD = ['none', 'moustache', 'goatee', 'chin', 'short', 'full', 'long'];
 export const BODY = ['slim', 'regular', 'broad'];
 export const OUTFIT = ['tee', 'hoodie', 'shirt'];
 export const DETAIL = ['none', 'pocket', 'stripe'];
@@ -57,6 +59,7 @@ export const defaultAvatar = {
   tilt: 'straight',
   hair: 'boy',
   hairColor: '#1a1a1a',
+  beard: 'none',
   eyes: 'boy',
   gaze: 'center',
   brows: 'none',
@@ -94,7 +97,8 @@ export const ITEMS = {
   ears: { label: 'Ears', kind: 'shape', options: EARS, when: (c) => c.head === 'round' || c.head === 'square' },
   tilt: { label: 'Angle', kind: 'shape', options: TILT },
   hair: { label: 'Style', kind: 'shape', options: HAIR },
-  hairColor: { label: 'Colour', kind: 'color', presets: HAIR_COLOR, when: (c) => c.hair !== 'none' },
+  hairColor: { label: 'Colour', kind: 'color', presets: HAIR_COLOR, when: (c) => c.hair !== 'none' || (c.beard && c.beard !== 'none') },
+  beard: { label: 'Beard', kind: 'shape', options: BEARD },
   cap: { label: 'Headwear', kind: 'color', presets: CAP, optional: true },
   // Which hat; the colour item above also turns headwear off
   hat: { label: 'Hat', kind: 'shape', options: HAT, when: (c) => !!c.cap },
@@ -135,7 +139,7 @@ export const PRIMARY = [
       { key: 'hands', label: 'Hands', items: ['gesture'] },
     ],
   },
-  { key: 'hair', label: 'Hair', bar: true, items: ['hair', 'hairColor', 'cap', 'hat'] },
+  { key: 'hair', label: 'Hair', bar: true, items: ['hair', 'beard', 'hairColor', 'cap', 'hat'] },
   { key: 'outfit', label: 'Outfit', bar: true, items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
   // The avatar always sits in the round background; Frame picks its colour (one item, so it opens straight to it)
   { key: 'frame', label: 'Color', bar: true, items: ['bg'] },
@@ -178,6 +182,7 @@ export const ITEM_VIEWS = {
   tongue: '83 112 44 44',
   tears: '57 75 100 100',
   hair: '15 -30 180 180',
+  beard: '36 64 140 140',
   torso: '10 140 190 190',
   body: '10 140 190 190',
   outfit: '10 140 190 190',
@@ -225,6 +230,8 @@ function headLayers(c, id, L, s) {
   s += L('brows', (P.brows[c.brows] || P.brows.none)(c));
   s += L('eyes', (P.eyes[c.eyes] || P.eyes.open)(c));
   if (c.glasses) s += L('glasses', P.glasses(c));
+  // Facial hair sits under the nose and mouth, which stay drawn over it
+  if (c.beard && c.beard !== 'none') s += L('beard', P.beard(c, id));
   s += L('nose', (P.nose[c.nose] || P.nose.none)(c));
   s += L('mouth', (P.mouth[c.mouth] || P.mouth.none)(c));
   // Hair sits over the head; a cap, when worn, covers its top
@@ -249,6 +256,7 @@ export const PART_TARGETS = {
   blush: ['features', 'cheeks'],
   hand: ['features', 'hands'],
   hair: ['hair', 'hair'],
+  beard: ['hair', 'beard'],
   cap: ['hair', 'cap'],
   torso: ['outfit'],
   background: ['frame'],
@@ -272,6 +280,9 @@ export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
     case 'hair':
       if (c.hair === 'none') return '';
       return (P.hairBack[c.hair] ? P.hairBack[c.hair](c) : '') + `<path d="${P.headD(c)}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>` + P.hairFront[c.hair](c);
+    case 'beard':
+      if (!c.beard || c.beard === 'none') return '';
+      return `<path d="${P.headD(c)}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>` + P.beard(c, id) + (P.mouth[c.mouth] || P.mouth.none)(c);
     case 'body':
     case 'outfit':
     case 'outfitColor':

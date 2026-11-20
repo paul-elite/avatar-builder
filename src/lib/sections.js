@@ -29,6 +29,7 @@ export const SECTIONS = {
   hair: [
     { key: 'hair', label: 'Style', item: 'hair', more: ['hairColor'] },
     { key: 'wear', label: 'Wear', item: 'hat', more: ['cap'] },
+    { key: 'beard', label: 'Beard', item: 'beard', more: ['hairColor'] },
   ],
   outfit: [
     { key: 'outfit', label: 'Outfit', item: 'outfit', more: ['outfitColor'] },
@@ -46,7 +47,7 @@ export const SECTIONS = {
 };
 
 // The colour a tab's icon wears while it's selected (Style shows the hair colour, and so on)
-export const TAB_TINT = { head: 'skin', hair: 'hairColor', wear: 'cap', outfit: 'outfitColor' };
+export const TAB_TINT = { head: 'skin', hair: 'hairColor', beard: 'hairColor', wear: 'cap', outfit: 'outfitColor' };
 
 export const visibleSections = (cat, c) => (SECTIONS[cat] || []).filter((s) => !s.when || s.when(c));
 
@@ -87,6 +88,7 @@ export const TARGETS = {
   blush: ['features', 'cheeks'],
   hand: ['features', 'hands'],
   hair: ['hair', 'hair'],
+  beard: ['hair', 'beard'],
   cap: ['hair', 'wear'],
   torso: ['outfit', 'outfit'],
   background: ['frame', 'bg'],
