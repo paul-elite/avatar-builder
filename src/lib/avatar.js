@@ -43,7 +43,9 @@ export const HAIR = ['none', 'boy', 'tufts', 'swept', 'spiky', 'mop', 'curlytop'
 // Facial hair, from the user's reference sheet
 export const BEARD = ['none', 'moustache', 'goatee', 'chin', 'short', 'full', 'long'];
 export const BODY = ['slim', 'regular', 'broad'];
-export const OUTFIT = ['tee', 'hoodie', 'shirt'];
+export const OUTFIT = ['tee', 'vneck', 'henley', 'hoodie', 'shirt', 'turtleneck', 'suit', 'tank', 'offshoulder'];
+// Prints on the cloth (P.PRINT_NAMES)
+export const PATTERN = ['none', 'stripes', 'pinstripes', 'dots', 'check', 'hearts', 'squiggle', 'zigzag'];
 export const DETAIL = ['none', 'pocket', 'stripe'];
 
 /* The default look: the boy (Downloads/Boy avatar.svg), grey skin, black hair. */
@@ -76,6 +78,7 @@ export const defaultAvatar = {
   body: 'regular',
   outfit: 'tee',
   outfitColor: '#1084fe',
+  pattern: 'none',
   detail: 'none',
 };
 
@@ -116,6 +119,7 @@ export const ITEMS = {
   body: { label: 'Body', kind: 'shape', options: BODY, when: (c) => c.torso },
   outfit: { label: 'Outfit', kind: 'shape', options: OUTFIT, when: (c) => c.torso },
   outfitColor: { label: 'Outfit colour', kind: 'color', presets: OUTFIT_COLOR, when: (c) => c.torso },
+  pattern: { label: 'Pattern', kind: 'shape', options: PATTERN, when: (c) => c.torso },
   detail: { label: 'Details', kind: 'shape', options: DETAIL, when: (c) => c.torso },
   bg: { label: 'Colour', kind: 'color', presets: BG },
   frame: { label: 'Frame', kind: 'shape', options: FRAME },
@@ -140,7 +144,7 @@ export const PRIMARY = [
     ],
   },
   { key: 'hair', label: 'Hair', bar: true, items: ['hair', 'beard', 'hairColor', 'cap', 'hat'] },
-  { key: 'outfit', label: 'Outfit', bar: true, items: ['torso', 'body', 'outfit', 'outfitColor', 'detail'] },
+  { key: 'outfit', label: 'Outfit', bar: true, items: ['torso', 'body', 'outfit', 'outfitColor', 'pattern', 'detail'] },
   // The avatar always sits in the round background; Frame picks its colour (one item, so it opens straight to it)
   { key: 'frame', label: 'Color', bar: true, items: ['bg'] },
 ];
@@ -187,6 +191,7 @@ export const ITEM_VIEWS = {
   body: '10 140 190 190',
   outfit: '10 140 190 190',
   outfitColor: '10 140 190 190',
+  pattern: '10 140 190 190',
   detail: '10 140 190 190',
   shadow: '-6 -10 189 189',
 };
@@ -286,6 +291,7 @@ export function itemSvg(part, config, { id = 'item' + (++uid) } = {}) {
     case 'body':
     case 'outfit':
     case 'outfitColor':
+    case 'pattern':
     case 'detail':
       return P.torso({ ...c, torso: true }, id);
     case 'shadow': return (c.shadow ? P.shadow(c) : '') + `<path d="${P.headD(c)}" fill="#fff" stroke="#1A1A1A" stroke-width="4"/>`;

@@ -393,31 +393,92 @@ const WIDTH = { slim: 0.84, regular: 1, broad: 1.16 };
 // Shoulders from the neck down past the bottom of the bust view
 const BODY_D = 'M16 262C16 214 40 192 80 183C90 195 120 195 130 183C170 192 194 214 194 262Z';
 
+/* ---- Outfits, from the user's sheet of 50 avatars (2026-11-20) ----
+   Cuts: crew tee, V-neck, henley, hoodie, collared shirt, turtleneck, blazer with tie,
+   tank and off-shoulder top. Prints: breton stripes, pinstripes, dots, gingham, hearts,
+   squiggles and zigzags, drawn in black or white, whichever reads on the cloth.
+   Skin is drawn first, so the tank's and off-shoulder's bare shoulders show through. */
+// What each cut covers (clipped to the body); cuts not listed cover all of it
+const CLOTH = {
+  tank: 'M28 262C28 246 32 238 42 232C62 222 70 204 77 186L89 187C92 206 118 206 121 187L133 186C140 204 148 222 168 232C178 238 182 246 182 262Z',
+  offshoulder: 'M0 262V208C36 202 70 206 105 206C140 206 174 202 210 208V262Z',
+};
+// Prints: one tile each, in userSpaceOnUse units; `ink` is the colour of the marks
+const PRINTS = {
+  stripes: (ink) => ['0 0 16 16', `<rect width="16" height="7.5" fill="${ink}"/>`],
+  pinstripes: (ink) => ['0 0 13 13', `<rect width="3.6" height="13" fill="${ink}"/>`],
+  dots: (ink) => ['0 0 20 20', `<circle cx="5" cy="5" r="3.8" fill="${ink}"/><circle cx="15" cy="15" r="3.8" fill="${ink}"/>`],
+  check: (ink) => ['0 0 16 16', `<rect width="8" height="16" fill="${ink}" fill-opacity="0.45"/><rect width="16" height="8" fill="${ink}" fill-opacity="0.45"/>`],
+  hearts: (ink) => ['0 0 22 22', [[2, 3], [13, 14]].map(([x, y]) => `<path d="M${x} ${y + 2.6}C${x} ${y + 0.7} ${x + 2.4} ${y} ${x + 3.5} ${y + 1.7}C${x + 4.6} ${y} ${x + 7} ${y + 0.7} ${x + 7} ${y + 2.6}C${x + 7} ${y + 4.8} ${x + 3.5} ${y + 7} ${x + 3.5} ${y + 7}C${x + 3.5} ${y + 7} ${x} ${y + 4.8} ${x} ${y + 2.6}Z" fill="${ink}"/>`).join('')],
+  squiggle: (ink) => ['0 0 24 24', `<path d="M3 6C5 3 7 9 9 6S13 3 15 6M13 18C15 15 17 21 19 18S23 15 25 18" fill="none" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>`],
+  zigzag: (ink) => ['0 0 16 14', `<path d="M0 9L4 4L8 9L12 4L16 9" fill="none" stroke="${ink}" stroke-width="3" stroke-linejoin="round"/>`],
+};
+export const PRINT_NAMES = Object.keys(PRINTS);
+// Black marks on light cloth, white on dark
+const inkFor = (hex) => {
+  const h = String(hex || '#000').replace('#', '');
+  const n = parseInt(h.length === 3 ? h.replace(/./g, '$&$&') : h, 16);
+  const lum = (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  return lum > 0.6 ? '#1a1a1a' : '#ffffff';
+};
+
 export function torso(c, id) {
   const f = WIDTH[c.body] || 1;
   const sx = `transform="translate(105 0) scale(${f} 1) translate(-105 0)"`;
   const ns = 'vector-effect="non-scaling-stroke"';
+  const o = c.outfit;
+  const cloth = CLOTH[o] || BODY_D;
+  const ink = inkFor(c.outfitColor);
   let s = '';
   // Hood sits behind the neck
-  if (c.outfit === 'hoodie') s += `<g ${sx}><path d="M58 184C54 150 156 150 152 184Z" fill="${c.outfitColor}" ${OUT} ${ns}/></g>`;
+  if (o === 'hoodie') s += `<g ${sx}><path d="M58 184C54 150 156 150 152 184Z" fill="${c.outfitColor}" ${OUT} ${ns}/></g>`;
   // Neck
   s += `<path d="M88 138V186H122V138" fill="${c.skin}" ${OUT}/>`;
-  // Body / outfit
+  // Body: skin, then the cloth (and its print) clipped to it, then the outline
   s += `<g ${sx}>`;
   s += `<clipPath id="${id}-body"><path d="${BODY_D}"/></clipPath>`;
-  s += `<path d="${BODY_D}" fill="${c.outfitColor}" ${OUT} ${ns}/>`;
-  if (c.detail === 'stripe') s += `<g clip-path="url(#${id}-body)"><rect x="0" y="216" width="210" height="12" fill="#fff" fill-opacity="0.85"/></g>`;
+  s += `<path d="${BODY_D}" fill="${c.skin}"/>`;
+  s += `<g clip-path="url(#${id}-body)">`;
+  s += `<path d="${cloth}" fill="${c.outfitColor}"/>`;
+  const print = PRINTS[c.pattern];
+  if (print) {
+    const [box, art] = print(ink);
+    const [, , w, h] = box.split(' ');
+    s += `<pattern id="${id}-print" patternUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" viewBox="${box}">${art}</pattern>`;
+    s += `<path d="${cloth}" fill="url(#${id}-print)"/>`;
+  }
+  if (c.detail === 'stripe') s += `<rect x="0" y="216" width="210" height="12" fill="#fff" fill-opacity="0.85"/>`;
+  if (CLOTH[o]) s += `<path d="${cloth}" fill="none" ${OUT} ${ns}/>`;
+  s += '</g>';
+  s += `<path d="${BODY_D}" fill="none" ${OUT} ${ns}/>`;
   if (c.detail === 'pocket') s += `<rect x="132" y="210" width="20" height="18" rx="3" fill="none" stroke="#000" stroke-width="3" ${ns}/>`;
   s += '</g>';
-  // Neckline by outfit
-  if (c.outfit === 'tee') s += `<path d="M80 183C90 197 120 197 130 183" fill="none" ${OUT}/>`;
-  if (c.outfit === 'hoodie') {
-    s += `<path d="M80 183C90 197 120 197 130 183" fill="none" ${OUT}/>`;
+  // Necklines, by cut
+  const crew = `<path d="M80 183C90 197 120 197 130 183" fill="none" ${OUT}/>`;
+  if (o === 'tee') s += crew;
+  if (o === 'hoodie') {
+    s += crew;
     s += `<path d="M96 196V216M114 196V216" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>`;
   }
-  if (c.outfit === 'shirt') {
+  if (o === 'henley') {
+    s += crew;
+    s += `<path d="M105 195V224" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>`;
+    s += `<circle cx="110" cy="204" r="2.4" fill="#000"/><circle cx="110" cy="216" r="2.4" fill="#000"/>`;
+  }
+  if (o === 'vneck') s += `<path d="M82 183L105 214L128 183Z" fill="${c.skin}" ${OUT}/>`;
+  if (o === 'shirt') {
     s += `<path d="M80 183L96 202L105 189L114 202L130 183" fill="${c.outfitColor}" ${OUT}/>`;
     s += `<circle cx="105" cy="214" r="2.6" fill="#000"/><circle cx="105" cy="232" r="2.6" fill="#000"/>`;
+  }
+  if (o === 'turtleneck') {
+    s += `<path d="M84 166H126V186C126 192 84 192 84 186Z" fill="${c.outfitColor}" ${OUT}/>`;
+    s += `<path d="M86 175C98 178 112 178 124 175" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  if (o === 'suit') {
+    // A white shirt and a dark tie in the jacket's open front, lapels folding over it
+    s += `<path d="M82 183L105 242L128 183C120 192 90 192 82 183Z" fill="#fff" ${OUT}/>`;
+    s += `<path d="M100 191H110L108 199L112 228L105 236L98 228L102 199Z" fill="#1a1a1a" stroke="#000" stroke-width="2" stroke-linejoin="round"/>`;
+    s += `<path d="M80 183L92 216L86 221L105 244M130 183L118 216L124 221L105 244" fill="none" ${OUT}/>`;
   }
   return s;
 }

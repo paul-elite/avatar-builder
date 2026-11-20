@@ -117,7 +117,7 @@ const Chip = ({ color }) => (color ? <span className="ab-chip" style={{ backgrou
 /* What an item looks like for a given config: used for item tiles and option tiles */
 function Face({ item, config, size }) {
   switch (item) {
-    case 'body': return <ItemArt part="body" config={{ ...config, outfitColor: '#d9d9d7', outfit: 'tee', detail: 'none' }} size={size} />;
+    case 'body': return <ItemArt part="body" config={{ ...config, outfitColor: '#d9d9d7', outfit: 'tee', pattern: 'none', detail: 'none' }} size={size} />;
     case 'outfitColor': return <Chip color={config.outfitColor} />;
     case 'skin': return <HeadSwatch color={config.skin} shape={config.head} size={size} />;
     case 'bg': return <Chip color={config.bg} />;
@@ -744,6 +744,7 @@ export default function AvatarBuilder({
         if (s.item === 'beard') return <Face item="beard" config={{ ...config, beard: v, hairColor: tint(config.hairColor) }} />;
         if (s.key === 'wear') return <Face item="hat" config={{ ...config, cap: tint(config.cap || '#1a1a1a'), hat: v }} />;
         if (s.key === 'outfit') return <Face item="outfit" config={{ ...config, torso: true, outfit: v, outfitColor: tint(config.outfitColor) }} />;
+        if (s.item === 'pattern') return v === 'none' ? <None /> : <Face item="pattern" config={{ ...config, torso: true, pattern: v, outfitColor: on ? config.outfitColor : '#ffffff' }} />;
         return undefined;
       },
     };
