@@ -1,3 +1,4 @@
+import { HEAD_D as FIGMA_HEAD, FIGMA_HAIR } from './figma-hair.js';
 /* =========================================================================
    The avatar's parts, as SVG fragments in one shared coordinate space
    (the 176.8 × 160.1 avatar frame in the Avatars Figma file). Paths marked
@@ -39,7 +40,7 @@ const OVAL_D =
 export const HEADS = {
   classic: HEAD_D,
   boy: BOY.FACE, // ears built in, like classic
-  oval: OVAL_D, // ears built in
+  oval: FIGMA_HEAD, // the head from Figma 231:18073, ears built in (the only head for now)
   round: 'M38 84C38 40 66 6 105 6C144 6 172 40 172 84C172 128 144 160 105 160C66 160 38 128 38 84Z',
   square: 'M38 58C38 24 66 6 105 6C144 6 172 24 172 58V116C172 144 148 159 105 159C62 159 38 144 38 116Z',
 };
@@ -315,7 +316,11 @@ const DRAWN_HAIR = {
   buzz: 'M50.0 92.0C49.7 90.4 48.8 85.0 48.3 82.5C47.8 80.1 47.4 79.0 47.0 77.1C46.7 75.3 46.4 73.5 46.3 71.6C46.1 69.8 46.0 68.0 46.0 66.1C46.0 64.3 46.1 62.4 46.2 60.6C46.4 58.7 46.7 56.9 47.0 55.1C47.3 53.2 47.8 51.4 48.3 49.7C48.8 47.9 49.4 46.1 50.0 44.4C50.7 42.7 51.4 41.0 52.3 39.3C53.1 37.7 54.0 36.0 55.0 34.5C55.9 32.9 57.0 31.4 58.1 29.9C59.2 28.4 60.4 27.0 61.6 25.6C62.9 24.3 64.2 22.9 65.5 21.7C66.9 20.4 68.3 19.3 69.8 18.1C71.3 17.0 72.8 16.0 74.4 15.0C76.0 14.0 77.6 13.1 79.2 12.3C80.9 11.5 82.6 10.7 84.3 10.1C86.0 9.4 87.8 8.8 89.6 8.3C91.3 7.8 93.1 7.4 95.0 7.0C96.8 6.7 98.6 6.4 100.5 6.3C102.3 6.1 104.2 6.0 106.0 6.0C107.8 6.0 109.7 6.1 111.5 6.3C113.4 6.4 115.2 6.7 117.0 7.0C118.9 7.4 120.7 7.8 122.4 8.3C124.2 8.8 126.0 9.4 127.7 10.1C129.4 10.7 131.1 11.5 132.8 12.3C134.4 13.1 136.0 14.0 137.6 15.0C139.2 16.0 140.7 17.0 142.2 18.1C143.7 19.3 145.1 20.4 146.5 21.7C147.8 22.9 149.1 24.3 150.4 25.6C151.6 27.0 152.8 28.4 153.9 29.9C155.0 31.4 156.1 32.9 157.0 34.5C158.0 36.0 158.9 37.7 159.7 39.3C160.6 41.0 161.3 42.7 162.0 44.4C162.6 46.1 163.2 47.9 163.7 49.7C164.2 51.4 164.7 53.2 165.0 55.1C165.3 56.9 165.6 58.7 165.8 60.6C165.9 62.4 166.0 64.3 166.0 66.1C166.0 68.0 165.9 69.8 165.7 71.6C165.6 73.5 165.3 75.3 165.0 77.1C164.6 79.0 164.5 80.4 163.7 82.5C162.8 84.7 160.6 88.8 160.0 90.0C158.2 89.7 157.6 88.7 158.0 87.0C151.5 80.0 145.4 72.3 140.0 64.4C132.5 62.4 125.0 59.8 118.0 56.6C113.3 56.4 108.5 55.5 104.0 54.0C99.2 53.3 94.4 52.0 90.0 50.0C83.7 54.2 76.9 57.9 70.0 61.0C65.9 71.0 60.4 80.6 54.0 89.3C51.2 88.0 49.9 88.9 50.0 92.0Z',
 };
 
+// The Figma hairstyles: in front of the head, or behind it (the afro, the long hair)
+const figmaHair = (back) => Object.fromEntries(Object.entries(FIGMA_HAIR).filter(([, h]) => h.back === back).map(([k, h]) => [k, (c) => `<path d="${h.d}" fill="${c.hairColor}" fill-rule="evenodd"/>`]));
+
 export const hairBack = {
+  ...figmaHair(true),
   bangs: (c) => `<path d="${BOB}" fill="${c.hairColor}" ${OUT}/>`,
   sidebob: (c) => `<path d="${BOB}" fill="${c.hairColor}" ${OUT}/>`,
   long: (c) =>
@@ -325,6 +330,7 @@ export const hairBack = {
 
 export const hairFront = {
   none: () => '',
+  ...figmaHair(false),
   boy: (c) => `<path fill-rule="evenodd" clip-rule="evenodd" d="${BOY.HAIR}" fill="${c.hairColor}"/>`,
   ...Object.fromEntries(Object.entries(DRAWN_HAIR).map(([k, d]) => [k, (c) => `<path fill-rule="evenodd" d="${d}" fill="${c.hairColor}"/>`])),
   short: (c) => `<path d="${CROP}" fill="${c.hairColor}" ${OUT}/>`,
@@ -355,7 +361,7 @@ const BEARD_D = {
 // Each head's face centre, face edges at beard height and chin (the oval is what the beards were traced on)
 // REF is the head the beards were traced on (the earlier oval); every head, the oval included, is fitted from it
 const REF = [106.75, 59, 153, 158.4];
-const FIT = { oval: [106.75, 60, 152, 165], classic: [105, 44, 166, 159], boy: [106.5, 60, 153, 144], round: [105, 41, 169, 160], square: [105, 40, 170, 159] };
+const FIT = { oval: [106.75, 63, 150, 165.6], classic: [105, 44, 166, 159], boy: [106.5, 60, 153, 144], round: [105, 41, 169, 160], square: [105, 40, 170, 159] };
 // Sideburns on the oval: a strip down each side of the face, in front of the ears, to the cheekbone or the jaw
 // (wide where they meet the hair, tapering to a soft point; clipped to the face, so the outer edge follows it)
 const BURN = (y) => `M50 62H66C66.5 ${y - 16} 65 ${y - 5} 61 ${y}C58 ${y - 1} 54 ${y - 8} 50 ${y - 14}Z M163.5 62H147.5C147 ${y - 16} 148.5 ${y - 5} 152.5 ${y}C155.5 ${y - 1} 159.5 ${y - 8} 163.5 ${y - 14}Z`;

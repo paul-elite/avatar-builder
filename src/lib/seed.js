@@ -36,7 +36,7 @@ function rng(seedString) {
 const POOL = {
   skin: SKIN,
   head: HEAD,
-  hair: ['boy', 'boy', 'tufts', 'swept', 'spiky', 'mop', 'curlytop', 'buzz', 'short', 'bangs', 'sidebob', 'curly', 'long', 'bun', 'none'],
+  hair: ['fade', 'fade', 'taper', 'taper', 'afro', 'locs', 'flattop', 'cornrows', 'curls', 'longhair', 'sponge', 'twists', 'none'],
   // Mostly natural shades; the bright ones now and then
   hairColor: ['#1a1a1a', '#1a1a1a', '#1a1a1a', '#5a3620', '#5a3620', '#5a3620', '#a8693f', '#a8693f', '#e8b04b', '#f2e3c6', ...HAIR_COLOR.slice(5)],
   eyes: ['boy', 'boy', 'open', 'round', 'wide', 'big', 'happy', 'dots', 'up', 'side', 'sleepy', 'wink'],

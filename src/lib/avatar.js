@@ -40,7 +40,9 @@ const lineInk = (svg) => svg
   .replace(/stroke-width="([\d.]+)"/g, (m, w) => `stroke-width="${(+w * 0.8).toFixed(2)}"`);
 const outlined = (c, svg) => (c.style === 'line' && svg ? `<g stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">${svg}</g>` : svg);
 export const EYES = ['boy', 'open', 'round', 'wide', 'big', 'side', 'up', 'sleepy', 'peek', 'angry', 'skeptical', 'bored', 'happy', 'sad', 'closed', 'wink', 'flat', 'squeeze', 'dead', 'dots'];
-export const HEAD = ['boy', 'oval', 'classic', 'round', 'square'];
+// One head for now, with its hairstyles (Figma 231:18073 and 231:18076); the earlier heads and styles
+// still render for saved looks, but aren't offered
+export const HEAD = ['oval'];
 export const EARS = ['none', 'small', 'regular', 'big'];
 export const TILT = ['straight', 'left', 'right'];
 const TILT_DEG = { straight: 0, left: -10, right: 10 };
@@ -53,7 +55,7 @@ export const FRAME = ['circle', 'rounded', 'square', 'full'];
 // Eye styles whose pupils can look around
 const GAZE_EYES = ['round', 'wide', 'big', 'up', 'sleepy', 'peek', 'angry', 'bored'];
 export const MOUTH = ['boy', 'tongue', 'smile', 'smirk', 'open', 'o', 'frown', 'wobble', 'none'];
-export const HAIR = ['none', 'boy', 'tufts', 'swept', 'spiky', 'mop', 'curlytop', 'buzz', 'short', 'bangs', 'sidebob', 'curly', 'long', 'bun', 'underhat'];
+export const HAIR = ['none', 'fade', 'taper', 'afro', 'locs', 'flattop', 'cornrows', 'curls', 'longhair', 'sponge', 'twists'];
 // Facial hair, from the user's reference sheet
 export const BEARD = ['none', 'short', 'full', 'long'];
 export const MOUSTACHE = ['none', 'thin', 'handlebar'];
@@ -76,10 +78,10 @@ export const defaultAvatar = {
   frame: 'circle',
   shadow: true,
   skin: '#d9d9d7',
-  head: 'boy',
+  head: 'oval',
   ears: 'regular',
   tilt: 'straight',
-  hair: 'boy',
+  hair: 'fade',
   hairColor: '#1a1a1a',
   beard: 'none',
   moustache: 'none',
