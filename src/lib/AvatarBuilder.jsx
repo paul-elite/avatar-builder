@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
   SETUP, PRIMARY, ITEMS, ITEM_VIEWS, VIEWS,
-  defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg, STYLE_LOOK,
+  defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg, STYLE_LOOK, HEAD, HAIR,
 } from './avatar.js';
 import { downloadPng } from './export.js';
 import { readAvatar, loadAvatar, toAvatarDocument, encodeAvatar } from './document.js';
@@ -175,7 +175,10 @@ export default function AvatarBuilder({
   const saved = useRef(typeof window !== 'undefined' && !fromTemplate ? load(persist) : null).current;
   const startLook = useRef(fromTemplate);
   const isControlled = value != null;
-  const [internal, setInternal] = useState(() => fromTemplate || { ...defaultAvatar, ...(readAvatar(defaultValue) || {}), ...saved?.config });
+  // A look remembered from before the single-head set (2026-11-20) moves onto it: an old head becomes
+  // the head, an old hairstyle the fade; everything else is kept
+  const current = (cfg) => cfg && { ...cfg, ...(cfg.head && !HEAD.includes(cfg.head) ? { head: HEAD[0] } : {}), ...(cfg.hair && !HAIR.includes(cfg.hair) ? { hair: defaultAvatar.hair } : {}) };
+  const [internal, setInternal] = useState(() => fromTemplate || { ...defaultAvatar, ...(readAvatar(defaultValue) || {}), ...current(saved?.config) });
   const config = { ...defaultAvatar, ...(isControlled ? value : internal) };
 
   // Where the editor is: ['setup'] · [] (primary) · [group] · [group, item]
