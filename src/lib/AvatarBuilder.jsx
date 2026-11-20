@@ -481,11 +481,12 @@ export default function AvatarBuilder({
       before.delete(key);
       if (!old) {
         if (kind === 'bar') {
-          // Grows in place: a small chip at its centre, full height while still narrow, then out to
-          // its full width. The surface is a plain copy of the bar's skin (so nothing is squashed);
+          // Grows in place from two thirds of its size: full height first, then out to its full width. The surface is a plain copy of the bar's skin (so nothing is squashed);
           // the bar itself appears when the surface is full size, its options sliding up one by one
-          const r0 = { left: r.left + r.width / 2 - 12, top: r.top + r.height / 2 - 5, width: 24, height: 10 };
-          const r1 = { left: r.left + r.width / 2 - 28, top: r.top, width: 56, height: r.height };
+          // It starts at about two thirds of its size (never from nothing), reaches full height, then full width
+          const k = 0.66;
+          const r0 = { left: r.left + r.width * (1 - k) / 2, top: r.top + r.height * (1 - k) / 2, width: r.width * k, height: r.height * k };
+          const r1 = { left: r0.left, top: r.top, width: r0.width, height: r.height };
           const surf = document.createElement('div');
           surf.className = 'ab-morph';
           surf.style.borderRadius = getComputedStyle(el).borderRadius;
