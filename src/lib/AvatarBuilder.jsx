@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
   SETUP, PRIMARY, ITEMS, ITEM_VIEWS, VIEWS,
-  defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg,
+  defaultAvatar, innerSvg, itemSvg, headSwatchSvg, avatarToSvg, STYLE_LOOK,
 } from './avatar.js';
 import { downloadPng } from './export.js';
 import { readAvatar, loadAvatar, toAvatarDocument, encodeAvatar } from './document.js';
@@ -805,7 +805,7 @@ export default function AvatarBuilder({
         <span className="ab-set-label">{s.label}</span>
         <div className="ab-set-options">
           {s.options.map((opt) => (
-            <button key={opt} type="button" className={'ab-pill' + (eq(config[s.key], opt) ? ' on' : '')} aria-pressed={eq(config[s.key], opt)} onClick={() => set(s.key, opt)}>
+            <button key={opt} type="button" className={'ab-pill' + (eq(config[s.key], opt) ? ' on' : '')} aria-pressed={eq(config[s.key], opt)} onClick={() => (s.key === 'style' && config.style !== opt ? commit({ ...config, style: opt, ...(STYLE_LOOK[opt] || {}) }) : set(s.key, opt))}>
               {s.names[opt] || opt}
             </button>
           ))}

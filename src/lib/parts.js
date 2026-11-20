@@ -373,7 +373,7 @@ export function facialHair(c, id) {
   const fill = `fill="${c.hairColor}" fill-rule="evenodd"`;
   let face = '', over = '';
   // Stubble: a shadow of the full beard, kept on the face
-  if (st === 'light' || st === 'heavy') face += `<path d="${BEARD_D.full}" ${fill} fill-opacity="${st === 'light' ? 0.18 : 0.34}"/>`;
+  if (st === 'light' || st === 'heavy') face += `<path d="${BEARD_D.full}" ${fill} fill-opacity="${st === 'light' ? 0.18 : 0.34}" stroke="none"/>`;
   if (sb === 'short' || sb === 'long') face += `<path d="${BURN(sb === 'short' ? 98 : 120)}" fill="${c.hairColor}"/>`;
   if (BEARD_D[bd] && ['short', 'full', 'long'].includes(bd)) over += `<path d="${BEARD_D[bd]}" ${fill}/>`;
   if (gt === 'goatee' || gt === 'chin') over += `<path d="${BEARD_D[gt]}" ${fill}/>`;
@@ -425,7 +425,8 @@ export function torso(c, id) {
   const ns = 'vector-effect="non-scaling-stroke"';
   const o = c.outfit;
   const cloth = CLOTH[o] || BODY_D;
-  const ink = inkFor(c.outfitColor);
+  // Line style: prints in soft yellow on light cloth (white on darker), as in its reference
+  const ink = c.style === 'line' ? (inkFor(c.outfitColor) === '#1a1a1a' ? '#f6d45b' : '#ffffff') : inkFor(c.outfitColor);
   let s = '';
   // Hood sits behind the neck
   if (o === 'hoodie') s += `<g ${sx}><path d="M58 184C54 150 156 150 152 184Z" fill="${c.outfitColor}" ${OUT} ${ns}/></g>`;

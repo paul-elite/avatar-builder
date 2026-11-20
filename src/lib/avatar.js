@@ -14,17 +14,31 @@ import * as P from './parts.js';
 export const BG = ['#ffffff', '#f2f2f2', '#ffe4f1', '#e3f1ff', '#e9f9d9', '#fff3cf', '#ece6ff', '#1a1a1a'];
 // The first four are the Figma toolbar's head fills
 export const SKIN = ['#d9d9d7', '#ffffff', '#f3d2b9', '#444755', '#e8b98f', '#c68642', '#a8693f', '#6b3f22'];
-export const HAIR_COLOR = ['#1a1a1a', '#5a3620', '#a8693f', '#e8b04b', '#f2e3c6', '#f70492', '#1084fe', '#8b5cf6'];
+export const HAIR_COLOR = ['#1a1a1a', '#5a3620', '#a8693f', '#e8b04b', '#f2e3c6', '#f6d45b', '#a7d3ec', '#f70492', '#1084fe', '#8b5cf6'];
 export const CAP = ['#f70492', '#50c810', '#1084fe', '#ff7a00', '#8b5cf6', '#ffffff', '#1a1a1a'];
 export const HAT = ['cap', 'side', 'beanie'];
 export const GLASSES = ['#000000', '#f70492', '#1084fe', '#c8a24a'];
 export const BLUSH = ['#fc5cb9', '#ff8a65', '#f70410'];
 export const TEARS = ['#b2ebff', '#8fd3ff', '#c7f0d8'];
 export const TONGUE = ['#f70410', '#ff6fa5', '#ff8a65'];
-export const OUTFIT_COLOR = ['#1084fe', '#f70492', '#50c810', '#ff7a00', '#ffe401', '#8b5cf6', '#ffffff', '#1a1a1a'];
+export const OUTFIT_COLOR = ['#1084fe', '#f70492', '#50c810', '#ff7a00', '#ffe401', '#8b5cf6', '#a7d3ec', '#f6d45b', '#ffffff', '#1a1a1a'];
 
 export const CATEGORIES = ['person'];
-export const STYLES = ['outline'];
+export const STYLES = ['outline', 'line'];
+/* Line (from the user's reference, 2026-11-20): soft dark-grey outlines, a touch thinner, on everything,
+   hair and facial hair included; flat fills; no shadow. Picking it in setup starts from its look:
+   white skin, pastel yellow hair and blue clothes, dot eyes, a small smile, no nose. */
+const LINE_INK = '#3b3b3b';
+export const STYLE_LOOK = {
+  line: { skin: '#ffffff', hairColor: '#f6d45b', outfitColor: '#a7d3ec', cap: null, eyes: 'dots', mouth: 'smile', nose: 'none' },
+  outline: { skin: '#d9d9d7', hairColor: '#1a1a1a', outfitColor: '#1084fe', eyes: 'boy', mouth: 'boy', nose: 'boy' },
+};
+// The line style's ink, weight and outlined hair, applied to a drawn layer
+const lineInk = (svg) => svg
+  .replace(/stroke="#(?:000|000000|1A1A1A|1a1a1a)"/g, `stroke="${LINE_INK}"`)
+  .replace(/(fill|stroke)="#(?:000|000000)"/g, (m, k) => `${k}="${LINE_INK}"`)
+  .replace(/stroke-width="([\d.]+)"/g, (m, w) => `stroke-width="${(+w * 0.8).toFixed(2)}"`);
+const outlined = (c, svg) => (c.style === 'line' && svg ? `<g stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">${svg}</g>` : svg);
 export const EYES = ['boy', 'open', 'round', 'wide', 'big', 'side', 'up', 'sleepy', 'peek', 'angry', 'skeptical', 'bored', 'happy', 'sad', 'closed', 'wink', 'flat', 'squeeze', 'dead', 'dots'];
 export const HEAD = ['boy', 'oval', 'classic', 'round', 'square'];
 export const EARS = ['none', 'small', 'regular', 'big'];
@@ -100,7 +114,7 @@ export const defaultAvatar = {
    'toggle' (two choices shown inline). `optional` color items have a "none". */
 export const SETUP = [
   { key: 'category', label: 'Category', options: CATEGORIES, names: { person: 'Person' } },
-  { key: 'style', label: 'Style', options: STYLES, names: { outline: 'Outline' } },
+  { key: 'style', label: 'Style', options: STYLES, names: { outline: 'Outline', line: 'Line' } },
 ];
 
 export const ITEMS = {
@@ -237,14 +251,14 @@ export function innerSvg(config, { id = 'ab' + (++uid), parts = false } = {}) {
   const deg = TILT_DEG[c.tilt] || 0;
   const rot = (svg) => (deg && svg ? `<g transform="rotate(${deg} 105 150)">${svg}</g>` : svg);
   let s = '';
-  if (c.shadow) s += rot(P.shadow(c));
+  if (c.shadow && c.style !== 'line') s += rot(P.shadow(c));
   if (c.torso) s += L('torso', P.torso(c, id));
   let h = '';
   h += L('ears', P.ears(c));
-  if (P.hairBack[c.hair]) h += L('hair', P.hairBack[c.hair](c));
+  if (P.hairBack[c.hair]) h += L('hair', outlined(c, P.hairBack[c.hair](c)));
   h += L('skin', P.head(c));
   s += rot(headLayers(c, id, L, h));
-  return s;
+  return c.style === 'line' ? lineInk(s) : s;
 }
 
 function headLayers(c, id, L, s) {
@@ -254,11 +268,11 @@ function headLayers(c, id, L, s) {
   s += L('eyes', (P.eyes[c.eyes] || P.eyes.open)(c));
   if (c.glasses) s += L('glasses', P.glasses(c));
   // Facial hair sits under the nose and mouth, which stay drawn over it
-  if (hasFacial(c)) s += L('beard', P.facialHair(c, id));
+  if (hasFacial(c)) s += L('beard', outlined(c, P.facialHair(c, id)));
   s += L('nose', (P.nose[c.nose] || P.nose.none)(c));
   s += L('mouth', (P.mouth[c.mouth] || P.mouth.none)(c));
   // Hair sits over the head; a cap, when worn, covers its top
-  s += L('hair', (P.hairFront[c.hair] || P.hairFront.none)(c));
+  s += L('hair', outlined(c, (P.hairFront[c.hair] || P.hairFront.none)(c)));
   // Hands come up in front of the face and hair
   s += L('hand', (P.hands[c.gesture] || P.hands.none)(c));
   if (c.head === 'boy') s += L('skin', P.boyEars(c));
