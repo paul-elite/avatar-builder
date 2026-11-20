@@ -583,6 +583,8 @@ export default function AvatarBuilder({
   /* ---- Pieces of a bar ---- */
   const live = (top) => (top ? undefined : -1); // controls on a muted bar stay clickable, but out of the tab order
   // One option: the item itself, drawn for this config
+  // The grey an option is drawn in until it's chosen
+  const UNPICKED = '#9ea1a9';
   const optionTile = (k, opt, { on, pick, inGrid = false, top = true, art }) => {
     const label = opt === null ? 'None' : opt === true ? 'On' : opt === false ? 'Off' : String(opt);
     return (
@@ -688,7 +690,15 @@ export default function AvatarBuilder({
       options: o.options,
       isOn: (v) => eq(o.value, v),
       pick: (v) => commit({ ...config, ...o.pick(v) }),
-      art: (v) => (v === null ? <None /> : s.item === 'hair' && hasHairIcon(v) ? <HairIcon style={v} color={config.hairColor} /> : s.key === 'wear' ? <Face item="hat" config={{ ...config, cap: config.cap || '#1a1a1a', hat: v }} /> : s.key === 'outfit' ? <Face item="outfit" config={{ ...config, torso: true, outfit: v }} /> : undefined),
+      // Only the chosen option wears the colour (the hair, the hat, the outfit); the rest are drawn in grey
+      art: (v, on) => {
+        if (v === null) return <None />;
+        const tint = (c) => (on ? c : UNPICKED);
+        if (s.item === 'hair') return hasHairIcon(v) ? <HairIcon style={v} color={tint(config.hairColor)} /> : <Face item="hair" config={{ ...config, hair: v, hairColor: tint(config.hairColor) }} />;
+        if (s.key === 'wear') return <Face item="hat" config={{ ...config, cap: tint(config.cap || '#1a1a1a'), hat: v }} />;
+        if (s.key === 'outfit') return <Face item="outfit" config={{ ...config, torso: true, outfit: v, outfitColor: tint(config.outfitColor) }} />;
+        return undefined;
+      },
     };
   };
   // A level's bar, left of its ×: tabs, then the main row (scrolling on its own when long), then tiles
@@ -697,7 +707,7 @@ export default function AvatarBuilder({
     if (m.colour) return { row: colourTiles(m.colour, top), swatches: true };
     const row = m.swatches
       ? m.options.map((v) => swatch(m.swatches, v, top))
-      : m.options.map((v) => optionTile(m.k, v, { on: m.isOn(v), pick: m.pick, top, art: m.art && m.art(v) }));
+      : m.options.map((v) => optionTile(m.k, v, { on: m.isOn(v), pick: m.pick, top, art: m.art && m.art(v, m.isOn(v)) }));
     if (d.kind === 'item') return { row, swatches: !!m.swatches, long: m.options.length > SHAPE_ROW };
     const { cat, sections, s } = d;
     // The category's tabs: a small pill over the bar in focus (Figma 156:17484), not inside the bar
@@ -833,7 +843,7 @@ export default function AvatarBuilder({
 
           {gridRow && (
             <div className="ab-grid ab-grid-items" data-open={grid || undefined} role="dialog" aria-label="All options" aria-hidden={!grid}>
-              {gridRow.options.map((o) => optionTile(gridRow.k, o, { on: gridRow.isOn(o), pick: gridRow.pick, inGrid: true, art: gridRow.art && gridRow.art(o) }))}
+              {gridRow.options.map((o) => optionTile(gridRow.k, o, { on: gridRow.isOn(o), pick: gridRow.pick, inGrid: true, art: gridRow.art && gridRow.art(o, gridRow.isOn(o)) }))}
             </div>
           )}
 
