@@ -481,11 +481,15 @@ export default function AvatarBuilder({
       before.delete(key);
       if (!old) {
         if (kind === 'bar') {
-          // Grows in place from two thirds of its size: full height first, then out to its full width. The surface is a plain copy of the bar's skin (so nothing is squashed);
+          // Grows from two thirds of its size, out of the control that opened it: full height first, then full width. The surface is a plain copy of the bar's skin (so nothing is squashed);
           // the bar itself appears when the surface is full size, its options sliding up one by one
-          // It starts at about two thirds of its size (never from nothing), reaches full height, then full width
+          // It starts at about two thirds of its size (never from nothing), reaches full height, then full width.
+          // It grows out of what opened it: the tab that opens this bar, else the control pressed, else its centre
           const k = 0.66;
-          const r0 = { left: r.left + r.width * (1 - k) / 2, top: r.top + r.height * (1 - k) / 2, width: r.width * k, height: r.height * k };
+          const src = (snap.opens[key] && snap.opens[key].rect) || snap.from;
+          const ox = src ? Math.min(r.right, Math.max(r.left, src.left + src.width / 2)) : r.left + r.width / 2;
+          const oy = src ? src.top + src.height / 2 : r.top + r.height / 2;
+          const r0 = { left: ox + (r.left - ox) * k, top: oy + (r.top - oy) * k, width: r.width * k, height: r.height * k };
           const r1 = { left: r0.left, top: r.top, width: r0.width, height: r.height };
           const surf = document.createElement('div');
           surf.className = 'ab-morph';
