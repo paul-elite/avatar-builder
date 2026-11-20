@@ -1,4 +1,4 @@
-import { HEAD_D as FIGMA_HEAD, FIGMA_HAIR } from './figma-hair.js';
+import { HEAD_D as FIGMA_HEAD, CLEAN_HEAD_D, FIGMA_HAIR } from './figma-hair.js';
 /* =========================================================================
    The avatar's parts, as SVG fragments in one shared coordinate space
    (the 176.8 × 160.1 avatar frame in the Avatars Figma file). Paths marked
@@ -40,7 +40,8 @@ const OVAL_D =
 export const HEADS = {
   classic: HEAD_D,
   boy: BOY.FACE, // ears built in, like classic
-  oval: FIGMA_HEAD, // the head from Figma 231:18073, ears built in (the only head for now)
+  oval: FIGMA_HEAD, // the head from Figma 231:18073, ears built in, as traced
+  clean: CLEAN_HEAD_D, // the same head, smoothed and symmetric
   round: 'M38 84C38 40 66 6 105 6C144 6 172 40 172 84C172 128 144 160 105 160C66 160 38 128 38 84Z',
   square: 'M38 58C38 24 66 6 105 6C144 6 172 24 172 58V116C172 144 148 159 105 159C62 159 38 144 38 116Z',
 };
@@ -361,7 +362,7 @@ const BEARD_D = {
 // Each head's face centre, face edges at beard height and chin (the oval is what the beards were traced on)
 // REF is the head the beards were traced on (the earlier oval); every head, the oval included, is fitted from it
 const REF = [106.75, 59, 153, 158.4];
-const FIT = { oval: [106.75, 63, 150, 165.6], classic: [105, 44, 166, 159], boy: [106.5, 60, 153, 144], round: [105, 41, 169, 160], square: [105, 40, 170, 159] };
+const FIT = { oval: [106.75, 63, 150, 165.6], clean: [106.75, 63, 150, 165.6], classic: [105, 44, 166, 159], boy: [106.5, 60, 153, 144], round: [105, 41, 169, 160], square: [105, 40, 170, 159] };
 // Sideburns on the oval: a strip down each side of the face, in front of the ears, to the cheekbone or the jaw
 // (wide where they meet the hair, tapering to a soft point; clipped to the face, so the outer edge follows it)
 const BURN = (y) => `M50 62H66C66.5 ${y - 16} 65 ${y - 5} 61 ${y}C58 ${y - 1} 54 ${y - 8} 50 ${y - 14}Z M163.5 62H147.5C147 ${y - 16} 148.5 ${y - 5} 152.5 ${y}C155.5 ${y - 1} 159.5 ${y - 8} 163.5 ${y - 14}Z`;
