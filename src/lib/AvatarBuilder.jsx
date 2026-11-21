@@ -177,7 +177,8 @@ export default function AvatarBuilder({
   const isControlled = value != null;
   // A look remembered from before the single-head set (2026-11-20) moves onto it: an old head becomes
   // the head, an old hairstyle the fade; everything else is kept
-  const current = (cfg) => cfg && { ...cfg, ...(cfg.head && !HEAD.includes(cfg.head) ? { head: HEAD[0] } : {}), ...(cfg.hair && !HAIR.includes(cfg.hair) ? { hair: defaultAvatar.hair } : {}) };
+  // Looks saved before the clean head was the default (no headV) move onto it once; later choices stick
+  const current = (cfg) => cfg && { ...cfg, ...(cfg.head && (!HEAD.includes(cfg.head) || (cfg.head === 'oval' && !saved?.headV)) ? { head: HEAD[0] } : {}), ...(cfg.hair && !HAIR.includes(cfg.hair) ? { hair: defaultAvatar.hair } : {}) };
   const [internal, setInternal] = useState(() => fromTemplate || { ...defaultAvatar, ...(readAvatar(defaultValue) || {}), ...current(saved?.config) });
   const config = { ...defaultAvatar, ...(isControlled ? value : internal) };
 
@@ -208,7 +209,7 @@ export default function AvatarBuilder({
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const after = (ms, fn) => timers.current.push(setTimeout(fn, reducedMotion() ? 0 : ms));
 
-  useEffect(() => { save(persist, { config, setupDone, bgEdited: true }); }, [persist, setupDone, JSON.stringify(config)]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { save(persist, { config, setupDone, bgEdited: true, headV: 2 }); }, [persist, setupDone, JSON.stringify(config)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---- Changes and history: an action is a change to how the avatar looks ---- */
   const emit = useCallback((next) => {
